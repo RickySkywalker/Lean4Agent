@@ -10,10 +10,13 @@ We introduce **Lean4Agent**, to the best of our knowledge, the first framework t
 
 ## Reference
 ```bibtex
-@article{wang2026lean4agent,
-  title={Lean4Agent: Formal Modeling and Verification for Agent Workflow and Trajectory},
-  author={Wang, Ruida and Huang, Jerry and Wang, Pengcheng and Liu, Xuanqing and Kong, Luyang and Zhang, Tong},
-  year={2026},
-  note={Preprint}
+@misc{wang2026lean4agent,
+      title={Lean4Agent: Formal Modeling and Verification for Agent Workflow and Trajectory}, 
+      author={Ruida Wang and Jerry Huang and Pengcheng Wang and Xuanqing Liu and Luyang Kong and Tong Zhang},
+      year={2026},
+      eprint={2606.06523},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2606.06523}, 
 }
 ```
