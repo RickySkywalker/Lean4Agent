@@ -1,0 +1,52 @@
+tool_mappings:
+  app_control:
+    terminal: terminal
+    browser: browser
+    file: filesystem
+    text_edit: text_edit
+  web:
+    utils: web
+    web_search: web_search
+  parser:
+    parsing: parser
+  code:
+    python: python
+    patch: apply_patch
+    swe_bench: find_file, search_file, search_dir, view_file, edit
+  chemistry:
+    ai_expert: ask_ai_expert
+    molecular_prediction: molecular_prediction
+  memory:
+    episodic: memory
+  research:
+    paper_search: research
+    reference: get_bibtex_from_url, get_abstract_from_url, json_to_bibtex
+    fix_latex_format: fix_latex_format
+    fix_latex_file: fix_latex_file
+  retrieval:
+    bm25_index: bm25_index
+    bm25_search: bm25_search
+  slack:
+    messaging: slack_send_message, slack_reply, slack_add_reaction, slack_get_thread
+  discord:
+    messaging: discord_send_message, discord_reply, discord_add_reaction, discord_get_channel_history
+  refiner:
+    format_checker: check_format
+    figure_generator: generate_figure
+    pdf_compiler: compile_pdf
+    paper_reviewer: review_paper
+    text_patcher: patch_text
+    citation_searcher: search_citation_pool
+
+# VM Profiles for deciding which tools to enable
+vm_profiles:
+  default:
+    enabled_categories: ["app_control", "web", "parser", "code", "chemistry", "memory", "os", "research", "retrieval", "slack", "discord", "browsecomp", "refiner"]
+  coding:
+    enabled_categories: ["code"]
+  chemistry_only:
+    enabled_categories: ["chemistry"]
+  chemistry_full:
+    enabled_categories: ["app_control", "web", "parser", "code", "memory", "chemistry"]
+  computer_use:
+    enabled_categories: ["app_control", "web", "parser", "code", "memory"]

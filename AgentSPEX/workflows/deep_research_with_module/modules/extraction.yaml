@@ -1,0 +1,25 @@
+name: "extract_content_module"
+goal: "Extract content following the instruction"
+
+config:
+    model: "gpt-5-nano"                 # Use a different model for this submodule
+    max_tokens_per_step: 100000         # Submodule uses smaller token limit
+    max_tool_calls_per_step: 10
+
+# Parameters from parent workflow
+parameters:
+    content: "${CONTENT}"
+    user_instruction: "${USER_INSTRUCTION}"
+
+workflow:
+    - step:
+        name: "extract_content"
+        instruction: |
+            {{user_instruction}}
+
+            Don't perform tool call, just extract the user's desired content from below text with no extra commentary: 
+            
+            {{content}}
+        save_as: "extracted_content"
+    
+    - return: "extracted_content"

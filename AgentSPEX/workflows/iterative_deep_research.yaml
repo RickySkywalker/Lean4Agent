@@ -1,0 +1,177 @@
+name: "corrected_iterative_deep_research_mathematical_reasoning"
+goal: "Iterative deep research with proper memory management and context control"
+
+config:
+  model: "gpt-4o"
+  max_tokens_per_step: 120000
+  max_tool_calls_per_step: 15
+  plan_revision_max_steps: 0
+
+parameters:
+  topic: "large_language_models_reasoning_capabilities"
+  sub_task: "mathematical_reasoning"
+  max_depth: 3
+  initial_breadth: 4
+  current_depth: 0
+  current_breadth: 4
+  memory_file: "outputs/corrected_iterative_deep_research_mathematical_reasoning/episodic_memory.json"
+
+workflow:
+  # Step 1: Initialize research with minimal context usage
+  - step:
+      name: "initialize_research"
+      instruction: |
+        Initialize iterative deep research:
+        NOTE: All memory related tool call should use memory_file stored at {{memory_file}} ! ! !
+        1. Store research config in memory: memory("store", key="config", content="Topic: {{topic}}, Sub-task: {{sub_task}}, Max depth: {{max_depth}}, Initial breadth: {{initial_breadth}}", tags="config")
+        2. Store research goal in memory: memory("store", key="goal", content="Deep iterative research on {{topic}} focusing on {{sub_task}}", tags="goal")
+        3. Initialize memory tracking: memory("store", key="research_started", content="Research initialized", tags="status")
+        
+        Report: Research initialized. Starting with depth {{current_depth}}, breadth {{initial_breadth}}.
+    
+  - set_variable:
+      name: "current_breadth"
+      value: "{{initial_breadth}}"
+
+  # Step 2: Main iteration loop
+  - while:
+      condition: "current_depth < max_depth"
+      steps:
+        # Conditional query generation based on depth
+        - if:
+            condition: "current_depth == 0"
+            then:
+              - step:
+                  name: "generate_initial_queries"
+                  instruction: |
+                    NOTE: All memory related tool call should use memory_file stored at {{memory_file}} ! ! !
+                    Generate initial queries for iteration 0:
+                    1. Create {{current_breadth}} diverse search queries for {{topic}}
+                    2. Focus on different aspects: methodology, applications, challenges, recent developments
+                    3. Store queries in memory: memory("store", key="iter0_queries", content="[JSON array of {{current_breadth}} queries]", tags="queries,iter0")
+                    
+                    Return queries as JSON array: ["query1", "query2", "query3", ...]
+            else:
+              - step:
+                  name: "generate_refined_queries"
+                  instruction: |
+                    NOTE: All memory related tool call should use memory_file stored at {{memory_file}} ! ! !
+                    Generate refined queries for iteration {{current_depth}}:
+                    1. Use current breadth: {{current_breadth}} queries to generate
+                    2. Retrieve previous iteration learnings: memory("search", query="learnings")
+                    3. Retrieve follow-up questions: memory("search", query="followups")
+                    4. Select most promising follow-up directions
+                    5. Generate {{current_breadth}} refined queries based on gaps and promising directions
+                    6. Store queries: memory("store", key="iter{{current_depth}}_queries", content="[JSON array of refined queries]", tags="queries,iter{{current_depth}}")
+                    
+                    Return refined queries as JSON array.
+
+        # Extract queries for processing
+        - discover:
+            name: "iteration_queries"
+            from: "prev_output"  
+            instruction: "Extract the query list as clean JSON array"
+
+        # Process each query sequentially
+        - for_each:
+            variable: "query"
+            in: "iteration_queries"
+            steps:
+              - step:
+                  name: "process_single_query"
+                  instruction: |
+                    NOTE: All memory related tool call should use memory_file stored at {{memory_file}} ! ! !
+                    Process query: "{{query}}" in iteration {{current_depth}}:
+                    1. Execute web search for: {{query}}
+                    2. Collect 5 most relevant sources
+                    3. Extract 3 key learnings from results:
+                        - Specific facts, data, insights
+                        - Novel information not seen before
+                        - Concrete findings with entities, numbers, dates
+                    4. Generate 2 follow-up questions for deeper investigation
+                    5. Store learnings: memory("store", key="{{query}}_learnings_iter{{current_depth}}", content="[detailed learnings]", tags="learnings,iter{{current_depth}}")
+                    6. Store follow-ups: memory("store", key="{{query}}_followups_iter{{current_depth}}", content="[follow-up questions]", tags="followups,iter{{current_depth}}")
+                    7. Store source URLs: memory("store", key="{{query}}_sources_iter{{current_depth}}", content="[source URLs]", tags="sources,iter{{current_depth}}")
+                    
+                    Report: Query processed - 3 learnings extracted, 2 follow-ups generated.
+
+        # Calculate next breadth for upcoming iteration
+        - set_variable:
+            name: "current_breadth"
+            value: "max( {{current_breadth}} // 2, 1)"
+
+        # Update iteration state and prepare next iteration
+        - step:
+            name: "advance_iteration"
+            instruction: |
+              NOTE: All memory related tool call should use memory_file stored at {{memory_file}} ! ! !
+              Complete iteration {{current_depth}} and advance:
+              1. Summarize current iteration: Review all learnings from iter{{current_depth}}
+              2. Store iteration summary: memory("store", key="iter{{current_depth}}_summary", content="[key themes, insights count, next directions]", tags="summary,iter{{current_depth}}")
+              3. Log progression: "Completed iteration {{current_depth}}"
+              
+              Report: Iteration {{current_depth}} completed, advance to next iteration until reach max depth of {{max_depth}}.
+
+        # Increment depth for while loop
+        - increment: "current_depth"
+
+  # Step 3: Comprehensive synthesis with selective memory loading
+  - synthesize:
+      name: "iterative_research_synthesis"
+      instruction: |
+        NOTE: All memory related tool call should use memory_file stored at {{memory_file}} ! ! !
+        Create comprehensive synthesis using selective memory loading:
+        1. Load research config: memory("get", key="config")
+        2. Load research goal: memory("get", key="goal") 
+        3. Load iteration summaries: memory("search", query="summary")
+        4. For detailed content, load selectively:
+           - Key learnings from each iteration: memory("search", query="learnings")
+           - Critical insights only (avoid loading all raw content)
+        5. Structure synthesis (4000+ words):
+           
+           ## Executive Summary (400 words)
+           - Research methodology and scope
+           - Key discoveries across {{current_depth}} iterations
+           
+           ## Iterative Research Progression (1000 words)  
+           - Iteration 0: Broad exploration (breadth {{initial_breadth}})
+           - Iteration 1: Focused refinement 
+           - Iteration 2+: Deep investigation 
+           - How queries evolved and insights accumulated
+           
+           ## Comprehensive Findings (2000 words)
+           - Synthesized insights organized by theme
+           - Cross-iteration knowledge integration
+           - Evidence from multiple sources
+           
+           ## Research Quality Analysis (400 words)
+           - Depth achieved through iteration
+           - Source diversity and coverage
+           - Novel insights discovered
+           
+           ## Implications and Future Directions (400 words)
+           - Practical implications for {{sub_task}}
+           - Identified research gaps
+           - Recommended follow-up investigations
+        
+        6. Store synthesis: memory("store", key="final_synthesis", content="[complete synthesis text]", tags="synthesis,final")
+        
+        Focus on demonstrating how iterative deepening revealed insights not possible with single-pass research.
+      output_file: "iterative_deep_research_report.md"
+
+  # Step 4: Methodology analysis
+  - step:
+      name: "analyze_methodology"
+      instruction: |
+        NOTE: All memory related tool call should use memory_file stored at {{memory_file}} ! ! !
+        Analyze iterative research methodology effectiveness:
+        1. Load minimal context: memory("search", query="summary") 
+        2. Assess methodology performance:
+           - Query evolution quality across iterations
+           - Learning accumulation effectiveness  
+           - Follow-up question targeting accuracy
+           - Research depth achieved vs single-pass approach
+        3. Generate methodology insights (avoid loading all detailed content)
+        4. Store analysis: memory("store", key="methodology_analysis", content="[methodology effectiveness assessment]", tags="methodology,analysis")
+        
+        Report methodology analysis focusing on iterative approach effectiveness.

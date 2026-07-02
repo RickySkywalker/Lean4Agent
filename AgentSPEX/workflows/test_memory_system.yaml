@@ -1,0 +1,87 @@
+name: "test_memory_system"
+goal: "Test the long-term episodic memory system functionality"
+
+config:
+  model: "gpt-4o-mini"
+  max_tokens_per_step: 100000
+  max_tool_calls_per_step: 10
+  plan_revision_max_steps: 0
+
+parameters:
+  test_topic: "artificial intelligence"
+  max_entries: 3
+
+workflow:
+  # Step 1: Test basic memory storage
+  - step:
+      name: "test_memory_store"
+      instruction: |
+        Test the memory system by storing some test information:
+        1. Store entry 1: memory("store", key="test_entry_1", content="This is the first test entry about {{test_topic}}", tags="test,basic,{{test_topic}}")
+        2. Store entry 2: memory("store", key="test_entry_2", content="This is the second test entry with different content", tags="test,advanced")
+        3. Store entry 3: memory("store", key="research_note", content="Important research note: {{test_topic}} is a rapidly evolving field", tags="research,note,{{test_topic}}")
+        4. Check memory stats: memory("stats")
+        
+        Report what happened with each storage operation.
+
+  # Step 2: Test memory retrieval
+  - step:
+      name: "test_memory_retrieve"
+      instruction: |
+        Test memory retrieval functionality:
+        1. Retrieve entry 1: memory("get", key="test_entry_1")
+        2. Retrieve entry 2: memory("get", key="test_entry_2") 
+        3. Retrieve research note: memory("get", key="research_note")
+        4. Try to retrieve non-existent entry: memory("get", key="nonexistent_key")
+        
+        Verify that all stored content is retrieved correctly and report the results.
+
+  # Step 3: Test memory search
+  - step:
+      name: "test_memory_search"
+      instruction: |
+        Test memory search capabilities:
+        1. Search by tag "test": memory("search", query="test")
+        2. Search by tag "{{test_topic}}": memory("search", query="{{test_topic}}")
+        3. Search by content "research": memory("search", query="research")
+        4. Search for something that doesn't exist: memory("search", query="xyz123")
+        
+        Analyze and report the search results.
+
+  # Step 4: Test recent entries and stats
+  - step:
+      name: "test_memory_recent_and_stats"
+      instruction: |
+        Test recent entries and statistics:
+        1. List recent entries: memory("recent", limit={{max_entries}})
+        2. Get detailed statistics: memory("stats")
+        
+        Report what information is available about stored memories.
+
+  # Step 5: Test memory persistence across steps
+  - step:
+      name: "test_memory_persistence"
+      instruction: |
+        Test that memory persists across different steps:
+        1. Retrieve the first entry again: memory("get", key="test_entry_1")
+        2. Store a new entry referencing previous data: memory("store", key="step5_entry", content="This entry was created in step 5, referencing data from earlier steps", tags="step5,persistence,test")
+        3. Search for all test entries: memory("search", query="test")
+        
+        Verify that all previously stored data is still accessible and that new data can reference old data.
+
+  # Step 6: Synthesis with memory
+  - synthesize:
+      name: "memory_test_synthesis"
+      instruction: |
+        Create a synthesis report about the memory system test:
+        1. First, retrieve all test data: memory("search", query="test")
+        2. Analyze the memory system's performance based on the test results
+        3. Create a comprehensive report covering:
+           - Storage functionality (success/failure of store operations)
+           - Retrieval accuracy (did we get back what we stored?)
+           - Search capabilities (tag and content search effectiveness)  
+           - Persistence across workflow steps
+           - Overall reliability and usefulness for research workflows
+        
+        Use the retrieved memory data to support your analysis.
+      output_file: "memory_test_report.md"

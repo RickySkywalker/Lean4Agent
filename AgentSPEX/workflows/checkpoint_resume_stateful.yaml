@@ -1,0 +1,50 @@
+name: "checkpoint_resume_stateful"
+goal: "E2E test durable checkpoint + resume, including MCP session, submodules, and parallel gather."
+
+config:
+  model: "gpt-4o-mini"
+  max_tool_calls_per_step: 5
+  max_tokens_per_step: 4000
+  temperature: 0.0
+
+workflow:
+  # Step 1: Set state inside the sandbox terminal session (session persistence)
+  - step:
+      name: "set_terminal_state"
+      instruction: |
+        Use term_send to run: export CP_VAR="STATEFUL_OK"; echo "__CP_SET__"
+        Then use term_read to confirm "__CP_SET__" appears.
+  
+  # Step 2: Call a submodule (granular checkpointing)
+  - call:
+      module: "modules/multi_step_dummy.yaml"
+      parameters:
+        message: "stateful_test"
+      save_as: "submodule_result"
+
+  # Step 3: Parallel gather (parallel checkpointing)
+  - gather:
+      calls:
+        - module: "modules/multi_step_dummy.yaml"
+          parameters:
+            message: "parallel_1"
+          save_as: "res_1"
+        - module: "modules/multi_step_dummy.yaml"
+          parameters:
+            message: "parallel_2"
+          save_as: "res_2"
+      save_results_as: "gather_results"
+      max_workers: 2
+
+  # Step 4: Verify terminal state still exists (requires same session)
+  - step:
+      name: "verify_terminal_state"
+      instruction: |
+        Use term_send to run: echo "$CP_VAR"
+        Confirm the output is "STATEFUL_OK".
+  
+  # Step 5: Final output
+  - save:
+      name: "write_done"
+      output_file: "done.txt"
+      content: "All stateful tests completed. Submodule: {{submodule_result}}, Gather: {{gather_results}}\n"

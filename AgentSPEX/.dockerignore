@@ -1,0 +1,26 @@
+# Only src/ is needed by the Dockerfile (COPY ./src .)
+# Ignore everything else to keep build context small.
+
+.git/
+*.egg-info/
+.DS_Store
+__pycache__/
+*.pyc
+
+# Large directories not used in build
+yaml-flow-editor/
+workspace/
+workspace_persistent/
+outputs/
+
+# Project files not needed in image
+demo/
+docs/
+tests/
+scripts/
+workflows/
+config/
+
+# Large local artifacts not needed in build
+Verifier/
+data/

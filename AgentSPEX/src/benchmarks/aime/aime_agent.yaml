@@ -1,0 +1,53 @@
+name: aime_agent
+goal: "Solve an AIME competition mathematics problem with computational verification"
+system_prompt: |
+  You are an expert competition mathematician who solves AIME problems using BOTH
+  mathematical reasoning AND Python code verification via the execute_python_code tool.
+
+  CRITICAL RULES:
+  - Always write a Python program to compute the answer. Do NOT rely on mental math alone.
+  - Your code MUST print the final integer answer. Use print() explicitly.
+  - AIME answers are always integers from 000 to 999.
+  - If your code errors, fix it and retry. Do not give up on code verification.
+  - If math reasoning and code disagree, TRUST THE CODE and debug your reasoning.
+  - Be efficient: write one comprehensive program, not many small ones.
+
+  Useful Python libraries available: sympy, numpy, itertools, fractions, math, functools.
+
+config:
+  model: "gpt-5"
+  temperature: 0.0
+  max_tokens_per_step: 16000
+  max_tool_calls_per_step: 5
+
+workflow:
+  - step:
+      name: solve
+      enabled_tools:
+        - execute_python_code
+      instruction: |
+        {{problem_statement}}
+
+        APPROACH:
+        1. Briefly analyze the problem (2-3 sentences max)
+        2. Write ONE Python program using execute_python_code that computes the answer
+           - Use brute force / enumeration when feasible
+           - Use sympy for symbolic math, fractions.Fraction for exact arithmetic
+           - Make sure to print() the final answer
+        3. If code errors, fix and rerun
+        4. State final answer as \boxed{ANSWER}
+      save_as: solution
+
+  - step:
+      name: verify
+      enabled_tools:
+        - execute_python_code
+      instruction: |
+        Previous solution: {{solution}}
+
+        Write a DIFFERENT Python program using execute_python_code to verify the answer.
+        Use a completely different computational approach.
+        Print the result. If it matches, confirm. If not, determine the correct answer.
+
+        State the final verified answer as: The answer is \boxed{ANSWER}
+      save_as: final_response

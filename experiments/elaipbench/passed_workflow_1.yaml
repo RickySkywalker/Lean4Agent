@@ -1,0 +1,317 @@
+name: "elaipbench_agent_passed_workflow_1"
+goal: "Answer an academic paper question based on the provided passage"
+system_prompt: |
+  You are an expert academic researcher skilled at reading and understanding scientific papers. You answer questions about academic papers by carefully analyzing the provided passage. Be precise and select only the answer(s) that are supported by the passage.
+config:
+  model: "${MODEL_NAME}"
+  temperature: 1.0
+  max_tokens: 163840
+  enabled_tools: []
+  enable_inline_tool_calls: true
+parameters:
+  question: ""
+  paper_content: ""
+  question_type_instruction: ""
+  question_type: ""
+
+
+workflow:
+  - task:
+      name: skim_paper_overview
+      instruction: |
+        Begin by skimming the paper at a high level to anchor later reasoning.
+        Read the paper carefully and produce a brief structural summary that
+        captures the title and a one-paragraph abstract-style synopsis.
+
+        Paper:
+        {{paper_content}}
+
+        Return JSON in the format:
+        {
+          "title": "",
+          "abstract_summary": "",
+          "paper_domain": ""
+        }
+      save_as: paper_overview
+
+  - task:
+      name: extract_section_headings
+      instruction: |
+        Now extract the main section headings of the same paper. The section
+        outline will be used downstream to localize evidence quickly.
+        Paper overview so far: {{paper_overview}}
+
+        Paper:
+        {{paper_content}}
+
+        Return JSON:
+        {
+          "section_headings": [],
+          "notable_subsections": []
+        }
+      save_as: section_outline
+
+  - task:
+      name: analyze_question_stem
+      instruction: |
+        Carefully analyze the question stem ONLY. Do NOT examine or reason
+        about the four answer options yet — your task here is to characterize
+        what the question is asking.
+
+        Question:
+        {{question}}
+        {{question_type_instruction}}
+
+        Paper overview: {{paper_overview}}
+        Section outline: {{section_outline}}
+
+        Identify:
+        1. Key terms/keywords likely to appear in the relevant paper passages.
+        2. The exact core claim or focus of the question.
+        3. Whether the question has negation words (e.g., "NOT", "incorrect",
+           "wrong", "false"). If so, note this EXPLICITLY.
+        4. The question type — Single-answer (SA-MCQ) or Multiple-answer
+           (MA-MCQ).
+
+        Return JSON in the format:
+        {
+          "keywords": [],
+          "core_claim": "",
+          "question_stem": "",
+          "has_negation": false,
+          "question_type": "Single-answer or Multiple-answer"
+        }
+      save_as: question_analysis
+
+  # was discover: (dropped in AgentSPEX) — stateless task reproducing the old engine's discover prompt; save_as keeps the same list variable
+  - task:
+      name: search_keywords
+      instruction: |
+        Source: question_analysis
+
+        Task: Extract the keywords field from the question analysis JSON as a clean
+        flat array of search terms (strings only, no JSON wrapper).
+
+        Return ONLY a JSON array of strings, no extra text.
+      save_as: search_keywords
+
+  - for_each:
+      variable: keyword
+      in: search_keywords
+      limit: 6
+      steps:
+        - task:
+            name: locate_keyword_passages
+            instruction: |
+              Locate paragraphs in the paper that mention the keyword
+              "{{keyword}}" or close synonyms. Return up to 3 verbatim
+              paragraph snippets where the keyword appears or is clearly
+              referenced. Each snippet must be copied directly from the paper
+              without paraphrasing.
+
+              Paper:
+              {{paper_content}}
+
+              Return JSON:
+              {
+                "keyword": "{{keyword}}",
+                "snippets": [
+                  {"text": "verbatim paragraph", "section": "section name if known"}
+                ]
+              }
+            save_as: keyword_passages
+
+  - task:
+      name: consolidate_evidence_snippets
+      instruction: |
+        Consolidate the per-keyword passage searches into a single ranked
+        evidence set most relevant to the core claim.
+
+        Question analysis: {{question_analysis}}
+        Paper: {{paper_content}}
+
+        Use the keywords from {{question_analysis}} to identify which
+        paragraphs in the paper most directly address the core claim. Choose
+        up to 5 paragraphs. Each must be copied VERBATIM from the paper. Do
+        NOT paraphrase or invent text. Drop weak or tangential snippets even
+        if it brings the count below 5.
+
+        Return JSON in the format:
+        {
+          "evidence_snippets": [
+            {
+              "text": "verbatim paragraph",
+              "reason": "why this snippet is relevant to the core claim",
+              "section_hint": ""
+            }
+          ]
+        }
+      save_as: evidence
+
+  - task:
+      name: verify_evidence_quality
+      instruction: |
+        Sanity-check the evidence set before option evaluation.
+
+        Question analysis: {{question_analysis}}
+        Evidence so far: {{evidence}}
+        Paper:
+        {{paper_content}}
+
+        For each snippet, confirm:
+        - It appears verbatim somewhere in the paper text above.
+        - It is genuinely relevant to the core claim (not just keyword
+          coincidence).
+        - It is non-redundant with the other snippets.
+
+        If any snippet fails verification, list it with a brief explanation.
+        Otherwise confirm the evidence set is acceptable.
+
+        Return JSON:
+        {
+          "all_verified": true,
+          "issues": [
+            {"snippet_index": 0, "problem": ""}
+          ]
+        }
+      save_as: evidence_quality_check
+
+  - task:
+      name: evaluate_options
+      instruction: |
+        Evaluate each answer option (A, B, C, D) against the consolidated
+        evidence as INDEPENDENT judgments. Your verdict on one option must
+        NOT influence your verdict on any other option — judge each in
+        isolation.
+
+        Question: {{question}}
+        Question analysis: {{question_analysis}}
+        Evidence: {{evidence}}
+        Evidence quality check: {{evidence_quality_check}}
+
+        The question analysis identified this as {{question_analysis.question_type}}.
+        - If Single-answer: exactly ONE option should be "supported".
+        - If Multiple-answer: typically 2-3 options should be "supported".
+
+        For each option, decide:
+        1. supported / contradicted / not_established
+        2. The reason — grounded in the evidence
+        3. Which evidence snippet(s) most directly bear on the option
+
+        Return JSON in the format:
+        {
+          "A": {
+            "verdict": "supported / contradicted / not_established",
+            "reason": "",
+            "evidence_text": ""
+          },
+          "B": {
+            "verdict": "supported / contradicted / not_established",
+            "reason": "",
+            "evidence_text": ""
+          },
+          "C": {
+            "verdict": "supported / contradicted / not_established",
+            "reason": "",
+            "evidence_text": ""
+          },
+          "D": {
+            "verdict": "supported / contradicted / not_established",
+            "reason": "",
+            "evidence_text": ""
+          },
+          "selected_options": ["list of option letters with verdict 'supported'"],
+          "selected_count": 0
+        }
+
+        Rules:
+        - "supported" = justified by the evidence (directly stated, paraphrased,
+          or reasonably inferred).
+        - "contradicted" = the evidence directly disagrees with the option.
+        - "not_established" = the evidence is insufficient to decide.
+        - Do not guess beyond the evidence.
+      save_as: option_judgment
+
+  - switch:
+      variable: "question_type"
+      cases:
+        "MA-MCQ":
+          - set_variable:
+              name: recheck_count
+              value: 0
+
+          - while:
+              condition: "option_judgment.selected_count < 2 and recheck_count < 3"
+              max_iterations: 3
+              steps:
+                - task:
+                    name: recheck_options
+                    instruction: |
+                      This is a multiple-answer question (typically 2-3 correct
+                      options), but only {{option_judgment.selected_count}}
+                      option(s) are currently marked supported.
+
+                      Question: {{question}}
+                      Current evaluation: {{option_judgment}}
+                      Evidence: {{evidence}}
+
+                      Reconsider every option that is NOT yet marked supported,
+                      using a more lenient interpretation of the evidence
+                      (allow reasonable inference, not just verbatim match).
+                      You MUST select at least 2 options. If still genuinely
+                      uncertain after reconsideration, pick the two options
+                      whose evidence is least contradicted.
+
+                      Return JSON in the same shape as the original
+                      evaluation:
+                      {
+                        "A": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+                        "B": {"verdict": "...", "reason": "", "evidence_text": ""},
+                        "C": {"verdict": "...", "reason": "", "evidence_text": ""},
+                        "D": {"verdict": "...", "reason": "", "evidence_text": ""},
+                        "selected_options": [],
+                        "selected_count": 0
+                      }
+                    save_as: option_judgment
+
+                - increment: recheck_count
+
+          - task:
+              name: finalize_multi_answer
+              instruction: |
+                Produce the final answer for this multiple-answer question.
+
+                Question: {{question}}
+                Final option evaluation: {{option_judgment}}
+                {{question_type_instruction}}
+
+                List ALL options whose verdict is "supported" in alphabetical
+                order. Use the exact required answer format.
+              save_as: final_response
+
+        "SA-MCQ":
+          - task:
+              name: finalize_single_answer
+              instruction: |
+                Produce the final answer for this single-answer question.
+
+                Question: {{question}}
+                Option evaluation: {{option_judgment}}
+                {{question_type_instruction}}
+
+                Pick the ONE option whose verdict is "supported". If multiple
+                options were marked supported, pick the one with the strongest
+                direct evidence. Use the exact required answer format.
+              save_as: final_response
+
+      default:
+        - task:
+            name: finalize_default_answer
+            instruction: |
+              The question type was not recognized. Produce a best-effort
+              answer using the option evaluation.
+
+              Question: {{question}}
+              Option evaluation: {{option_judgment}}
+              {{question_type_instruction}}
+            save_as: final_response

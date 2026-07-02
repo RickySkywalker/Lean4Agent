@@ -1,0 +1,586 @@
+{
+  "ir_kind": "elaip_layer2",
+  "plan_name": "failed_workflow_3",
+  "plan_kind": "worst",
+  "yaml_path": "experiments/elaipbench/failed_workflow_3.yaml",
+  "layer2_module": "StaticSemanticWorkflowExamples.«ELAIP-Bench».failed_workflow_3",
+  "open_namespace": "AgenticKernel.failed_workflow_3_layer2_new",
+  "prefix": "failed_workflow_3",
+  "semantic_graph_def": "failed_workflow_3_layer2SemanticGraph",
+  "goal_spec_def": "failed_workflow_3_goalSpec",
+  "name": "elaipbench_agent_failed_workflow_3",
+  "goal": "Answer an academic paper question based on the provided passage",
+  "parameters": [
+    {
+      "name": "question",
+      "default": "",
+      "predicates": [
+        {
+          "kind": "nameExists"
+        },
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    },
+    {
+      "name": "paper_content",
+      "default": "",
+      "predicates": [
+        {
+          "kind": "nameExists"
+        },
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    },
+    {
+      "name": "question_type_instruction",
+      "default": "",
+      "predicates": [
+        {
+          "kind": "nameExists"
+        },
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    },
+    {
+      "name": "question_type",
+      "default": "",
+      "predicates": [
+        {
+          "kind": "nameExists"
+        },
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": 0,
+      "name": "skim_paper",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "paper_overview",
+      "reads_templates": [
+        "paper_content"
+      ],
+      "instruction_excerpt": "Read the paper and produce a short overview: the paper title and a one-paragraph\nsummary of the abstract.\n\nPaper:\n{{paper_content}}\n\nReturn JSON:\n{\n  \"title\": \"\",\n  \"abstract_summary\": \"\"\n}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "paper_overview",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        },
+        {
+          "kind": "isNonEmptyString",
+          "var_name": "paper_overview",
+          "semantic_description": "the saved variable serialises to a non-empty string"
+        },
+        {
+          "kind": "isValidJson",
+          "var_name": "paper_overview",
+          "semantic_description": "the saved variable's serialised form parses as JSON"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "extract_section_headings",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "section_headings",
+      "reads_templates": [
+        "paper_content"
+      ],
+      "instruction_excerpt": "Re-read the paper and pull out the main section headings in order.\nPaper:\n{{paper_content}}\n\nReturn JSON: {\"section_headings\": [\"Introduction\", \"Methods\", ...]}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "section_headings",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        },
+        {
+          "kind": "isNonEmptyString",
+          "var_name": "section_headings",
+          "semantic_description": "the saved variable serialises to a non-empty string"
+        },
+        {
+          "kind": "isValidJson",
+          "var_name": "section_headings",
+          "semantic_description": "the saved variable's serialised form parses as JSON"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "extract_keywords",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "question_keywords",
+      "reads_templates": [
+        "question",
+        "question_type_instruction"
+      ],
+      "instruction_excerpt": "Look at the question stem ONLY. Do not look at the four answer options yet.\nQuestion:\n{{question}}\n{{question_type_instruction}}\n\nPick 3-5 keywords or short phrases that best characterize what we should\nsearch for in the paper. Return JSON: {\"keywords\": [\"...\", \"...\"]}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "question_keywords",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "classify_question_type",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "question_class",
+      "reads_templates": [
+        "question",
+        "question_type"
+      ],
+      "instruction_excerpt": "Determine whether this is a single-answer (SA-MCQ) or multiple-answer (MA-MCQ)\nquestion, and state the exact focus of the question stem (the \"core claim\"\nthe options are testing).\nQuestion: {{question}}\nRunner-provided hint: {{question_type}}\n\nReturn JSON:\n{\n  \"question_type\": \"SA-MCQ or MA-MCQ\",\n  \"core_claim\": \"\"\n}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "question_class",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "note_negation",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "negation_flag",
+      "reads_templates": [
+        "question"
+      ],
+      "instruction_excerpt": "Inspect the question for negation words such as NOT, incorrect, wrong,\nfalse, except. If present, note this explicitly so that the downstream\nevaluation can invert polarity.\nQuestion: {{question}}\nReturn: {\"has_negation\": \"yes/no\", \"negation_term\": \"\"}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "negation_flag",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "gather_evidence",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "evidence",
+      "reads_templates": [
+        "question_keywords",
+        "question_class",
+        "paper_content"
+      ],
+      "instruction_excerpt": "## Context\nKeywords: {{question_keywords}}\nCore claim: {{question_class}}\nPaper:\n{{paper_content}}\n\n## Task\nLocate up to 5 evidence snippets in the paper that are most relevant to the\ncore claim. Each snippet must be a paragraph copied **VERBATIM** from the\npaper. If fewer than 5 strong snippets exist, return only those.\n\nReturn JSON:\n{\n  \"evidence_snippets\": [\n    {\"text\": \"...\", \"matched_keyword\": \"...\", \"reason\": \"why this is relevant\"}\n  ]\n}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "evidence",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        },
+        {
+          "kind": "isNonEmptyString",
+          "var_name": "evidence",
+          "semantic_description": "the saved variable serialises to a non-empty string"
+        },
+        {
+          "kind": "isValidJson",
+          "var_name": "evidence",
+          "semantic_description": "the saved variable's serialised form parses as JSON"
+        },
+        {
+          "kind": "ext",
+          "key": {
+            "family": "user.elaip",
+            "name": "boundedEvidenceList"
+          },
+          "var_name": "evidence",
+          "semantic_description": "saved variable contains an `evidence_snippets` JSON array of length ≤ 5"
+        },
+        {
+          "kind": "ext",
+          "key": {
+            "family": "user.elaip",
+            "name": "verbatimSubstring"
+          },
+          "var_name": "evidence",
+          "semantic_description": "every snippet's `text` field appears verbatim (character-exact) in `paper_content`"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "verify_evidence_quality",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "evidence_quality",
+      "reads_templates": [
+        "evidence",
+        "question"
+      ],
+      "instruction_excerpt": "Review the evidence we collected and decide whether it is strong enough\nto discriminate among the four options.\nEvidence: {{evidence}}\nQuestion: {{question}}\n\nIf the evidence is weak or one-sided, list what is missing. Otherwise\nconfirm sufficiency. Return your assessment as structured JSON.\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "evidence_quality",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "evaluate_A",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "judgment_A",
+      "reads_templates": [
+        "question",
+        "evidence",
+        "negation_flag"
+      ],
+      "instruction_excerpt": "Judge option A only. Make this verdict INDEPENDENT of any other option.\nQuestion: {{question}}\nEvidence: {{evidence}}\nNegation note: {{negation_flag}}\n\nReturn JSON:\n{\"verdict\": \"supported / contradicted / not_established\", \"reason\": \"\", \"evidence_text\": \"\"}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "judgment_A",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "evaluate_B",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "judgment_B",
+      "reads_templates": [
+        "question",
+        "evidence"
+      ],
+      "instruction_excerpt": "Judge option B only. Independent verdict.\nQuestion: {{question}}\nEvidence: {{evidence}}\nReturn JSON:\n{\"verdict\": \"supported / contradicted / not_established\", \"reason\": \"\", \"evidence_text\": \"\"}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "judgment_B",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "evaluate_C",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "judgment_C",
+      "reads_templates": [
+        "question",
+        "evidence"
+      ],
+      "instruction_excerpt": "Judge option C only. Independent verdict.\nQuestion: {{question}}\nEvidence: {{evidence}}\nReturn JSON:\n{\"verdict\": \"supported / contradicted / not_established\", \"reason\": \"\", \"evidence_text\": \"\"}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "judgment_C",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "evaluate_D",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "judgment_D",
+      "reads_templates": [
+        "question",
+        "evidence"
+      ],
+      "instruction_excerpt": "Judge option D only. Independent verdict.\nQuestion: {{question}}\nEvidence: {{evidence}}\nReturn JSON:\n{\"verdict\": \"supported / contradicted / not_established\", \"reason\": \"\", \"evidence_text\": \"\"}\n",
+      "branch_path": [],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "judgment_D",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "set_variable:recheck_count",
+      "step_type": "set_variable",
+      "raw_kind": "set_variable",
+      "save_as": "recheck_count",
+      "reads_templates": [],
+      "instruction_excerpt": "",
+      "branch_path": [
+        "switch:MA-MCQ"
+      ],
+      "executable": false,
+      "postconds": []
+    },
+    {
+      "id": 12,
+      "name": "recheck_options",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "recheck_summary",
+      "reads_templates": [
+        "judgment_A",
+        "judgment_B",
+        "judgment_C",
+        "judgment_D",
+        "evidence"
+      ],
+      "instruction_excerpt": "This is a multiple-answer question (typically 2-3 correct).\nCurrent independent judgments:\n  A: {{judgment_A}}\n  B: {{judgment_B}}\n  C: {{judgment_C}}\n  D: {{judgment_D}}\n\nCount how many are currently \"supported\" across A-D. If\nfewer than 2, reconsider the non-selected options with a\nmore lenient reading of the evidence ({{evidence}}). If\nalready 2-3, restate the existing verdicts.\n\nReturn JSON:\n{\n  \"selected_options\": [],\n  \"selected_count\": 0,\n  \"reasoning\": \"\"\n}\n",
+      "branch_path": [
+        "switch:MA-MCQ",
+        "while:recheck_count < 3"
+      ],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "recheck_summary",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "increment:recheck_count",
+      "step_type": "increment",
+      "raw_kind": "increment",
+      "save_as": "recheck_count",
+      "reads_templates": [],
+      "instruction_excerpt": "",
+      "branch_path": [
+        "switch:MA-MCQ",
+        "while:recheck_count < 3"
+      ],
+      "executable": false,
+      "postconds": []
+    },
+    {
+      "id": 14,
+      "name": "finalize_multi_answer",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "final_response",
+      "reads_templates": [
+        "question",
+        "judgment_A",
+        "judgment_B",
+        "judgment_C",
+        "judgment_D",
+        "recheck_summary",
+        "negation_flag",
+        "question_type_instruction"
+      ],
+      "instruction_excerpt": "Produce the final answer for this multi-answer question.\nQuestion: {{question}}\nPer-option judgments:\n  A: {{judgment_A}}\n  B: {{judgment_B}}\n  C: {{judgment_C}}\n  D: {{judgment_D}}\nRecheck summary: {{recheck_summary}}\nNegation note: {{negation_flag}}\n{{question_type_instruction}}\n",
+      "branch_path": [
+        "switch:MA-MCQ"
+      ],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "final_response",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        },
+        {
+          "kind": "isNonEmptyString",
+          "var_name": "final_response",
+          "semantic_description": "the saved variable serialises to a non-empty string"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "finalize_single_answer",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "final_response",
+      "reads_templates": [
+        "question",
+        "judgment_A",
+        "judgment_B",
+        "judgment_C",
+        "judgment_D",
+        "negation_flag",
+        "question_type_instruction"
+      ],
+      "instruction_excerpt": "Select the ONE correct answer.\nQuestion: {{question}}\nPer-option judgments:\n  A: {{judgment_A}}\n  B: {{judgment_B}}\n  C: {{judgment_C}}\n  D: {{judgment_D}}\nNegation note: {{negation_flag}}\n{{question_type_instruction}}\n",
+      "branch_path": [
+        "switch:SA-MCQ"
+      ],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "final_response",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        },
+        {
+          "kind": "isNonEmptyString",
+          "var_name": "final_response",
+          "semantic_description": "the saved variable serialises to a non-empty string"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "finalize_default",
+      "step_type": "task",
+      "raw_kind": "task",
+      "save_as": "final_response",
+      "reads_templates": [
+        "question",
+        "judgment_A",
+        "judgment_B",
+        "judgment_C",
+        "judgment_D",
+        "question_type_instruction"
+      ],
+      "instruction_excerpt": "Question type is ambiguous; pick whichever option(s) the\nevidence most clearly supports.\nQuestion: {{question}}\nJudgments: A:{{judgment_A}} B:{{judgment_B}} C:{{judgment_C}} D:{{judgment_D}}\n{{question_type_instruction}}\n",
+      "branch_path": [
+        "switch:default"
+      ],
+      "executable": true,
+      "postconds": [
+        {
+          "kind": "nameExists",
+          "var_name": "final_response",
+          "semantic_description": "the variable is bound at this point in the workflow"
+        },
+        {
+          "kind": "isNonEmptyString",
+          "var_name": "final_response",
+          "semantic_description": "the saved variable serialises to a non-empty string"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": 0,
+      "to": 1,
+      "kind": "seq"
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "kind": "seq"
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "kind": "seq"
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "kind": "seq"
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "kind": "seq"
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "kind": "seq"
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "kind": "seq"
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "kind": "seq"
+    },
+    {
+      "from": 8,
+      "to": 9,
+      "kind": "seq"
+    },
+    {
+      "from": 9,
+      "to": 10,
+      "kind": "seq"
+    },
+    {
+      "from": 10,
+      "to": 11,
+      "kind": "seq"
+    },
+    {
+      "from": 11,
+      "to": 12,
+      "kind": "seq"
+    },
+    {
+      "from": 12,
+      "to": 13,
+      "kind": "seq"
+    },
+    {
+      "from": 13,
+      "to": 14,
+      "kind": "seq"
+    },
+    {
+      "from": 14,
+      "to": 15,
+      "kind": "seq"
+    },
+    {
+      "from": 15,
+      "to": 16,
+      "kind": "seq"
+    }
+  ],
+  "entry": 0,
+  "exits": [
+    14,
+    15,
+    16
+  ]
+}

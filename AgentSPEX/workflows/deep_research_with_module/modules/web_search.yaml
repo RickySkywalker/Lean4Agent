@@ -1,0 +1,25 @@
+name: "web_search_module"
+goal: "Use firecrawl to search the given query"
+
+config:
+    model: "gpt-5-nano"                 # Use a different model for this submodule
+    max_tokens_per_step: 100000         # Submodule uses smaller token limit
+    max_tool_calls_per_step: 10
+    enabled_tools: ["firecrawl_search"]
+
+# Parameters from parent workflow
+parameters:
+    query: "${QUERY}"
+
+workflow:
+    - step:
+        name: "web_search"
+        instruction: |
+            Use firecrawl search to search the following query and return the top 5 results:
+
+            Query: {{query}}
+
+            ONLY return the tool call output, no extra commentary.
+        save_as: "search_results"
+    
+    - return: "search_results"

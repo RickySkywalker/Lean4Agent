@@ -1,0 +1,262 @@
+name: "deep_research_3level_parallel_comprehensive_report"
+goal: "Perform deep research based on the given user query"
+
+# Execution configuration - these settings can be overridden by .env file or CLI args
+config:
+    model: "o3-mini"                    # OpenAI model to use for main workflow
+    max_tokens_per_step: 100000         # Max tokens per step
+    max_tool_calls_per_step: 10         # Max tool calls per step
+
+parameters:
+    topic: "large language models for math reasoning"
+    sub_task: "comprehensive_report"
+    initial_breadth: 4
+    max_depth: 2      # NOTE: You can change to 1 for a trail one
+    current_depth: 1
+    memory_file: "/workspace/outputs/deep_research_3level_parallel_comprehensive_report/episodic.json"
+    max_user_query_workers: 8   # NEW: Parallel user queries at each depth
+    max_serp_workers: 4          # Parallel SERP queries per user query
+    max_content_workers: 5       # Parallel content processing per SERP
+
+workflow:
+    # ==================================================
+    # PHASE 1: Interactive Clarification
+    # ==================================================
+
+    - step:
+        name: "generate_feedback_questions"
+        instruction: |
+            Given the following query, ask follow up questions to clarify the research direction.
+
+            Query: {{topic}}
+
+            Return a maximum of 3 questions, but feel free to return less if the original query is clear.
+            Generate questions as a JSON array: ["Question 1?", "Question 2?", "Question 3?"]
+        save_as: "feedback_questions"
+
+    - set_variable:
+        name: "loop_index"
+        value: 1
+
+    # Collect user answers for each question
+    - for_each:
+        variable: "question"
+        in: "feedback_questions"
+        steps:
+            - input:
+                prompt: "{{question}}"
+                save_as: "user_answer"
+
+            - step:
+                name: "store_feedback_pair"
+                instruction: |
+                    NOTE: All memory operations use memory_file at {{memory_file}}
+
+                    Store this Q&A pair in memory:
+                    Use: memory("store", key="feedback_qa_{{loop_index}}", content="Q: {{question}}\nA: {{user_answer}}", tags="feedback,clarification", memory_file="{{memory_file}}")
+
+                    Return confirmation message.
+
+            - increment: "loop_index"
+
+    # Create combined query with all feedback
+    - step:
+        name: "create_combined_query"
+        instruction: |
+            NOTE: Memory file at {{memory_file}}
+
+            Retrieve all feedback Q&A pairs from memory:
+            memory("search", query="feedback", memory_file="{{memory_file}}")
+
+            Combine the initial query with all the feedback Q&A pairs into an enhanced research query.
+
+            Initial Query: {{topic}}
+
+            Format the combined query as:
+            ```
+            Initial Query: [initial query]
+
+            Follow-up Questions and Answers:
+            [all Q&A pairs from memory]
+            ```
+            Store the combined_query: memory("store", key="combined_query", content="[combined query]", tags="query,enhanced", memory_file="{{memory_file}}")
+
+            Return ONLY the combined query as final output.
+
+        save_as: "combined_query"
+
+    # Initialize research queue with combined query as a single-item list
+    - set_variable:
+        name: "queue"
+        value: '[{"""user_query""" : """{{combined_query}}""", """branch_learning""" : []}]'
+
+    - set_variable:
+        name: "current_breadth"
+        value: "{{initial_breadth}}"
+
+    # ==================================================
+    # PHASE 2: Parallel Deep Research
+    # ==================================================
+
+    - while:
+        condition: "current_depth <= max_depth"
+        steps:
+            - step:
+                name: "log_depth_start"
+                instruction: |
+                    Report depth iteration status:
+
+                    === DEPTH {{current_depth}} START ===
+
+                    - Current breadth per query: {{current_breadth}}
+
+                    Return status message.
+
+            # ========================================
+            # Process ALL user queries in parallel
+            # ========================================
+
+            - set_variable:
+                name: "user_query_params"
+                value: "[]"
+
+            - set_variable:
+                name: "loop_index"
+                value: 1
+
+            - for_each:
+                variable: "user_query"
+                in: "queue"
+                steps:
+                    # Extract current user query
+                    - set_variable:
+                        name: "cur_user_query"
+                        value: "{{user_query.user_query}}"
+                    
+                    # Extract branch learnings list
+                    - set_variable:
+                        name: "cur_branch_learning"
+                        value: "{{user_query.branch_learning}}"
+
+                    # Prepare parameters for ALL user queries in queue
+                    - step:
+                        name: "prepare_user_query_params"
+                        instruction: |
+                            Prepare parameters for parallel user query processing.
+
+                            Create a parameter dictionary:
+                            [
+                                {
+                                    "user_query": "{{cur_user_query}}",
+                                    "branch_learning": {{cur_branch_learning}},
+                                    "current_depth": "{{current_depth}}",
+                                    "current_breadth": "{{current_breadth}}",
+                                    "branch_id": "{{loop_index}}",
+                                    "memory_file": "{{memory_file}}",
+                                    "max_serp_workers": "{{max_serp_workers}}",
+                                    "max_depth": "{{max_depth}}"
+                                }
+                            ]
+
+                            ONLY return as JSON array with no extra commentary and no ```json``` wrapper.
+                        save_as: "user_query_params_json"
+
+                    - set_variable:
+                        name: "user_query_params"
+                        value: '{{user_query_params}} + {{user_query_params_json}}'
+                    
+                    - increment: loop_index
+
+            # PARALLEL EXECUTION: Process ALL user queries at once
+            - parallel:
+                module: "modules/process_user_query.yaml"
+                parameters_list: "user_query_params"
+                save_results_as: "all_user_query_results"
+                max_workers: 8
+
+            # ========================================
+            # Collect ALL next_queries from ALL user query results
+            # ========================================
+            - set_variable:
+                name: "all_next_queries"
+                value: "sum(list( {{all_user_query_results}}.values() ), [])"
+
+            # Update queue with all collected next_queries
+            - set_variable:
+                name: "queue"
+                value: "{{all_next_queries}}"
+
+            # ========================================
+            # Prepare for next depth iteration
+            # ========================================
+
+            - set_variable:
+                name: "current_breadth"
+                value: "max( {{current_breadth}} // 2, 1)"
+
+            # Log completion
+            - step:
+                name: "log_depth_completion"
+                instruction: |
+                    Report depth completion status:
+
+                    === DEPTH {{current_depth}} COMPLETE ===
+
+                    - Next breadth: {{current_breadth}}
+
+                    Return status message.
+
+            # Increment depth
+            - increment: "current_depth"
+
+    # Collect all learnings after deep research finish to prepare for document generation
+    - set_variable:
+        name: "all_learnings"
+        value: "[]"
+
+    - for_each:
+        variable: "user_query"
+        in: "queue"
+        steps:
+            - set_variable:
+                name: "cur_branch_learning"
+                value: "{{user_query.branch_learning}}"
+            
+            - set_variable:
+                name: "all_learnings"
+                value: "{{all_learnings}} + {{cur_branch_learning}}"
+    
+    - set_variable:
+        name: "all_learnings"
+        value: "list( set( {{all_learnings}} ) )"
+    # ==================================================
+    # PHASE 3: Final Report Generation
+    # ==================================================
+    - step:
+        name: "retrieve_sources"
+        instruction: |
+            Retrieve all urls from memory: memory("search", query="urls", memory_file="{{memory_file}}")
+
+            Return all the urls as a clean JSON array with no extra commentary, even it is an empty list.
+        save_as: "all_sources"
+
+    - step:
+        name: "final_deep_research_report"
+        instruction: |
+            Given the initial user query: {{combined_query}}
+
+            Given all the research learnings: {{all_learnings}}
+
+            Write a comprehensive final report on the topic using ALL the learnings from research.
+
+            Requirements:
+            - Use Markdown Format and file name should be final_report.md
+            - Aim for 4000+ words with detailed analysis
+            - Include ALL learnings from the entire research tree
+            - Organize by themes and topics
+            - Include specific entities, metrics, dates from learnings
+            - Be information-dense and well-structured
+            - Use clear sections and subsections
+
+            You MUST list the below urls at the end of the report in a "Sources" section, and remove the urls with invalid format.
+            Sources: {{all_sources}}

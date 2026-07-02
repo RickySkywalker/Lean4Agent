@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentspex"
+version = "0.1"
+description = "An Agent SPecification and EXecution Language for specifying LLM-agent workflows"
+requires-python = ">=3.11"
+authors = [
+  { name = "Tong Zhang" }
+]
+dependencies = [
+    "fire>=0.6",
+    "requests>=2.32.5",
+]
+
+[project.scripts]
+agentspex = "harness.ephemeral.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["sandbox_vm", "sandbox_vm.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Ignore workspace directory and tests that need local module imports
+norecursedirs = ["workspace", ".git", ".venv"]
+asyncio_mode = "auto"
+markers = [
+    "flaky: mark test as flaky with reruns",
+    "mcp: mark test as requiring a live MCP server"
+]

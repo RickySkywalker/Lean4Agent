@@ -1,0 +1,75 @@
+# Tool briefs: context-aware parameter guidance for the plan generator.
+#
+# Loaded at setup and injected into the plan generator's user message
+# alongside recommended_tools. Helps the plan generator write instructions
+# that respect context budgets and avoid extreme parameter choices.
+#
+# Format per tool:
+#   name: exact MCP function name
+#   brief: one-line description with output size hint
+#   params: parameters that control output volume
+#     <param_name>:
+#       default: the tool's default value
+#       safe_max: recommended maximum for plan-generated instructions
+#       note: explanation of context impact
+#
+# Tools not listed here still work — they just lack parameter guidance.
+# Update this file when new tools with output-volume parameters are added.
+
+tools:
+  paper_search:
+    brief: "Academic paper search (OpenAlex/Semantic Scholar/arXiv). ~2.5KB per result."
+    params:
+      result_limit:
+        default: 30
+        safe_max: 10
+        note: "Each result includes title, abstract, authors, venue. 10 results ≈ 25KB context."
+
+  arxiv_search:
+    brief: "ArXiv search via browser scraping. SLOW: fetches each result page individually. ~3KB per result."
+    params:
+      num_results:
+        default: 10
+        safe_max: 5
+        note: "Each result triggers a separate browser page fetch + abstract extraction. 5 results = 5 browser navigations + ~15KB. Prefer paper_search when possible."
+
+  google_search:
+    brief: "Google web search. Hard-capped at 10 results. ~0.5KB per result. Safe at any setting."
+    params:
+      num_results:
+        default: 10
+        safe_max: 10
+        note: "Hard maximum of 10 results enforced by the tool. Output is compact."
+
+  firecrawl_search:
+    brief: "Web search + auto-download via FireCrawl API. Returns URLs and local file paths of downloaded markdown content."
+    params:
+      num_results:
+        default: 5
+        safe_max: 10
+        note: "Direct return is compact (URLs + local filenames). However, each result downloads a full webpage as markdown to disk — subsequent reads of those files can be very large."
+
+  bm25_search:
+    brief: "BM25 keyword search over indexed collections. ~0.5KB per result (text snippets capped at 500 chars)."
+    params:
+      k:
+        default: 10
+        safe_max: 20
+        note: "Result text is hard-capped at 500 chars per result. Safe up to 20. Supports multiple queries separated by newlines."
+
+  browsecomp_search:
+    brief: "BrowseComp corpus search. ~2KB per result (snippets capped at 2000 chars)."
+    params:
+      k:
+        default: 5
+        safe_max: 10
+        note: "Each result includes a 2000-char snippet. 10 results ≈ 20KB context."
+
+  arxiv_fetch_abstract:
+    brief: "Fetch a single arXiv paper's title + abstract via browser navigation. ~1.6KB per call."
+    params: {}
+
+  shell_run:
+    brief: "Execute a shell command. Output truncated at 10,000 chars but can still be large."
+    params: {}
+    note: "Instruct the LLM to limit output: pipe through head/tail, redirect to file, or use grep to filter."

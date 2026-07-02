@@ -1,0 +1,461 @@
+{
+  "name": "failed_workflow_1",
+  "goal": "Given a GitHub issue, reproduce the bug and fix it by modifying source code, then submit a patch",
+  "parameters": [
+    {
+      "name": "code_path",
+      "base_type": "TString",
+      "predicates": [
+        {
+          "kind": "isValidFilePath"
+        }
+      ]
+    },
+    {
+      "name": "problem_statement",
+      "base_type": "TString",
+      "predicates": [
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    },
+    {
+      "name": "regression_test_cmd",
+      "base_type": "TString",
+      "predicates": []
+    }
+  ],
+  "nodes": [
+    {
+      "id": 0,
+      "name": "setup_and_explore",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "code_path",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "instruction": "<pr_description>\nConsider the following PR description:\n{{problem_statement}}\n</pr_description>\n\nYou're a software engineer interacting continuously with a computer by submitting commands.\nYou'll be helping implement necessary changes to meet requirements in the PR description.\nYour task is specifically to make changes to non-test files in the current directory in order to fix the issue described in the PR description in a way that is general and consistent with the codebase.\n<IMPORTANT>This is an interactive process where you will think and issue AT LEAST ONE command for every step, see the result, then think and issue your next command(s).</IMPORTANT>\n\nFor each response:\n1. Include a THOUGHT section explaining your reasoning and what you're trying to accomplish\n2. Provide one or more bash tool calls to execute\n\nIMPORTANT BOUNDARIES:\n- MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)\n- DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)\n\nBegin by exploring the repository structure to understand the codebase. Identify the relevant source files that may need to be changed based on the PR description.\n\nStart now. Explore the repository at {{code_path}} to understand the project structure, find relevant files, and understand the codebase organization.",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "code_path",
+          "predicate": {
+            "kind": "isValidFilePath"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "repository_exploration_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "exploratory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "repository_explored"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "reproduce_issue",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "instruction": "<pr_description>\nConsider the following PR description:\n{{problem_statement}}\n</pr_description>\n\nBased on your exploration of the codebase, now create a script to reproduce the issue described in the PR description. Write a small Python (or appropriate language) script that demonstrates the bug.\n\nSteps:\n1. Create a reproduction script at /testbed/reproduce_issue.py (or appropriate extension)\n2. Run the script to confirm the issue exists\n3. Analyze the error output to understand the root cause\n\nIMPORTANT:\n- The working directory for all commands is /testbed\n- Directory or environment variable changes are not persistent\n- Prefix commands with `cd /testbed && ...`\n- Your response MUST include AT LEAST ONE bash tool call",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "repository_exploration_evidence",
+          "aspect": "relevant_files"
+        },
+        {
+          "var_name": "repository_exploration_evidence",
+          "aspect": "project_structure"
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "issue_reproduction_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "issue_reproduced"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "implement_fix",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "instruction": "<pr_description>\nConsider the following PR description:\n{{problem_statement}}\n</pr_description>\n\nNow that you've reproduced the issue and understand the root cause, implement a fix.\n\nFollow this workflow:\n1. Identify the exact source file(s) and location(s) that need to be modified\n2. Understand the surrounding code logic before making changes\n3. Implement the minimal, targeted fix that addresses the issue\n4. Make sure your fix is general and consistent with the existing codebase patterns\n\nIMPORTANT BOUNDARIES:\n- MODIFY: Regular source code files in /testbed\n- DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)\n- Use `sed`, `python -c`, or heredoc to edit files (no interactive editors)\n- Your response MUST include AT LEAST ONE bash tool call",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "issue_reproduction_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "repository_exploration_evidence",
+          "aspect": "relevant_files"
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "fix_implementation_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "fix_implemented"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "verify_fix",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "regression_test_cmd",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "instruction": "<pr_description>\nConsider the following PR description:\n{{problem_statement}}\n</pr_description>\n\nVerify your fix works correctly:\n1. Run your reproduction script again to confirm the issue is resolved\n2. Test edge cases to ensure your fix is robust and doesn't introduce regressions\n3. If a regression test command is available ({{regression_test_cmd}}), run it\n4. If the fix doesn't work, iterate: analyze what went wrong, adjust, and re-test\n\nIMPORTANT:\n- The working directory for all commands is /testbed\n- Directory or environment variable changes are not persistent\n- Prefix commands with `cd /testbed && ...`\n- Your response MUST include AT LEAST ONE bash tool call",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "regression_test_cmd",
+          "predicate": {
+            "kind": "nameExists"
+          }
+        },
+        {
+          "var_name": "fix_implementation_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "issue_reproduction_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "fix_verification_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "verificatory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "fix_verified"
+        }
+      ],
+      "sub_goal_verifications": [
+        {
+          "sub_goal_name": "fix_implemented"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "submit_patch",
+      "step_type": "task",
+      "reads": [],
+      "writes": [],
+      "instruction": "Your fix has been verified. Now submit your changes as a git patch.\n\nFollow these steps IN ORDER, with SEPARATE commands:\n\nStep 1: Create the patch file\nRun `cd /testbed && git diff -- path/to/file1 path/to/file2 > patch.txt` listing only the source files you modified.\nDo NOT commit your changes.\n<IMPORTANT>\nThe patch must only contain changes to the specific source files you modified to fix the issue.\nDo not submit file creations or changes to any of the following files:\n- test and reproduction files (e.g., reproduce_issue.py)\n- helper scripts, tests, or tools that you created\n- installation, build, packaging, configuration, or setup scripts\n- binary or compiled files\n</IMPORTANT>\n\nStep 2: Verify your patch\nInspect patch.txt to confirm it only contains your intended changes.\n\nStep 3: Submit (EXACT command required)\nYou MUST use this EXACT command to submit:\n```bash\necho COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt\n```",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "fix_implementation_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "patch_submission_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "patch_submitted"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "edge_type": "seq",
+      "from_node": 0,
+      "to_node": 1
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 1,
+      "to_node": 2
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 2,
+      "to_node": 3
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 3,
+      "to_node": 4
+    }
+  ],
+  "entry": 0,
+  "exits": [
+    4
+  ],
+  "param_postcond": [
+    {
+      "var_name": "code_path",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "problem_statement",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "regression_test_cmd",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "code_path",
+      "predicate": {
+        "kind": "isValidFilePath"
+      }
+    },
+    {
+      "var_name": "problem_statement",
+      "predicate": {
+        "kind": "isNonEmptyString"
+      }
+    },
+    {
+      "var_name": "shell_run",
+      "predicate": {
+        "kind": "toolExists"
+      }
+    }
+  ],
+  "goal_spec": {
+    "original_goal": "Given a GitHub issue, reproduce the bug and fix it by modifying source code, then submit a patch",
+    "sub_goals": [
+      {
+        "name": "repository_explored",
+        "variable_name": "repository_exploration_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that the repository structure was explored and relevant source files were identified based on the GitHub issue.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      },
+      {
+        "name": "issue_reproduced",
+        "variable_name": "issue_reproduction_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that a reproduction script was created and the bug was reproduced. Requires context continuity from exploration step, which is MISSING.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          }
+        ]
+      },
+      {
+        "name": "fix_implemented",
+        "variable_name": "fix_implementation_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that source code was modified to fix the issue. Requires context from exploration and reproduction, which is MISSING. Also needs retry capability, which is MISSING.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          },
+          {
+            "kind": "informationSufficiency"
+          },
+          {
+            "kind": "unifiedLoopBack"
+          },
+          {
+            "kind": "verificationCoverage"
+          }
+        ]
+      },
+      {
+        "name": "fix_verified",
+        "variable_name": "fix_verification_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that the fix was verified. Requires knowledge of what was fixed, which is MISSING (step type, no save_as from implement_fix).",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          }
+        ]
+      },
+      {
+        "name": "patch_submitted",
+        "variable_name": "patch_submission_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that a git patch was created and submitted. Requires knowledge of modified files, which is MISSING.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          },
+          {
+            "kind": "failSafe"
+          }
+        ]
+      }
+    ]
+  },
+  "expected_semantically_sound": false
+}

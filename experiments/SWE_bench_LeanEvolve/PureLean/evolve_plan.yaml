@@ -1,0 +1,650 @@
+name: "evolve_plan"
+goal: |
+    Given (a) the original SWE-bench YAML task plan and (b) the Layer 3 Lean query
+    JSON from step 2's auto-annotation pipeline, produce an evolved YAML plan where
+    each falsified step's `instruction:` block is rewritten in place with the
+    Lean-derived re-roll guidance welded seamlessly into the prose. Confirmed
+    steps stay byte-identical. Phase 5 runs a structural validator and aborts
+    the instance cleanly if any check fails.
+
+config:
+    model: "${MODEL_NAME}"
+    temperature: 0.0
+    max_tokens_per_step: 16384
+    max_tool_calls_per_step: 20
+    plan_revision_max_steps: 0
+    enable_inline_tool_calls: true
+
+parameters:
+    instance_id: "${INSTANCE_ID}"
+    plan_name: "${PLAN_NAME:-passed_workflow_1}"
+    # Container-view paths (under /workspace/...) used by shell_run.
+    original_plan_yaml: "${ORIGINAL_PLAN_YAML}"
+    working_plan_yaml: "${WORKING_PLAN_YAML}"
+    layer3_query_path: "${LAYER3_QUERY_PATH}"
+    source_eval_evidence: "${SOURCE_EVAL_EVIDENCE}"
+    staging_dir: "${STAGING_DIR}"
+    instance_output_dir: "${INSTANCE_OUTPUT_DIR}"
+    package_dir: "${PACKAGE_DIR}"
+    # Cross-instance classifier frequency cap — prevents any single template
+    # from dominating more than cap-many instances in the same run.
+    # Default 3 is a sane floor for a 13-instance Kimi-K2.5-style pool
+    # (≈ ceil(13/4)); the driver can override via envvar.
+    shared_ledger_dir: "${SHARED_LEDGER_DIR:-/tmp/classify_failure_ledger}"
+    template_frequency_cap: "${TEMPLATE_FREQUENCY_CAP:-3}"
+
+workflow:
+    # =========================================================================
+    # PHASE 1 - deterministic preparation
+    # =========================================================================
+    - step:
+        name: "copy_original_to_working"
+        instruction: |
+            Use shell_run to make the working copy of the original plan that we
+            will mutate in place. If this copy already exists from a prior run,
+            overwriting it with the fresh original is the correct behaviour
+            (Phase 3 edits will re-apply).
+
+            ```bash
+            cp {{original_plan_yaml}} {{working_plan_yaml}}
+            ```
+
+            After the command succeeds, reply with exactly the string OK and
+            nothing else.
+        save_as: "copy_status"
+
+    - step:
+        name: "build_digest"
+        instruction: |
+            Use shell_run to build the per-step digest JSON from the Layer 3
+            Lean query file:
+
+            ```bash
+            python {{package_dir}}/lean_report_loader.py \
+                --layer3_query {{layer3_query_path}} \
+                --eval_evidence {{source_eval_evidence}} \
+                --out {{staging_dir}}/plan_evolve_digest.json
+            ```
+
+            After the command succeeds, reply with exactly the string OK and
+            nothing else.
+        save_as: "digest_status"
+
+    - step:
+        name: "copy_eval_evidence"
+        instruction: |
+            Use shell_run to copy step 2's eval_evidence.json into step 3's
+            staging area so Phase 4 consistency review can consult it:
+
+            ```bash
+            cp {{source_eval_evidence}} {{staging_dir}}/eval_evidence.json
+            ```
+
+            After the command succeeds, reply with exactly the string OK and
+            nothing else.
+        save_as: "eval_evidence_copy_status"
+
+    # =========================================================================
+    # PHASE 2 - structural load
+    # =========================================================================
+    - step:
+        name: "count_steps"
+        instruction: |
+            Use shell_run to determine how many workflow steps the digest
+            contains. The count is ALSO the number of `- task:` items in the
+            original plan.
+
+            ```bash
+            python -c "import json; print(len(json.load(open('{{staging_dir}}/plan_evolve_digest.json'))))"
+            ```
+
+            Reply with ONLY the integer count - no prose, no quotes, no
+            additional text.
+        save_as: "num_steps"
+
+    - step:
+        name: "load_digest_into_context"
+        instruction: |
+            Use shell_run to print the full digest so it is available in this
+            conversation for the per-step loop and the Phase 4 consistency
+            review:
+
+            ```bash
+            cat {{staging_dir}}/plan_evolve_digest.json
+            ```
+
+            After printing, reply with exactly the string LOADED and nothing
+            else.
+        save_as: "digest_loaded"
+
+    - step:
+        name: "load_eval_evidence_into_context"
+        instruction: |
+            Use shell_run to print the eval_evidence so Phase 4 can cite
+            concrete failing tests:
+
+            ```bash
+            cat {{staging_dir}}/eval_evidence.json
+            ```
+
+            After printing, reply with exactly the string LOADED and nothing
+            else.
+        save_as: "eval_evidence_loaded"
+
+    - set_variable:
+        name: "i"
+        value: 0
+
+    # =========================================================================
+    # PHASE 3 - per-step edit loop
+    # Each iteration fetches the digest entry and original instruction for step
+    # {{i}}. If the step's verdict is "confirmed" we skip. Otherwise the LLM
+    # rewrites the instruction in prose (hard rules below) and persists the new
+    # text via EditYaml.py. The rewrite must weave the Lean-derived re-roll
+    # guidance into natural imperative prose without any audit-trail leakage.
+    # =========================================================================
+    - while:
+        condition: "i < num_steps"
+        max_iterations: 10
+        steps:
+            - step:
+                name: "rewrite_if_falsified"
+                instruction: |
+                    You are evaluating and possibly rewriting workflow step
+                    {{i}} of the evolved YAML task plan (in-place at the
+                    working copy). The step may be a top-level task/step OR
+                    nested inside a for_each / while / if / switch / parallel
+                    block — addressing by `name:` handles all of them.
+
+                    Pull the digest entry for this step:
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{staging_dir}}/plan_evolve_digest.json --path '[{{i}}]' --get
+                    ```
+
+                    Read the digest's `step_name` (call it STEP_NAME) and the
+                    `verdict` field (one of `confirmed`, `falsified`,
+                    `uncertain`). Read the digest's `re_roll_suggestion`
+                    field too — when the step was falsified, it contains
+                    per-predicate Lean Layer-3 root-cause evidence (lines
+                    prefixed with `- [<predicate_name> / <source>]`) that
+                    name the concrete regression (file modified, error type,
+                    FAIL_TO_PASS count). This is the Lean side's diagnostic
+                    signal, complementary to eval_evidence.
+
+                    Then fetch the current instruction for that step:
+
+                    ```bash
+                    python {{package_dir}}/EditYaml.py --yaml_path {{working_plan_yaml}} --get-by-name STEP_NAME
+                    ```
+
+                    Decide adequacy.
+
+                    CASE A — verdict == "confirmed" AND eval_evidence shows
+                    no failing test mapped to this step's scope: Reply with
+                    exactly the string SKIPPED and take no other action.
+
+                    CASE B — verdict is "falsified" or "uncertain", OR the
+                    eval shows the step's stated artefact is missing /
+                    incorrect: Rewrite the instruction.
+
+                    Cross-reference the digest's per-predicate evidence
+                    (Lean Layer-3) with eval_evidence (forensics). Match
+                    against these NAMED FAILURE PATTERNS — each pairs a
+                    concrete observation with the rewrite recipe to weld
+                    into the new instruction. The Lean re_roll evidence
+                    sharpens which pattern applies for this specific step.
+
+                    (P1) TEST-FILTER MISS. Trajectory ran pytest with a
+                    narrowing `-k`, path filter, or partial module
+                    invocation; one or more failing tests in
+                    `eval_evidence.failure_excerpts` were not covered by
+                    that filter. Recipe: require the full FAIL_TO_PASS
+                    suite to run with NO `-k` filter; only narrow AFTER
+                    initial failures are confirmed.
+
+                    (P2) WRONG-SYMBOL PATCH. Trajectory shows an edit to a
+                    file/function X but the failing test names point to a
+                    different file or call path. The Lean predicate evidence
+                    typically names the regression target. Recipe: require
+                    the agent to trace the failing test from import path to
+                    the actual call site BEFORE editing; print the exact
+                    symbol via grep.
+
+                    (P3) UNDERSPECIFIED REPRODUCTION. `reproduce_issue`
+                    trajectory exits 0 yet the eval shows the bug persists
+                    post-fix (FAIL_TO_PASS still failing) — the script
+                    missed the true edge case. Recipe: the reproduction
+                    script must exit non-zero on the buggy code; if it
+                    exits cleanly on the current state, the reproduction
+                    is wrong and must be redone.
+
+                    (P4) PARTIAL / RETRY CONFUSION. Trajectory shows the
+                    same tool called 3+ times with different arguments in
+                    one step, or exception-then-recovery markers. Recipe:
+                    before any edit, require the agent to print the exact
+                    target (function name, file path, test command) and
+                    confirm via grep; forbid blind retries.
+
+                    (P5) P2P REGRESSION. `eval_evidence.tests.f2p_pass` is
+                    non-empty (fix "works") but `p2p_fail` is also
+                    non-empty (previously-passing tests broke). Recipe:
+                    after the fix, require the agent to run the full test
+                    module containing the patched symbol; abort/redo if
+                    any previously-passing test now fails.
+
+                    (P6) STEP-GOAL ABANDONMENT. The step's goal was not
+                    achieved and the final LLM response contains
+                    abandonment markers ("I could not", "skipping", "let
+                    me try a different"). Recipe: add a concrete gate —
+                    completion of the step requires a named artefact
+                    (file, patch, command output) to exist; if not, loop
+                    back rather than declare done.
+
+                    (P7) SYNTAX-BREAK ON EDIT. Trajectory shows sed/heredoc
+                    edits but the patched file fails to import or the
+                    patch hunk is malformed. Recipe: after every edit, run
+                    `python -c "import <patched_pkg>"`; if it raises any
+                    Traceback, revert and redo. Inspect the diff for
+                    correct indentation before submitting.
+
+                    (P8) SIGNATURE-THREADING. The bug is a missing forward
+                    of an argument through a call chain (function A calls B
+                    calls C, and the new behaviour requires a parameter
+                    appearing in all three). Lean's per-predicate digest
+                    typically flags this when the LLM judge marks
+                    `fix_implementation_evidence=false` on fix_issue AND
+                    `fix_verification_evidence=false` on verify_fix because
+                    the agent patched only ONE level of the chain. Recipe:
+                    require the agent to (a) `grep -n` for the symbol it
+                    intends to patch in the entire module to enumerate ALL
+                    call sites, (b) trace the data flow from the failing
+                    test entrypoint down to the buggy operation and patch
+                    every intermediate frame, (c) re-run the failing test
+                    after EACH patch — partial fixes that leave any frame
+                    unmodified will silently let the bug through.
+
+                    READ-OK BUCKET (what the evidence is FOR). You MAY read
+                    failing test names, file:line refs, verbatim
+                    assertion/error text, method signatures, and test-
+                    runner invocations from `eval_evidence.failure_excerpts`,
+                    from `test_output_path`, from the trajectory summary,
+                    and from the Lean digest's enriched re_roll. They
+                    exist to help you identify the failure CLASS and root
+                    cause. They are NOT content to paste verbatim.
+
+                    HARD RULES for the rewrite:
+
+                      1. Seamless prose. The rewrite must read as if
+                         authored from scratch in the same voice and
+                         length-feel as the original. No headers, no
+                         "PLAN EVOLUTION" markers, no "EVIDENCE:" block,
+                         no meta-commentary about prior runs or Layer 3.
+
+                      2. No audit-trail leakage. The rewritten text MUST
+                         NOT contain (case-insensitive): "PLAN EVOLUTION",
+                         "RE-ROLL", "Layer 3", "previously failed",
+                         "falsified", "based on Layer 3 analysis", "Lean
+                         verdict", "tool verdict", "LLM verdict", nor
+                         "---" as a divider.
+
+                      3. Preserve every `{{template}}` reference (e.g.
+                         `{{regression_test_cmd}}`, `{{problem_statement}}`)
+                         and every structural tag (`<IMPORTANT>`,
+                         `<boundaries>`, `<execution_rules>`,
+                         `<format_example>`, `<pr_description>`,
+                         `<environment_info>`, `<CRITICAL>`, etc.) — same
+                         placement, same wording unless directly
+                         superseded by a defensive instruction.
+
+                      4. Additions, not deletions. Every original
+                         requirement that is not directly replaced by a
+                         defensive behavior must remain.
+
+                      5. Length HARD CAP: the rewritten instruction must
+                         be NO MORE than 1.3× the original character
+                         count. If your first draft exceeds this, do
+                         NOT submit — trim the lowest-value sentences
+                         (the ones whose removal would not weaken the
+                         core imperative) until you fit. Conciseness
+                         beats coverage; a focused 800-char rewrite
+                         consistently outperforms a 1800-char rewrite
+                         that the agent skims past.
+
+                      6. WRITE-FORBIDDEN BUCKET. The rewritten instruction
+                         MUST NOT contain ANY of:
+                         (a) pytest IDs `*.py::test_X`, `::test_X`, or
+                             `::test_X[...]`
+                         (b) `file.py:LINE` references
+                         (c) verbatim `AssertionError:` / `TypeError:` /
+                             `NameError:` / `ImportError:` followed by a
+                             message body
+                         (d) repo-pinned test-runner invocations such as
+                             `python ./tests/runtests.py <app> ...`,
+                             `pytest lib/<repo>/tests/...`,
+                             `pytest tests/<repo>/...`
+                         (e) literal counts like `FAIL_TO_PASS still
+                             failing (N)` or `PASS_TO_PASS regressed (N)`
+                         (f) specific method signatures unless the same
+                             signature already appears in the original
+                         (g) framework / module file paths the original
+                             does not already name
+                         (h) specific class / method names from the
+                             failing test subject
+                             (e.g. `Q.deconstruct()`,
+                              `RendererAgg.draw_text`)
+
+                      7. AFFIRMATIVE REFORMULATION. After drafting,
+                         re-read the output and DELETE any sentence whose
+                         removal would not weaken the generalized
+                         imperative. If a sentence survives only because
+                         it names a specific test/file/class/assertion,
+                         it is cheat-sheet drift — rewrite it in
+                         failure-CLASS terms or drop it.
+
+                      8. TRANSLATE SIGNATURE → CLASS. Convert any concrete
+                         failure signature you read in READ-OK into a
+                         failure-class imperative agnostic to the domain
+                         object. Examples:
+                           * "test_X fails with AssertionError" → DO write
+                             "guard the combinator against an identity-
+                             element operand"; DO NOT write "handle the
+                             empty-Q edge case".
+                           * "TypeError: __init__() got unexpected keyword
+                             argument 'connections_override'" → DO write
+                             "preserve backward compatibility of the
+                             constructor signature; never break existing
+                             keyword-argument callers"; DO NOT write
+                             "remove the connections_override parameter".
+
+                      9. TRIGGER DISCIPLINE. Every rewrite for a falsified
+                         step MUST contain at least one
+                         If-<observable>-then-<action> sentence (the
+                         observable must be checkable from the agent's
+                         own tool output: exit code, test runner output,
+                         grep result, diff). Example:
+                           * "If the reproduction script exits with code
+                             0, the reproduction is insufficient — revise
+                             it before continuing."
+                         A `<CRITICAL>...</CRITICAL>` block is OPTIONAL
+                         and should be added ONLY IF (a) the original
+                         instruction already contained one — preserve
+                         it then, OR (b) the falsified pattern is a
+                         silent-success failure mode that an in-prose
+                         If-then sentence cannot catch (e.g. agent
+                         declares fix complete without running the
+                         test). DEFAULT: do not add a CRITICAL block;
+                         a sharp imperative sentence is enough.
+                         Do NOT phrase as wishes ("ensure that…", "make
+                         sure to…").
+
+                    The Lean re_roll evidence (per-predicate root_cause /
+                    llm_verdict / tool_verdict in the digest) is a strong
+                    hint about WHICH pattern P1-P7 applies and which
+                    sub-step of the agent's trajectory broke. Use it to
+                    pick the right recipe; do not paste it verbatim.
+
+                    Persist the rewritten instruction:
+
+                    ```bash
+                    python {{package_dir}}/EditYaml.py --yaml_path {{working_plan_yaml}} \
+                        --set-by-name STEP_NAME '<NEW>'
+                    ```
+
+                    (`<NEW>` is a single JSON-encoded string with `\n` and
+                    `\"` escapes; wrap in single quotes for the shell.)
+                    After EditYaml prints its OK line, reply with exactly
+                    the string REWRITTEN and nothing else.
+                save_as: "rewrite_status"
+
+            - increment: "i"
+
+    # =========================================================================
+    # PHASE 4 - whole-plan consistency review
+    # =========================================================================
+    - step:
+        name: "consistency_review"
+        instruction: |
+            Use shell_run to print the full evolved plan, the digest, and the
+            eval_evidence side-by-side so you can scan for cross-step
+            contradictions:
+
+            ```bash
+            cat {{working_plan_yaml}}
+            ```
+
+            ```bash
+            cat {{staging_dir}}/plan_evolve_digest.json
+            ```
+
+            ```bash
+            cat {{staging_dir}}/eval_evidence.json
+            ```
+
+            Scan for cross-step contradictions introduced by the per-step
+            rewrites. Typical issues to flag:
+
+              - A later step N still assumes evidence a rewritten earlier step
+                N-1 no longer guarantees. Example: reproduce_issue was
+                rewritten to tolerate unreproducible bugs, but fix_issue still
+                says "re-run the reproduction script to confirm".
+              - A rewritten step contradicts eval_evidence - e.g. instruction
+                tells the agent to trust a keyword-filtered pytest but
+                `failure_excerpts` shows the FAIL_TO_PASS test name was missed
+                by that filter.
+              - Audit-trail leakage slipped through: any falsified step's
+                instruction contains "PLAN EVOLUTION", "RE-ROLL", "Layer 3",
+                "previously failed", "falsified", "Concrete evidence from", or
+                "---" used as a section divider.
+              - A `{{template}}` reference present in the original is absent
+                in the rewrite.
+
+            CONSTRAINT: Phase 4 corrections may only NARROW scope - no new
+            required commands, no new templates, deletions allowed to remove
+            contradictions but additions must be minor (one or two sentences
+            of defensive framing).
+
+            Reply with a single JSON value (no markdown, no prose). Either:
+              - exactly `[]` if no corrections are needed, OR
+              - a JSON array of correction objects of the form
+                `[{"step_index": <int>, "new_instruction": "<full replacement
+                 text>"}]`
+
+            The `new_instruction` field must be the COMPLETE replacement block
+            (not a diff, not a patch). It must itself satisfy all hard rules
+            from the per-step prompt. Limit corrections to at most 3 entries;
+            if more than 3 contradictions exist, pick the 3 most severe (audit
+            leakage > template drift > logical contradiction > style).
+        save_as: "corrections"
+
+    - step:
+        name: "apply_corrections"
+        instruction: |
+            The previous step emitted this corrections JSON value:
+
+            ```json
+            {{corrections}}
+            ```
+
+            If the value is exactly `[]` (or an empty array), reply with
+            exactly the string NOOP and take no other action.
+
+            Otherwise, for EACH correction entry, invoke shell_run with:
+
+            ```bash
+            python {{package_dir}}/EditYaml.py --yaml_path {{working_plan_yaml}} \
+                --set-by-name <step_name> '<new_instruction_as_json_string>'
+            ```
+
+            `<step_name>` is the step's canonical name as it appears in the
+            plan's workflow (look it up by `step_index` in the digest, or just
+            include a `step_name` field in your corrections array alongside
+            `new_instruction`). `<new_instruction_as_json_string>` is the
+            replacement instruction, JSON-encoded as a single string with
+            embedded `\n` and escaped double-quotes. Wrap the outer argument
+            in single quotes so the JSON survives the shell.
+
+            After all edits complete, reply with exactly the string APPLIED
+            and nothing else.
+        save_as: "correction_apply_status"
+
+    # =========================================================================
+    # PHASE 5 - final validation and output finalization
+    # =========================================================================
+    - step:
+        name: "inject_import_sanity"
+        instruction: |
+            Append a zero-leakage minimal block to the verify_fix step that
+            requires post-edit `python -c "import <pkg>"` and a manual diff
+            audit. Round 7 showed the agent's correct semantic insight was
+            often delivered as a syntax-broken patch (sed indentation errors)
+            — this block reminds the agent to verify its own edits compile
+            before claiming completion. Idempotent: rerunning is safe.
+
+            ```bash
+            python {{package_dir}}/inject_verify_directives.py \
+                --working_plan_yaml {{working_plan_yaml}} \
+                --eval_evidence {{staging_dir}}/eval_evidence.json \
+                --rich-injection
+            ```
+
+            On success the script prints `OK:`; reply with exactly INJECTED
+            and nothing else.
+
+    - step:
+        name: "validate_plan"
+        instruction: |
+            Use shell_run to run the structural validator on the evolved YAML
+            plan:
+
+            ```bash
+            python {{package_dir}}/plan_validator.py \
+                --original {{original_plan_yaml}} \
+                --evolved {{working_plan_yaml}} \
+                --digest {{staging_dir}}/plan_evolve_digest.json \
+                --report {{instance_output_dir}}/validation_report.json
+            ```
+
+            If the validator exits 0 (prints `OK:`), reply with exactly the
+            string VALIDATED and nothing else.
+
+            If the validator exits non-zero (prints `FAIL:`), inspect
+            `{{instance_output_dir}}/validation_report.json` with:
+
+            ```bash
+            cat {{instance_output_dir}}/validation_report.json
+            ```
+
+            RECOVERY PROTOCOL (MANDATORY — do not deviate, do not use
+            classify_failure.py, do not invent alternate steps):
+
+            STEP R1. Run the single one-liner below. It parses the
+            validation_report.json you just inspected, extracts every
+            failing check whose name starts with `falsified_step_differs[`,
+            `no_cheat_sheet_leakage[`, `no_audit_leakage[`, or
+            `templates_preserved[`, then for each such step (a) reads the
+            ORIGINAL instruction from {{original_plan_yaml}}, (b) writes it
+            back into {{working_plan_yaml}} via EditYaml.py --set-by-name,
+            and (c) flips its digest verdict to `confirmed` via EditJson.py.
+
+            ```bash
+            python - <<'PY'
+            import json, subprocess, re
+            PACKAGE = "{{package_dir}}"
+            ORIG    = "{{original_plan_yaml}}"
+            WORK    = "{{working_plan_yaml}}"
+            DIGEST  = "{{staging_dir}}/plan_evolve_digest.json"
+            REPORT  = "{{instance_output_dir}}/validation_report.json"
+            rep = json.load(open(REPORT))
+            # Parse failing check names. Validator uses LEAF index, but
+            # digest entries may include container-step wrappers (while, if,
+            # switch, parallel), so digest length != leaf count on some
+            # plans (e.g. failed_workflow_2). Look up digest entries by NAME, not
+            # by index, to avoid off-by-container bugs.
+            targets = set()  # (leaf_idx, name)
+            for c in rep.get("checks", []):
+                if c.get("pass"):
+                    continue
+                nm = c.get("check", "")
+                for prefix in ("falsified_step_differs[", "no_cheat_sheet_leakage[",
+                               "no_audit_leakage[", "templates_preserved["):
+                    if nm.startswith(prefix):
+                        m = re.match(prefix.replace("[","\\[") + r"(\d+):([^\]]+)\]", nm)
+                        if m:
+                            targets.add((int(m.group(1)), m.group(2)))
+            print(f"NO-AMEND targets: {sorted(targets)}")
+            # Load digest to find entries by step_name
+            digest = json.load(open(DIGEST))
+            name_to_digest_idx = {}
+            for i, entry in enumerate(digest):
+                nm = entry.get("step_name")
+                if nm:
+                    name_to_digest_idx[nm] = i
+            for leaf_idx, name in sorted(targets):
+                digest_idx = name_to_digest_idx.get(name)
+                if digest_idx is None:
+                    print(f"WARN: no digest entry for step_name={name!r}, skipping")
+                    continue
+                orig_instr = subprocess.check_output(
+                    ["python", f"{PACKAGE}/EditYaml.py", "--yaml_path", ORIG,
+                     "--get-by-name", name], text=True)
+                arg = json.dumps(orig_instr)
+                subprocess.check_call(
+                    ["python", f"{PACKAGE}/EditYaml.py", "--yaml_path", WORK,
+                     "--set-by-name", name, arg])
+                subprocess.check_call(
+                    ["python", f"{PACKAGE}/EditJson.py", "--json_path", DIGEST,
+                     "--path", json.dumps([digest_idx, "verdict"]),
+                     "--set", '"confirmed"'])
+                print(f"reverted + digest[{digest_idx}]->confirmed: leaf[{leaf_idx}] {name}")
+            PY
+            ```
+
+            STEP R2. Re-run the validator:
+
+            ```bash
+            python {{package_dir}}/plan_validator.py \
+                --original {{original_plan_yaml}} \
+                --evolved {{working_plan_yaml}} \
+                --digest {{staging_dir}}/plan_evolve_digest.json \
+                --report {{instance_output_dir}}/validation_report.json
+            ```
+
+            STEP R3. If validator now exits 0, reply with exactly the string
+            VALIDATED_NO_AMEND and nothing else. If validator STILL fails
+            (e.g. structural checks like step count or block-scalar
+            preservation — things that cannot be fixed by reverting
+            instructions), reply with exactly the string VALIDATION_FAILED
+            and nothing else.
+
+            DO NOT: run classify_failure.py; invent new per-step edits;
+            skip ahead to finalize_output; emit DONE before running the
+            validator twice.
+        save_as: "validation_status"
+
+    - step:
+        name: "finalize_output"
+        instruction: |
+            Use shell_run to copy the validated working plan to the instance
+            output directory:
+
+            ```bash
+            cp {{working_plan_yaml}} {{instance_output_dir}}/evolved_plan.yaml
+            ```
+
+            After the command succeeds, reply with exactly the string DONE
+            and nothing else.
+        save_as: "finalize_status"
+
+    - step:
+        name: "report_status"
+        instruction: |
+            Use shell_run to print a one-line summary of the validation
+            report:
+
+            ```bash
+            python -c "import json; r=json.load(open('{{instance_output_dir}}/validation_report.json')); s=r['summary']; print(f'pass={s[\"pass\"]} falsified_rewritten={s[\"falsified_rewritten\"]} confirmed_preserved={s[\"confirmed_preserved\"]} failing_checks={s[\"failing_checks\"]}')"
+            ```
+
+            Then reply with exactly the string DONE and nothing else.
+        save_as: "status_report"

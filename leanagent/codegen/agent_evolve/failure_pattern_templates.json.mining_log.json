@@ -1,0 +1,327 @@
+[
+  {
+    "stage": "M1",
+    "instance_id": "astropy__astropy-12907",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-11211",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-11333",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-11551",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-11815",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-13128",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-13343",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-13449",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-13820",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-14011",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-14140",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-14155",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-14349",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-14672",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-14771",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-15022",
+    "status": "skipped_missing_file"
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-15098",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-15278",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-15561",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-16560",
+    "status": "skipped_missing_file"
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-16612",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-16662",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "django__django-16901",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "matplotlib__matplotlib-24870",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "matplotlib__matplotlib-25775",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "psf__requests-2931",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "pydata__xarray-3677",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "pylint-dev__pylint-7080",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "scikit-learn__scikit-learn-13124",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "scikit-learn__scikit-learn-14053",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "scikit-learn__scikit-learn-25931",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "scikit-learn__scikit-learn-26194",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sphinx-doc__sphinx-7985",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sphinx-doc__sphinx-8548",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-13551",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-14976",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-15976",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-16597",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-18199",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-18698",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-19346",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-19783",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-22456",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-23262",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-24066",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M1",
+    "instance_id": "sympy__sympy-24443",
+    "status": "ok",
+    "attempt": 1
+  },
+  {
+    "stage": "M2",
+    "status": "ok",
+    "n_candidates": 9,
+    "duration_sec": 30.7
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "public_representation_contract_regression",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "serialization_roundtrip_reference_stability",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "deterministic_ordering_required_in_generated_output",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "input_validation_missing_for_disallowed_characters",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "regex_or_parser_overmatch_misclassifies_input",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "redirect_or_url_rewrite_drops_request_components",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "backend_capability_requires_alternative_execution_path",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "schema_diff_includes_non_persistent_metadata",
+    "status": "accepted"
+  },
+  {
+    "stage": "M3",
+    "candidate_id": "namespace_or_non_filesystem_module_handling_missing",
+    "status": "accepted"
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "name": "yaml-flow-editor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
+    "@xyflow/react": "^12.3.6",
+    "ansi-to-html": "^0.7.2",
+    "clsx": "^2.1.1",
+    "dagre": "^0.8.5",
+    "html-to-image": "^1.11.13",
+    "js-yaml": "^4.1.0",
+    "jspdf": "^3.0.4",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/dagre": "^0.7.52",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.3"
+  }
+}

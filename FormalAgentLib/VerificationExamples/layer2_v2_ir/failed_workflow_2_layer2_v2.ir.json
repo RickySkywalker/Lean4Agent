@@ -1,0 +1,1254 @@
+{
+  "name": "failed_workflow_2",
+  "goal": "Given a GitHub issue, systematically reproduce, diagnose, fix, and verify the issue through a structured multi-phase workflow.",
+  "parameters": [
+    {
+      "name": "code_path",
+      "base_type": "TString",
+      "predicates": [
+        {
+          "kind": "isValidFilePath"
+        }
+      ]
+    },
+    {
+      "name": "problem_statement",
+      "base_type": "TString",
+      "predicates": [
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    },
+    {
+      "name": "regression_test_cmd",
+      "base_type": "TString",
+      "predicates": []
+    },
+    {
+      "name": "retry_count",
+      "base_type": "TInt",
+      "predicates": [
+        {
+          "kind": "isInt"
+        }
+      ]
+    },
+    {
+      "name": "max_retries",
+      "base_type": "TInt",
+      "predicates": [
+        {
+          "kind": "isInt"
+        }
+      ]
+    },
+    {
+      "name": "fix_verified",
+      "base_type": "TString",
+      "predicates": [
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    },
+    {
+      "name": "retry_notes",
+      "base_type": "TString",
+      "predicates": []
+    },
+    {
+      "name": "final_fix_summary",
+      "base_type": "TString",
+      "predicates": []
+    }
+  ],
+  "nodes": [
+    {
+      "id": 0,
+      "name": "explore_repo_structure",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "repo_structure",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Explore /testbed, list directory, identify main source package.\nReturn:\nREPO_ROOT: ...\nSOURCE_PACKAGE: ...\nKEY_DIRECTORIES: ...\nBUILD_SYSTEM: ...",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "repo_structure",
+          "aspect": "repo_root"
+        },
+        {
+          "var_name": "repo_structure",
+          "aspect": "source_package"
+        },
+        {
+          "var_name": "repo_structure",
+          "aspect": "key_directories"
+        },
+        {
+          "var_name": "repo_structure",
+          "aspect": "build_system"
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate": {
+            "kind": "containsSubstring",
+            "substring": "REPO_ROOT:"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "exploratory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "repository_explored"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "locate_relevant_files",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "repo_structure",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "relevant_files",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Based on issue and repo_structure, find relevant source files.\nReturn:\nRELEVANT_FILES:\n- <file>: <reason>\nPRIMARY_FILE: <path>",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "relevant_files",
+          "aspect": "primary_file"
+        },
+        {
+          "var_name": "relevant_files",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "relevant_files",
+          "predicate": {
+            "kind": "containsSubstring",
+            "substring": "RELEVANT_FILES:"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "exploratory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "repository_explored"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "read_and_understand_code",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "relevant_files",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "code_understanding",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Read primary file, understand the specific function/class involved.\nReturn:\nCODE_UNDERSTANDING:\n- Function/class: ...\n- Current behavior: ...\n- Expected behavior: ...\n- Suspected root cause: ...",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "relevant_files",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "code_understanding",
+          "aspect": "function_name"
+        },
+        {
+          "var_name": "code_understanding",
+          "aspect": "file_path"
+        },
+        {
+          "var_name": "code_understanding",
+          "aspect": "line_range"
+        },
+        {
+          "var_name": "code_understanding",
+          "aspect": "current_behavior"
+        },
+        {
+          "var_name": "code_understanding",
+          "aspect": "expected_behavior"
+        },
+        {
+          "var_name": "code_understanding",
+          "aspect": "suspected_root_cause"
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "comprehensive"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "issue_understood"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "create_reproduce_script",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "code_understanding",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "reproduction_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Create minimal reproduction script, run it to confirm bug.\nReturn:\nREPRODUCTION_STATUS: ...\nSCRIPT_PATH: ...\nERROR_OUTPUT: ...",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "reproduction_result",
+          "aspect": "reproduction_status"
+        },
+        {
+          "var_name": "reproduction_result",
+          "aspect": "script_path"
+        },
+        {
+          "var_name": "reproduction_result",
+          "aspect": "error_output"
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate": {
+            "kind": "containsSubstring",
+            "substring": "REPRODUCTION_STATUS:"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "bug_reproduced"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "root_cause_analysis",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "code_understanding",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "reproduction_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "root_cause_analysis",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Trace code path, perform root-cause analysis. This is IMMUTABLE.\nReturn:\nROOT_CAUSE: ...\nFIX_STRATEGY: ...",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "bug_location"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "root_cause"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "symptom_cause"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "fix_strategy"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "what_to_change"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "files_to_modify"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "risk_areas"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate": {
+            "kind": "containsSubstring",
+            "substring": "ROOT_CAUSE:"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "comprehensive"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "root_cause_identified"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "fix_loop",
+      "step_type": "whileLoop",
+      "reads": [
+        {
+          "name": "fix_verified",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "precond_extra": [
+        {
+          "var_name": "fix_verified",
+          "predicate": {
+            "kind": "nameExists"
+          }
+        }
+      ],
+      "loop_invariant": [
+        {
+          "var_name": "fix_verified",
+          "predicate": {
+            "kind": "nameExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "bug_location"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "root_cause"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "symptom_cause"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "fix_strategy"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "what_to_change"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "files_to_modify"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "risk_areas"
+        },
+        {
+          "var_name": "retry_notes",
+          "predicate": {
+            "kind": "nameExists"
+          }
+        }
+      ],
+      "termination_kind": "finiteCondition",
+      "termination_vars": [
+        "{fix_verified}"
+      ],
+      "exit_postcond": [
+        {
+          "var_name": "final_fix_summary",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "fix_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "fix_result",
+          "aspect": "modified_files"
+        },
+        {
+          "var_name": "fix_result",
+          "aspect": "fix_summary"
+        },
+        {
+          "var_name": "verification_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "fix_verified",
+          "predicate": {
+            "kind": "nameExists"
+          }
+        }
+      ],
+      "loop_executes_at_least_once": true
+    },
+    {
+      "id": 6,
+      "name": "implement_fix",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "root_cause_analysis",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "retry_notes",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "fix_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Implement the fix based on root cause analysis. If retry, use retry_notes.\nReturn:\nMODIFIED_FILES: ...\nFIX_SUMMARY: ...",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "retry_notes",
+          "predicate": {
+            "kind": "nameExists"
+          }
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "bug_location"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "files_to_modify"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "root_cause"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "fix_strategy"
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "fix_result",
+          "aspect": "modified_files"
+        },
+        {
+          "var_name": "fix_result",
+          "aspect": "fix_summary"
+        },
+        {
+          "var_name": "fix_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "fix_result",
+          "predicate": {
+            "kind": "containsSubstring",
+            "substring": "MODIFIED_FILES:"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "fix_implemented"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "verify_reproduction",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "fix_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "verification_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Re-run reproduction script to verify the fix works.\nReturn:\nVERIFIED: <true|false>",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "fix_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "fix_result",
+          "aspect": "modified_files"
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "verification_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "verificatory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "fix_verified"
+        }
+      ],
+      "sub_goal_verifications": [
+        {
+          "sub_goal_name": "fix_implemented"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "is_verified_check",
+      "step_type": "conditional",
+      "reads": [
+        {
+          "name": "verification_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "precond_extra": [
+        {
+          "var_name": "verification_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": []
+    },
+    {
+      "id": 9,
+      "name": "test_edge_cases",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "root_cause_analysis",
+          "base_type": "TString",
+          "predicates": []
+        },
+        {
+          "name": "final_fix_summary",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "edge_case_results",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Test edge cases after the fix. No feedback path if these fail.\nReturn:\nEDGE_CASE_RESULTS: ...\nALL_PASSED: <true|false>",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "final_fix_summary",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "root_cause"
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "aspect": "files_to_modify"
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "edge_case_results",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "verificatory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "edge_cases_checked"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "create_patch",
+      "step_type": "task",
+      "reads": [
+        {
+          "name": "final_fix_summary",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [
+        {
+          "name": "patch_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Create git diff patch from the applied fix.\nReturn:\nPATCH_FILE: /testbed/patch.txt\nPATCH_VALID: <true|false>",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "final_fix_summary",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "patch_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "patch_result",
+          "predicate": {
+            "kind": "containsSubstring",
+            "substring": "PATCH_FILE:"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "patch_created"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "submit_patch",
+      "step_type": "task",
+      "reads": [],
+      "writes": [
+        {
+          "name": "submission_result",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "instruction": "Submit the final patch.\nRun: echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat /testbed/patch.txt",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "submission_result",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "submission_result",
+          "predicate": {
+            "kind": "containsSubstring",
+            "substring": "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "patch_submitted"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "edge_type": "seq",
+      "from_node": 0,
+      "to_node": 1
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 1,
+      "to_node": 2
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 2,
+      "to_node": 3
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 3,
+      "to_node": 4
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 4,
+      "to_node": 5
+    },
+    {
+      "edge_type": "loop",
+      "header": 5,
+      "body_entry": 6,
+      "exit_node": 9
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 6,
+      "to_node": 7
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 7,
+      "to_node": 8
+    },
+    {
+      "edge_type": "loopBack",
+      "from_node": 8,
+      "to_node": 5
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 9,
+      "to_node": 10
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 10,
+      "to_node": 11
+    }
+  ],
+  "entry": 0,
+  "exits": [
+    11
+  ],
+  "param_postcond": [
+    {
+      "var_name": "code_path",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "problem_statement",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "regression_test_cmd",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "retry_count",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "max_retries",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "fix_verified",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "code_path",
+      "predicate": {
+        "kind": "isValidFilePath"
+      }
+    },
+    {
+      "var_name": "problem_statement",
+      "predicate": {
+        "kind": "isNonEmptyString"
+      }
+    },
+    {
+      "var_name": "retry_count",
+      "predicate": {
+        "kind": "isInt"
+      }
+    },
+    {
+      "var_name": "max_retries",
+      "predicate": {
+        "kind": "isInt"
+      }
+    },
+    {
+      "var_name": "fix_verified",
+      "predicate": {
+        "kind": "isNonEmptyString"
+      }
+    },
+    {
+      "var_name": "retry_notes",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "final_fix_summary",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "shell_run",
+      "predicate": {
+        "kind": "toolExists"
+      }
+    }
+  ],
+  "goal_spec": {
+    "original_goal": "Given a GitHub issue, systematically reproduce, diagnose, fix, and verify the issue",
+    "sub_goals": [
+      {
+        "name": "repository_explored",
+        "variable_name": "repo_structure",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Repository structure and source package identified via exploratory step.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      },
+      {
+        "name": "issue_understood",
+        "variable_name": "code_understanding",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "The issue, relevant files, and current vs expected behavior are understood.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      },
+      {
+        "name": "bug_reproduced",
+        "variable_name": "reproduction_result",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "A reproduction script confirms the bug is present.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      },
+      {
+        "name": "root_cause_identified",
+        "variable_name": "root_cause_analysis",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Root cause of the bug is identified with fix strategy.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      },
+      {
+        "name": "fix_implemented",
+        "variable_name": "fix_result",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "A code fix has been implemented inside the retry loop. Under STRICT rules, implement_fix demands root_cause and fix_strategy aspects that are free-form \u2192 informationSufficiency FAILS.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "informationSufficiency"
+          },
+          {
+            "kind": "unifiedLoopBack"
+          },
+          {
+            "kind": "verificationCoverage"
+          },
+          {
+            "kind": "failSafe"
+          }
+        ]
+      },
+      {
+        "name": "fix_verified",
+        "variable_name": "verification_result",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "The fix passes verification via reproduction re-run.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "unifiedLoopBack"
+          }
+        ]
+      },
+      {
+        "name": "edge_cases_checked",
+        "variable_name": "edge_case_results",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Edge cases tested after fix (dead-end: no feedback path if fails). Under STRICT rules, test_edge_cases demands root_cause aspect (free-form) \u2192 informationSufficiency FAILS.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "informationSufficiency"
+          }
+        ]
+      },
+      {
+        "name": "patch_created",
+        "variable_name": "patch_result",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "A git diff patch has been created from the fix.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      },
+      {
+        "name": "patch_submitted",
+        "variable_name": "submission_result",
+        "required_predicate": {
+          "kind": "containsSubstring",
+          "substring": "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
+        },
+        "description": "The final patch was submitted as the workflow output.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      }
+    ]
+  }
+}

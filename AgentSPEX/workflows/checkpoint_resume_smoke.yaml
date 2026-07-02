@@ -1,0 +1,32 @@
+name: "checkpoint_resume_smoke"
+goal: "Smoke test durable execution: checkpoint -> interrupt -> resume"
+
+config:
+  model: "gpt-4.1-mini"
+  max_tool_calls_per_step: 3
+  max_tokens_per_step: 4000
+  temperature: 0.0
+
+workflow:
+  # Step 1: deterministic artifact (no LLM required)
+  - save:
+      name: "write_marker"
+      output_file: "marker.txt"
+      content: "marker_v1\n"
+
+  # Step 2: long-running tool call to allow interruption
+  - step:
+      name: "sleep_for_interrupt"
+      instruction: |
+        You MUST use the shell_run tool to run this exact command:
+          sleep 4 && echo "SLEPT_OK"
+
+        Return ONLY:
+          SLEPT_OK
+
+  # Step 3: final artifact
+  - save:
+      name: "write_done"
+      output_file: "done.txt"
+      content: "done\n"
+

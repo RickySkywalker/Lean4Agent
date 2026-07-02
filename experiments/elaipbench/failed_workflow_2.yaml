@@ -1,0 +1,257 @@
+name: "elaipbench_agent_failed_workflow_2"
+goal: "Answer an academic paper question based on the provided passage"
+system_prompt: |
+  You are an expert academic researcher skilled at reading and understanding scientific papers. You answer questions about academic papers by carefully analyzing the provided passage. Be precise and select only the answer(s) that are supported by the passage.
+config:
+  model: "${MODEL_NAME}"
+  temperature: 1.0
+  max_tokens: 163840
+  enabled_tools: []
+  enable_inline_tool_calls: true
+parameters:
+  question: ""
+  paper_content: ""
+  question_type_instruction: ""
+  question_type: ""
+
+workflow:
+  - task:
+      name: skim_paper
+      instruction: |
+        Skim the paper passage and produce a compact overview that the
+        rest of the workflow can rely on without re-reading the full
+        text. Include the paper title (verbatim if it is in the
+        passage), a 2-3 sentence abstract-style summary, and a list of
+        the main section headings in order of appearance.
+
+        Paper:
+        {{paper_content}}
+
+        Return JSON:
+        {
+          "title": "",
+          "abstract_summary": "",
+          "section_headings": []
+        }
+      save_as: paper_outline
+
+  # was discover: (dropped in AgentSPEX) — stateless task reproducing the old engine's discover prompt; save_as keeps the same list variable
+  - task:
+      name: section_headings
+      instruction: |
+        Source: paper_outline
+
+        Task: Extract the section_headings field from the paper outline JSON
+        above as a clean array of heading strings in their original
+        order.
+
+        Return ONLY a JSON array of strings, no extra text.
+      save_as: section_headings
+
+  - task:
+      name: extract_keywords
+      instruction: |
+        Read ONLY the question stem (not the four answer options) and
+        pull out a small set of keywords and short phrases that a
+        careful reader would use to find the relevant passage in the
+        paper. Also distill the core claim being asked about and note
+        whether the stem contains negation cues such as NOT, incorrect,
+        wrong, false, except, or least.
+
+        Use the section headings to favor keywords that align with the
+        terminology this paper actually uses.
+
+        Question:
+        {{question}}
+        {{question_type_instruction}}
+
+        Section headings: {{section_headings}}
+
+        Return JSON:
+        {
+          "keywords": [],
+          "core_claim": "",
+          "question_stem": "",
+          "negation": "yes or no"
+        }
+      save_as: question_analysis
+
+  - task:
+      name: classify_question_type
+      instruction: |
+        Confirm the question type by inspecting the question stem and
+        the supplied instruction text. Choose one label.
+
+        Question stem: {{question_analysis.question_stem}}
+        Instruction text: {{question_type_instruction}}
+
+        Return JSON:
+        {
+          "question_type": "Single-answer or Multiple-answer"
+        }
+      save_as: type_classification
+
+  - for_each:
+      variable: keyword
+      in: question_analysis.keywords
+      limit: 6
+      steps:
+        - task:
+            name: search_keyword_in_paper
+            instruction: |
+              Find paragraphs in the paper that mention the keyword
+              "{{keyword}}" or a clear paraphrase of it. Return at most
+              two paragraphs verbatim from the paper, each tagged with
+              this keyword. Skip paragraphs that only loosely match.
+
+              Paper:
+              {{paper_content}}
+
+              Return JSON:
+              {
+                "keyword": "{{keyword}}",
+                "paragraphs": ["...", "..."]
+              }
+
+  - task:
+      name: consolidate_evidence
+      instruction: |
+        Combine the per-keyword paragraph hits gathered in the previous
+        loop into a single deduplicated evidence list. Drop paragraphs
+        that are only loosely related to the core claim
+        "{{question_analysis.core_claim}}".
+
+        Each retained snippet must be the verbatim paragraph from the
+        paper — do NOT paraphrase or invent text. Keep at most 5
+        snippets total. If fewer than 5 strong paragraphs exist, return
+        only those.
+
+        Return JSON:
+        {
+          "evidence_snippets": [
+            {
+              "text": "verbatim paragraph from paper",
+              "reason": "why this snippet is relevant"
+            }
+          ]
+        }
+      save_as: evidence
+
+  - task:
+      name: verify_evidence_quality
+      instruction: |
+        Sanity-check the evidence list before option evaluation. For
+        each snippet, decide whether it is a verbatim paragraph from
+        the paper (not paraphrased) and whether it is genuinely
+        relevant to the core claim. Flag any snippet that fails either
+        check.
+
+        Evidence: {{evidence}}
+        Core claim: {{question_analysis.core_claim}}
+
+        Return JSON:
+        {
+          "all_verbatim": "yes or no",
+          "all_relevant": "yes or no",
+          "notes": ""
+        }
+      save_as: evidence_quality
+
+  - task:
+      name: evaluate_options
+      instruction: |
+        Evaluate each answer option (A, B, C, D) using the consolidated
+        evidence. Each verdict must be made INDEPENDENTLY — your
+        verdict on one option must not influence your verdict on any
+        other.
+
+        Question: {{question}}
+        Question analysis: {{question_analysis}}
+        Evidence: {{evidence}}
+
+        For each option choose exactly one verdict:
+        - "supported": justified by the evidence, whether directly
+          stated, paraphrased, or reasonably inferred.
+        - "contradicted": the evidence directly opposes the option.
+        - "not_established": the evidence is insufficient to support
+          the option.
+
+        If the question stem is flagged with negation
+        ({{question_analysis.negation}} == "yes"), record in
+        selected_options the option(s) the paper does NOT support
+        rather than the option(s) it does support.
+
+        Return JSON:
+        {
+          "A": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "B": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "C": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "D": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "selected_options": [],
+          "selected_count": 0
+        }
+      save_as: option_judgment
+
+  - if:
+      condition: "question_type == 'MA-MCQ'"
+      then:
+        - set_variable:
+            name: recheck_count
+            value: 0
+
+        - while:
+            condition: "option_judgment.selected_count < 2 and recheck_count < 2"
+            max_iterations: 2
+            steps:
+              - task:
+                  name: recheck_options
+                  instruction: |
+                    A multi-answer question typically has 2-3 correct
+                    options, but only
+                    {{option_judgment.selected_count}} option(s) are
+                    currently selected.
+
+                    Question: {{question}}
+                    Current judgment: {{option_judgment}}
+                    Evidence: {{evidence}}
+
+                    Reconsider every non-selected option with a
+                    slightly more lenient reading of the evidence. You
+                    MUST end up with at least 2 options selected.
+
+                    Return JSON in the same shape as the original
+                    evaluation:
+                    {
+                      "A": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+                      "B": {"verdict": "...", "reason": "", "evidence_text": ""},
+                      "C": {"verdict": "...", "reason": "", "evidence_text": ""},
+                      "D": {"verdict": "...", "reason": "", "evidence_text": ""},
+                      "selected_options": [],
+                      "selected_count": 0
+                    }
+                  save_as: option_judgment
+
+              - increment: recheck_count
+
+        - task:
+            name: finalize_multi_answer
+            instruction: |
+              Produce the final answer for this multi-answer question
+              based on the option evaluation.
+
+              Question: {{question}}
+              Option evaluation: {{option_judgment}}
+              {{question_type_instruction}}
+            save_as: final_response
+
+      else:
+        - task:
+            name: finalize_single_answer
+            instruction: |
+              Pick the ONE correct answer based on the option
+              evaluation.
+
+              Question: {{question}}
+              Option evaluation: {{option_judgment}}
+              {{question_type_instruction}}
+            save_as: final_response

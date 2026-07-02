@@ -1,0 +1,4 @@
+staging/
+outputs/
+__pycache__/
+*.pyc

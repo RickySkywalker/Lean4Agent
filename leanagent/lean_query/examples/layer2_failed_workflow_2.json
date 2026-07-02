@@ -1,0 +1,4437 @@
+{
+  "theorem_results": {
+    "semantically_sound": true,
+    "layer1": {
+      "noOrphanNodes": true,
+      "exitNodesValid": true,
+      "entryNodeValid": true,
+      "edgesValid": true,
+      "allWritesConsistent": true,
+      "allReadResolvable": true,
+      "allExitsReachable": true
+    }
+  },
+  "per_node_results": [
+    {
+      "step_type": "step",
+      "node_name": "explore_repo_structure",
+      "node_id": 0,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "repository_explored"
+        ],
+        "step_tags": [
+          "exploratory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_0",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_0_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(repo_root)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "repo_root",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(source_package)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "source_package",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(key_directories)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "key_directories",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(build_system)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "build_system",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "containsSubstring(REPO_ROOT:)",
+            "predicate_json": {
+              "substring": "REPO_ROOT:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 22
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "repo_structure",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          1
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [],
+        "output_type_determined": false,
+        "node_name": "explore_repo_structure",
+        "node_id": 0,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "locate_relevant_files",
+      "node_id": 1,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "repository_explored"
+        ],
+        "step_tags": [
+          "exploratory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "repo_structure",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_1",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_1_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "relevant_files",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(primary_file)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "primary_file",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "relevant_files",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "relevant_files",
+            "predicate_type": "containsSubstring(RELEVANT_FILES:)",
+            "predicate_json": {
+              "substring": "RELEVANT_FILES:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 27
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "relevant_files",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          2
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "repo_structure",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          0
+        ],
+        "output_type_determined": false,
+        "node_name": "locate_relevant_files",
+        "node_id": 1,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "read_and_understand_code",
+      "node_id": 2,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "issue_understood"
+        ],
+        "step_tags": [
+          "comprehensive"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "relevant_files",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_2",
+            "predicate_type": "ext(PredicateKey(step_tag, comprehensive, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "comprehensive",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_2_issue_understood",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_understood)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "issue_understood",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(function_name)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "function_name",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(file_path)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "file_path",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(line_range)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "line_range",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(current_behavior)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "current_behavior",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(expected_behavior)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "expected_behavior",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(suspected_root_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "suspected_root_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 36
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "code_understanding",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          3
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "relevant_files",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          1
+        ],
+        "output_type_determined": false,
+        "node_name": "read_and_understand_code",
+        "node_id": 2,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "create_reproduce_script",
+      "node_id": 3,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "bug_reproduced"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "code_understanding",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_3",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_3_bug_reproduced",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(bug_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "bug_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(reproduction_status)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "reproduction_status",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(script_path)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "script_path",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(error_output)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "error_output",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "containsSubstring(REPRODUCTION_STATUS:)",
+            "predicate_json": {
+              "substring": "REPRODUCTION_STATUS:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 43
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "reproduction_result",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          4
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "code_understanding",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          2
+        ],
+        "output_type_determined": false,
+        "node_name": "create_reproduce_script",
+        "node_id": 3,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "root_cause_analysis",
+      "node_id": 4,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "root_cause_identified"
+        ],
+        "step_tags": [
+          "comprehensive"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "code_understanding",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "reproduction_result",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_4",
+            "predicate_type": "ext(PredicateKey(step_tag, comprehensive, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "comprehensive",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_4_root_cause_identified",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(root_cause_identified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "root_cause_identified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(bug_location)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "bug_location",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(root_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "root_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(symptom_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "symptom_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(fix_strategy)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "fix_strategy",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(what_to_change)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "what_to_change",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(files_to_modify)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "files_to_modify",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(risk_areas)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "risk_areas",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "containsSubstring(ROOT_CAUSE:)",
+            "predicate_json": {
+              "substring": "ROOT_CAUSE:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 54
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "root_cause_analysis",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          5
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "code_understanding",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          },
+          {
+            "var_name": "reproduction_result",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          3
+        ],
+        "output_type_determined": false,
+        "node_name": "root_cause_analysis",
+        "node_id": 4,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "whileLoop",
+      "node_name": "fix_loop",
+      "node_id": 5,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [],
+        "step_tags": [],
+        "preconditions": [
+          {
+            "var_name": "fix_verified",
+            "satisfied": true,
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 54
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          6,
+          9
+        ],
+        "step_type": "whileLoop",
+        "reads": [
+          {
+            "var_name": "fix_verified",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          8,
+          4
+        ],
+        "output_type_determined": true,
+        "node_name": "fix_loop",
+        "node_id": 5,
+        "needs_semantic_spec": false,
+        "llm_instruction_present": false
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "implement_fix",
+      "node_id": 6,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "fix_implemented"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "retry_notes",
+            "satisfied": true,
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(bug_location)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "bug_location",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(files_to_modify)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "files_to_modify",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(root_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "root_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(fix_strategy)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "fix_strategy",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_6",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_6_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(modified_files)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "modified_files",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "fix_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(fix_summary)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "fix_summary",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "fix_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "fix_result",
+            "predicate_type": "containsSubstring(MODIFIED_FILES:)",
+            "predicate_json": {
+              "substring": "MODIFIED_FILES:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 60
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "fix_result",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          7
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          },
+          {
+            "var_name": "retry_notes",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          5
+        ],
+        "output_type_determined": false,
+        "node_name": "implement_fix",
+        "node_id": 6,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "verify_reproduction",
+      "node_id": 7,
+      "layer2": {
+        "sub_goal_verifications": [
+          "fix_implemented"
+        ],
+        "sub_goal_contributions": [
+          "fix_verified"
+        ],
+        "step_tags": [
+          "verificatory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "fix_result",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "fix_result",
+            "satisfied": true,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(modified_files)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "modified_files",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_7",
+            "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "verificatory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_7_fix_verified",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_verify_7_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalVerification",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "verification_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 64
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "verification_result",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          8
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "fix_result",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          6
+        ],
+        "output_type_determined": false,
+        "node_name": "verify_reproduction",
+        "node_id": 7,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "conditional",
+      "node_name": "is_verified_check",
+      "node_id": 8,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [],
+        "step_tags": [],
+        "preconditions": [
+          {
+            "var_name": "verification_result",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 64
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          5
+        ],
+        "step_type": "conditional",
+        "reads": [
+          {
+            "var_name": "verification_result",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          7
+        ],
+        "output_type_determined": true,
+        "node_name": "is_verified_check",
+        "node_id": 8,
+        "needs_semantic_spec": false,
+        "llm_instruction_present": false
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "test_edge_cases",
+      "node_id": 9,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "edge_cases_checked"
+        ],
+        "step_tags": [
+          "verificatory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "final_fix_summary",
+            "satisfied": false,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": "UNSATISFIED: predicate isNonEmptyString for 'final_fix_summary' not found in cumulative state (64 predicates)"
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(root_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "root_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "satisfied": true,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(files_to_modify)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "files_to_modify",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_9",
+            "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "verificatory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_9_edge_cases_checked",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(edge_cases_checked)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "edge_cases_checked",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "edge_case_results",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [
+          "PREDICATE CHAIN: 1 of 6 preconditions unsatisfied at node 9 'test_edge_cases'"
+        ],
+        "cumulative_state_after": {
+          "predicate_count": 67
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "edge_case_results",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          10
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "predecessor",
+            "resolved": true
+          },
+          {
+            "var_name": "final_fix_summary",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          5
+        ],
+        "output_type_determined": false,
+        "node_name": "test_edge_cases",
+        "node_id": 9,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "create_patch",
+      "node_id": 10,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "patch_created"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "final_fix_summary",
+            "satisfied": false,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": "UNSATISFIED: predicate isNonEmptyString for 'final_fix_summary' not found in cumulative state (67 predicates)"
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_10",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_10_patch_created",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_created)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_created",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "patch_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "patch_result",
+            "predicate_type": "containsSubstring(PATCH_FILE:)",
+            "predicate_json": {
+              "substring": "PATCH_FILE:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [
+          "PREDICATE CHAIN: 1 of 2 preconditions unsatisfied at node 10 'create_patch'"
+        ],
+        "cumulative_state_after": {
+          "predicate_count": 71
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "patch_result",
+            "type": "TString"
+          }
+        ],
+        "successors": [
+          11
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "final_fix_summary",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          9
+        ],
+        "output_type_determined": false,
+        "node_name": "create_patch",
+        "node_id": 10,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "submit_patch",
+      "node_id": 11,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "patch_submitted"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_11",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_11_patch_submitted",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "submission_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "submission_result",
+            "predicate_type": "containsSubstring(COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT)",
+            "predicate_json": {
+              "substring": "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 75
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [
+          {
+            "var_name": "submission_result",
+            "type": "TString"
+          }
+        ],
+        "successors": [],
+        "step_type": "step",
+        "reads": [],
+        "reachable_from_entry": true,
+        "predecessors": [
+          10
+        ],
+        "output_type_determined": false,
+        "node_name": "submit_patch",
+        "node_id": 11,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    }
+  ],
+  "layer": 2,
+  "graph_level_results": {
+    "semantic_verification_formatted": "✓ Graph verification successful!\n  Exit facts (67 variables):\n    code_path: nameExists\n    regression_test_cmd: nameExists\n    retry_count: nameExists\n    max_retries: nameExists\n    code_path: isValidFilePath\n    retry_count: isInt\n    max_retries: isInt\n    shell_run: toolExists\n    __step_tag_0: ext(PredicateKey(step_tag, exploratory, []))\n    __graph_contrib_0_repository_explored: ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))\n    repo_structure: ext(PredicateKey(info_content, coversAspect, [str(repo_root)]))\n    repo_structure: ext(PredicateKey(info_content, coversAspect, [str(source_package)]))\n    repo_structure: ext(PredicateKey(info_content, coversAspect, [str(key_directories)]))\n    repo_structure: ext(PredicateKey(info_content, coversAspect, [str(build_system)]))\n    repo_structure: isNonEmptyString\n    repo_structure: containsSubstring(REPO_ROOT:)\n    __step_tag_1: ext(PredicateKey(step_tag, exploratory, []))\n    __graph_contrib_1_repository_explored: ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))\n    relevant_files: ext(PredicateKey(info_content, coversAspect, [str(primary_file)]))\n    relevant_files: isNonEmptyString\n    relevant_files: containsSubstring(RELEVANT_FILES:)\n    __step_tag_2: ext(PredicateKey(step_tag, comprehensive, []))\n    __graph_contrib_2_issue_understood: ext(PredicateKey(graph_level, subGoalContribution, [str(issue_understood)]))\n    code_understanding: ext(PredicateKey(info_content, coversAspect, [str(function_name)]))\n    code_understanding: ext(PredicateKey(info_content, coversAspect, [str(file_path)]))\n    code_understanding: ext(PredicateKey(info_content, coversAspect, [str(line_range)]))\n    code_understanding: ext(PredicateKey(info_content, coversAspect, [str(current_behavior)]))\n    code_understanding: ext(PredicateKey(info_content, coversAspect, [str(expected_behavior)]))\n    code_understanding: ext(PredicateKey(info_content, coversAspect, [str(suspected_root_cause)]))\n    code_understanding: isNonEmptyString\n    __step_tag_3: ext(PredicateKey(step_tag, transformative, []))\n    __graph_contrib_3_bug_reproduced: ext(PredicateKey(graph_level, subGoalContribution, [str(bug_reproduced)]))\n    reproduction_result: ext(PredicateKey(info_content, coversAspect, [str(reproduction_status)]))\n    reproduction_result: ext(PredicateKey(info_content, coversAspect, [str(script_path)]))\n    reproduction_result: ext(PredicateKey(info_content, coversAspect, [str(error_output)]))\n    reproduction_result: isNonEmptyString\n    reproduction_result: containsSubstring(REPRODUCTION_STATUS:)\n    __step_tag_4: ext(PredicateKey(step_tag, comprehensive, []))\n    __graph_contrib_4_root_cause_identified: ext(PredicateKey(graph_level, subGoalContribution, [str(root_cause_identified)]))\n    fix_verified: nameExists\n    problem_statement: isNonEmptyString\n    root_cause_analysis: isNonEmptyString\n    root_cause_analysis: ext(PredicateKey(info_content, coversAspect, [str(bug_location)]))\n    root_cause_analysis: ext(PredicateKey(info_content, coversAspect, [str(root_cause)]))\n    root_cause_analysis: ext(PredicateKey(info_content, coversAspect, [str(symptom_cause)]))\n    root_cause_analysis: ext(PredicateKey(info_content, coversAspect, [str(fix_strategy)]))\n    root_cause_analysis: ext(PredicateKey(info_content, coversAspect, [str(what_to_change)]))\n    root_cause_analysis: ext(PredicateKey(info_content, coversAspect, [str(files_to_modify)]))\n    root_cause_analysis: ext(PredicateKey(info_content, coversAspect, [str(risk_areas)]))\n    retry_notes: nameExists\n    final_fix_summary: isNonEmptyString\n    fix_result: isNonEmptyString\n    fix_result: ext(PredicateKey(info_content, coversAspect, [str(modified_files)]))\n    fix_result: ext(PredicateKey(info_content, coversAspect, [str(fix_summary)]))\n    verification_result: isNonEmptyString\n    fix_verified: nameExists\n    __step_tag_9: ext(PredicateKey(step_tag, verificatory, []))\n    __graph_contrib_9_edge_cases_checked: ext(PredicateKey(graph_level, subGoalContribution, [str(edge_cases_checked)]))\n    edge_case_results: isNonEmptyString\n    __step_tag_10: ext(PredicateKey(step_tag, transformative, []))\n    __graph_contrib_10_patch_created: ext(PredicateKey(graph_level, subGoalContribution, [str(patch_created)]))\n    patch_result: isNonEmptyString\n    patch_result: containsSubstring(PATCH_FILE:)\n    __step_tag_11: ext(PredicateKey(step_tag, transformative, []))\n    __graph_contrib_11_patch_submitted: ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))\n    submission_result: isNonEmptyString\n    submission_result: containsSubstring(COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT)",
+    "semantic_verification": {
+      "status": "success",
+      "is_sound": true,
+      "failure_info": null,
+      "exit_facts_count": 67,
+      "exit_facts": [
+        {
+          "var_name": "code_path",
+          "predicate_type": "nameExists",
+          "predicate_json": {
+            "kind": "nameExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "regression_test_cmd",
+          "predicate_type": "nameExists",
+          "predicate_json": {
+            "kind": "nameExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "retry_count",
+          "predicate_type": "nameExists",
+          "predicate_json": {
+            "kind": "nameExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "max_retries",
+          "predicate_type": "nameExists",
+          "predicate_json": {
+            "kind": "nameExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "code_path",
+          "predicate_type": "isValidFilePath",
+          "predicate_json": {
+            "kind": "isValidFilePath"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "retry_count",
+          "predicate_type": "isInt",
+          "predicate_json": {
+            "kind": "isInt"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "max_retries",
+          "predicate_type": "isInt",
+          "predicate_json": {
+            "kind": "isInt"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "shell_run",
+          "predicate_type": "toolExists",
+          "predicate_json": {
+            "kind": "toolExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_0",
+          "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "exploratory",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_0_repository_explored",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "repository_explored",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(repo_root)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "repo_root",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(source_package)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "source_package",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(key_directories)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "key_directories",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(build_system)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "build_system",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "repo_structure",
+          "predicate_type": "containsSubstring(REPO_ROOT:)",
+          "predicate_json": {
+            "substring": "REPO_ROOT:",
+            "kind": "containsSubstring"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_1",
+          "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "exploratory",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_1_repository_explored",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "repository_explored",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "relevant_files",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(primary_file)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "primary_file",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "relevant_files",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "relevant_files",
+          "predicate_type": "containsSubstring(RELEVANT_FILES:)",
+          "predicate_json": {
+            "substring": "RELEVANT_FILES:",
+            "kind": "containsSubstring"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_2",
+          "predicate_type": "ext(PredicateKey(step_tag, comprehensive, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "comprehensive",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_2_issue_understood",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_understood)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "issue_understood",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(function_name)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "function_name",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(file_path)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "file_path",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(line_range)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "line_range",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(current_behavior)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "current_behavior",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(expected_behavior)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "expected_behavior",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(suspected_root_cause)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "suspected_root_cause",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "code_understanding",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_3",
+          "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "transformative",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_3_bug_reproduced",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(bug_reproduced)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "bug_reproduced",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(reproduction_status)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "reproduction_status",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(script_path)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "script_path",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(error_output)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "error_output",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "reproduction_result",
+          "predicate_type": "containsSubstring(REPRODUCTION_STATUS:)",
+          "predicate_json": {
+            "substring": "REPRODUCTION_STATUS:",
+            "kind": "containsSubstring"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_4",
+          "predicate_type": "ext(PredicateKey(step_tag, comprehensive, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "comprehensive",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_4_root_cause_identified",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(root_cause_identified)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "root_cause_identified",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "fix_verified",
+          "predicate_type": "nameExists",
+          "predicate_json": {
+            "kind": "nameExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(bug_location)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "bug_location",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(root_cause)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "root_cause",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(symptom_cause)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "symptom_cause",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(fix_strategy)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "fix_strategy",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(what_to_change)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "what_to_change",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(files_to_modify)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "files_to_modify",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "root_cause_analysis",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(risk_areas)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "risk_areas",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "retry_notes",
+          "predicate_type": "nameExists",
+          "predicate_json": {
+            "kind": "nameExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "final_fix_summary",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "fix_result",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "fix_result",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(modified_files)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "modified_files",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "fix_result",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(fix_summary)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "fix_summary",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "verification_result",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "fix_verified",
+          "predicate_type": "nameExists",
+          "predicate_json": {
+            "kind": "nameExists"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_9",
+          "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "verificatory",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_9_edge_cases_checked",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(edge_cases_checked)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "edge_cases_checked",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "edge_case_results",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_10",
+          "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "transformative",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_10_patch_created",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_created)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "patch_created",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "patch_result",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "patch_result",
+          "predicate_type": "containsSubstring(PATCH_FILE:)",
+          "predicate_json": {
+            "substring": "PATCH_FILE:",
+            "kind": "containsSubstring"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "__step_tag_11",
+          "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "transformative",
+              "family": "step_tag",
+              "args": []
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "__graph_contrib_11_patch_submitted",
+          "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "subGoalContribution",
+              "family": "graph_level",
+              "args": [
+                {
+                  "value": "patch_submitted",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": true
+        },
+        {
+          "var_name": "submission_result",
+          "predicate_type": "isNonEmptyString",
+          "predicate_json": {
+            "kind": "isNonEmptyString"
+          },
+          "is_sentinel": false
+        },
+        {
+          "var_name": "submission_result",
+          "predicate_type": "containsSubstring(COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT)",
+          "predicate_json": {
+            "substring": "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+            "kind": "containsSubstring"
+          },
+          "is_sentinel": false
+        }
+      ]
+    },
+    "layer1": {
+      "verification_summary": {
+        "unstructured_nodes": 10,
+        "total_nodes": 12,
+        "structured_nodes": 0,
+        "deterministic_nodes": 2,
+        "composition_nodes": 0
+      },
+      "parameters": [
+        {
+          "var_name": "code_path",
+          "type": "TString"
+        },
+        {
+          "var_name": "problem_statement",
+          "type": "TString"
+        },
+        {
+          "var_name": "regression_test_cmd",
+          "type": "TString"
+        },
+        {
+          "var_name": "retry_count",
+          "type": "TInt"
+        },
+        {
+          "var_name": "max_retries",
+          "type": "TInt"
+        },
+        {
+          "var_name": "fix_verified",
+          "type": "TString"
+        },
+        {
+          "var_name": "retry_notes",
+          "type": "TString"
+        },
+        {
+          "var_name": "final_fix_summary",
+          "type": "TString"
+        }
+      ],
+      "parallel_scoped_nodes": [],
+      "node_count": 12,
+      "exit_node_ids": [
+        11
+      ],
+      "entry_node_id": 0,
+      "edge_types": {
+        "switch": 0,
+        "sequential": 9,
+        "loop_back": 1,
+        "loop": 1,
+        "join": 0,
+        "fork": 0,
+        "branch": 0
+      },
+      "edge_count": 11
+    },
+    "goal_coverage": {
+      "sub_goals": [
+        {
+          "verification_nodes": [],
+          "variable_name": "repo_structure",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "repository_explored",
+          "description": "Repository structure and source package identified via exploratory step.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            0,
+            1
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "code_understanding",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "issue_understood",
+          "description": "The issue, relevant files, and current vs expected behavior are understood.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            2
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "reproduction_result",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "bug_reproduced",
+          "description": "A reproduction script confirms the bug is present.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            3
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "root_cause_analysis",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "root_cause_identified",
+          "description": "Root cause of the bug is identified with fix strategy.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            4
+          ]
+        },
+        {
+          "verification_nodes": [
+            7
+          ],
+          "variable_name": "fix_result",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": true,
+              "predicate_key": "verificationCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": true,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": true,
+              "predicate_key": "unifiedLoopBack",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "fix_implemented",
+          "description": "A code fix has been implemented inside the retry loop. Under STRICT rules, implement_fix demands root_cause and fix_strategy aspects that are free-form → informationSufficiency FAILS.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            6
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "verification_result",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": true,
+              "predicate_key": "unifiedLoopBack",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "fix_verified",
+          "description": "The fix passes verification via reproduction re-run.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            7
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "edge_case_results",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": true,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "edge_cases_checked",
+          "description": "Edge cases tested after fix (dead-end: no feedback path if fails). Under STRICT rules, test_edge_cases demands root_cause aspect (free-form) → informationSufficiency FAILS.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            9
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "patch_result",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "patch_created",
+          "description": "A git diff patch has been created from the fix.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            10
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "submission_result",
+          "required_predicate": {
+            "substring": "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+            "kind": "containsSubstring"
+          },
+          "present_in_exit_facts": true,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": true,
+              "informational": false
+            }
+          ],
+          "name": "patch_submitted",
+          "description": "The final patch was submitted as the workflow output.",
+          "coverage_level": "FULL",
+          "contributing_nodes": [
+            11
+          ]
+        }
+      ],
+      "semantic_soundness": {
+        "status": "success",
+        "is_sound": true,
+        "failure_info": null,
+        "exit_facts_count": 67,
+        "exit_facts": [
+          {
+            "var_name": "code_path",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "regression_test_cmd",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "retry_count",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "max_retries",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_path",
+            "predicate_type": "isValidFilePath",
+            "predicate_json": {
+              "kind": "isValidFilePath"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "retry_count",
+            "predicate_type": "isInt",
+            "predicate_json": {
+              "kind": "isInt"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "max_retries",
+            "predicate_type": "isInt",
+            "predicate_json": {
+              "kind": "isInt"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "shell_run",
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_0",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_0_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(repo_root)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "repo_root",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(source_package)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "source_package",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(key_directories)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "key_directories",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(build_system)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "build_system",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "repo_structure",
+            "predicate_type": "containsSubstring(REPO_ROOT:)",
+            "predicate_json": {
+              "substring": "REPO_ROOT:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_1",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_1_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "relevant_files",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(primary_file)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "primary_file",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "relevant_files",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "relevant_files",
+            "predicate_type": "containsSubstring(RELEVANT_FILES:)",
+            "predicate_json": {
+              "substring": "RELEVANT_FILES:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_2",
+            "predicate_type": "ext(PredicateKey(step_tag, comprehensive, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "comprehensive",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_2_issue_understood",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_understood)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "issue_understood",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(function_name)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "function_name",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(file_path)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "file_path",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(line_range)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "line_range",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(current_behavior)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "current_behavior",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(expected_behavior)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "expected_behavior",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(suspected_root_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "suspected_root_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_understanding",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_3",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_3_bug_reproduced",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(bug_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "bug_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(reproduction_status)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "reproduction_status",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(script_path)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "script_path",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(error_output)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "error_output",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "reproduction_result",
+            "predicate_type": "containsSubstring(REPRODUCTION_STATUS:)",
+            "predicate_json": {
+              "substring": "REPRODUCTION_STATUS:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_4",
+            "predicate_type": "ext(PredicateKey(step_tag, comprehensive, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "comprehensive",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_4_root_cause_identified",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(root_cause_identified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "root_cause_identified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_verified",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "problem_statement",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(bug_location)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "bug_location",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(root_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "root_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(symptom_cause)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "symptom_cause",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(fix_strategy)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "fix_strategy",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(what_to_change)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "what_to_change",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(files_to_modify)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "files_to_modify",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "root_cause_analysis",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(risk_areas)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "risk_areas",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "retry_notes",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "final_fix_summary",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "fix_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "fix_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(modified_files)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "modified_files",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "fix_result",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(fix_summary)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "fix_summary",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "verification_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "fix_verified",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_9",
+            "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "verificatory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_9_edge_cases_checked",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(edge_cases_checked)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "edge_cases_checked",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "edge_case_results",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_10",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_10_patch_created",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_created)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_created",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "patch_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "patch_result",
+            "predicate_type": "containsSubstring(PATCH_FILE:)",
+            "predicate_json": {
+              "substring": "PATCH_FILE:",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_11",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_11_patch_submitted",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "submission_result",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "submission_result",
+            "predicate_type": "containsSubstring(COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT)",
+            "predicate_json": {
+              "substring": "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+              "kind": "containsSubstring"
+            },
+            "is_sentinel": false
+          }
+        ]
+      },
+      "overall_coverage_level": "All Sub-Goals Fully Covered",
+      "node_level_quality": "Excellent",
+      "issues": [],
+      "formatted_text": "\n═══════════════════════════════════════════════════\nGOAL COVERAGE REPORT (Graph-Level Analysis v2)\n═══════════════════════════════════════════════════\n\nGoal: Given a GitHub issue, systematically reproduce, diagnose, fix, and verify the issue\nSemantic Soundness: Semantically Sound\nNode-Level Quality: Excellent\n\nLegend: [+X]=required & pass  [-X]=required & FAIL  [~X]=optional/info & pass  [!X]=info & FAIL (not counted)\n\nSub-Goal Coverage (9/9 fully covered):\n  repository_explored: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [+exit_facts]\n    Failed:    [!failsafe]\n  issue_understood: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [+exit_facts]\n    Failed:    [!failsafe]\n  bug_reproduced: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [+exit_facts]\n    Failed:    [!failsafe]\n  root_cause_identified: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [+exit_facts]\n    Failed:    [!failsafe]\n  fix_implemented: FULL\n    Satisfied: [+path] [+verify] [~ctx_cont] [+info_suff] [+loop_back] [+exit_facts]\n    Failed:    [!failsafe]\n  fix_verified: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [+loop_back] [+exit_facts]\n    Failed:    [!failsafe]\n  edge_cases_checked: FULL\n    Satisfied: [+path] [~ctx_cont] [+info_suff] [+exit_facts]\n    Failed:    [!failsafe]\n  patch_created: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [+exit_facts]\n    Failed:    [!failsafe]\n  patch_submitted: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [+exit_facts]\n    Failed:    [!failsafe]\n\nCoverage Summary:\n  - Fully covered:    9\n  - Partially covered: 0\n  - Uncovered:         0\n  - Overall: All Sub-Goals Fully Covered\n\nGraph-Level Issues:\n  None\n═══════════════════════════════════════════════════"
+    }
+  }
+}

@@ -1,0 +1,111 @@
+name: "process_user_query_module"
+goal: "Process a single user query by generating and executing SERP queries in parallel"
+
+# Submodule-specific config - uses a different model from the main workflow
+config:
+    model: "o3-mini"                 # Use a different model for this submodule
+    max_tokens_per_step: 100000         # Submodule uses smaller token limit
+    max_tool_calls_per_step: 10
+
+# Parameters from parent workflow
+parameters:
+    user_query: "${USER_QUERY}"
+    branch_learning: "${BRANCH_LEARNING:-[]}"
+    current_depth: "${CURRENT_DEPTH}"
+    current_breadth: "${CURRENT_BREADTH}"
+    branch_id: "${BRANCH_ID}"
+    memory_file: "${MEMORY_FILE}"
+    max_serp_workers: "${MAX_SERP_WORKERS:-4}"
+    max_depth: "${MAX_DEPTH}"
+
+workflow:
+    # ========================================
+    # Step 1: Generate SERP queries for this user query
+    # ========================================
+    - step:
+        name: "generate_serp_queries"
+        instruction: |
+            Branch-specific learnings from ancestry: {{branch_learning}}
+
+            User Query: {{user_query}}
+
+            Generate {{current_breadth}} SERP queries to research this topic.
+            Use previous learnings (if available) to make queries more specific and targeted.
+
+            Requirements:
+            - Each query must be unique and distinct
+            - Cover different aspects of the user query
+            - Be specific and actionable
+
+            For each query, provide:
+            1. query: The SERP search query string
+            2. researchGoal: Detailed explanation of:
+               - What this query aims to discover
+               - How to advance research with the results
+               - Specific follow-up directions to explore
+
+            Return ONLY a JSON array:
+            [
+                {"query": "search query 1", "researchGoal": "detailed goal..."},
+                {"query": "search query 2", "researchGoal": "detailed goal..."}
+            ]
+        save_as: "serp_queries"
+
+    - set_variable:
+        name: "current_breadth"
+        value: "max( {{current_breadth}} // 2, 1)"
+
+    # ========================================
+    # Step 2: Prepare parameters for parallel SERP processing
+    # ========================================
+    - step:
+        name: "prepare_serp_params"
+        instruction: |
+            Prepare parameters for parallel SERP processing.
+
+            For each SERP entry in: {{serp_queries}}
+
+            Each SERP object has the following format:
+            {
+                "query": "xxx"
+                "researchGoal": "yyy"
+            }
+
+            Create a list of parameter dictionaries, numbering each query starting from 1:
+            [
+                {
+                    "serp_entry": "[JSON string of first serp object]",
+                    "user_query": "{{user_query}}",
+                    "current_depth": "{{current_depth}}",
+                    "current_breadth": "{{current_breadth}}",
+                    "branch_id": "{{branch_id}}",
+                    "query_index": "1",
+                    "memory_file": "{{memory_file}}",
+                    "branch_learning": "{{branch_learning}}",
+                    "max_depth": "{{max_depth}}"
+                },
+                {
+                    "serp_entry": "[JSON string of second serp object]",
+                    ...
+                    "query_index": "2",
+                    ...
+                }
+            ]
+
+            ONLY return as JSON array of parameter objects with no extra commentary.
+        save_as: "serp_params"
+
+    # ========================================
+    # Step 3: PARALLEL - Process all SERP queries simultaneously
+    # ========================================
+    - parallel:
+        module: "modules/process_serp_query.yaml"
+        parameters_list: "serp_params"
+        save_results_as: "all_serp_results"
+        max_workers: "max_serp_workers"
+
+    - set_variable:
+        name: "next_queries"
+        value: "list( {{all_serp_results}}.values() )"
+
+    - return: "next_queries"

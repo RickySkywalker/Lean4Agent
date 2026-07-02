@@ -1,0 +1,1342 @@
+{
+  "theorem_results": {
+    "semantically_sound": false,
+    "layer1": {
+      "noOrphanNodes": true,
+      "exitNodesValid": true,
+      "entryNodeValid": true,
+      "edgesValid": true,
+      "allWritesConsistent": true,
+      "allReadResolvable": true,
+      "allExitsReachable": true
+    }
+  },
+  "per_node_results": [
+    {
+      "step_type": "step",
+      "node_name": "setup_and_explore",
+      "node_id": 0,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "repository_explored"
+        ],
+        "step_tags": [
+          "exploratory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "code_path",
+            "satisfied": true,
+            "predicate_type": "isValidFilePath",
+            "predicate_json": {
+              "kind": "isValidFilePath"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_0",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_0_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "repository_exploration_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 9
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          1
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "code_path",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [],
+        "output_type_determined": false,
+        "node_name": "setup_and_explore",
+        "node_id": 0,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "reproduce_issue",
+      "node_id": 1,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "issue_reproduced"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "repository_exploration_evidence",
+            "satisfied": false,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(relevant_files)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "relevant_files",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": "UNSATISFIED: predicate ext(PredicateKey(info_content, coversAspect, [str(relevant_files)])) for 'repository_exploration_evidence' not found in cumulative state (9 predicates)"
+          },
+          {
+            "var_name": "repository_exploration_evidence",
+            "satisfied": false,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(project_structure)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "project_structure",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": "UNSATISFIED: predicate ext(PredicateKey(info_content, coversAspect, [str(project_structure)])) for 'repository_exploration_evidence' not found in cumulative state (9 predicates)"
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_1",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_1_issue_reproduced",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "issue_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "issue_reproduction_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [
+          "PREDICATE CHAIN: 2 of 4 preconditions unsatisfied at node 1 'reproduce_issue'"
+        ],
+        "cumulative_state_after": {
+          "predicate_count": 12
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          2
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          0
+        ],
+        "output_type_determined": false,
+        "node_name": "reproduce_issue",
+        "node_id": 1,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "implement_fix",
+      "node_id": 2,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "fix_implemented"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "issue_reproduction_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "repository_exploration_evidence",
+            "satisfied": false,
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(relevant_files)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "relevant_files",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "failure_detail": "UNSATISFIED: predicate ext(PredicateKey(info_content, coversAspect, [str(relevant_files)])) for 'repository_exploration_evidence' not found in cumulative state (12 predicates)"
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_2",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_2_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [
+          "PREDICATE CHAIN: 1 of 4 preconditions unsatisfied at node 2 'implement_fix'"
+        ],
+        "cumulative_state_after": {
+          "predicate_count": 15
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          3
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          1
+        ],
+        "output_type_determined": false,
+        "node_name": "implement_fix",
+        "node_id": 2,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "verify_fix",
+      "node_id": 3,
+      "layer2": {
+        "sub_goal_verifications": [
+          "fix_implemented"
+        ],
+        "sub_goal_contributions": [
+          "fix_verified"
+        ],
+        "step_tags": [
+          "verificatory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "regression_test_cmd",
+            "satisfied": true,
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "issue_reproduction_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_3",
+            "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "verificatory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_3_fix_verified",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_verify_3_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalVerification",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_verification_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 19
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          4
+        ],
+        "step_type": "step",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          },
+          {
+            "var_name": "regression_test_cmd",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          2
+        ],
+        "output_type_determined": false,
+        "node_name": "verify_fix",
+        "node_id": 3,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "step",
+      "node_name": "submit_patch",
+      "node_id": 4,
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "patch_submitted"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_4",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_4_patch_submitted",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "patch_submission_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 22
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [],
+        "step_type": "step",
+        "reads": [],
+        "reachable_from_entry": true,
+        "predecessors": [
+          3
+        ],
+        "output_type_determined": false,
+        "node_name": "submit_patch",
+        "node_id": 4,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    }
+  ],
+  "layer": 2,
+  "graph_level_results": {
+    "semantic_verification_formatted": "✗ Node reproduce_issue (ID 1): missing predicate ext(PredicateKey(info_content, coversAspect, [str(relevant_files)])) for variable 'repository_exploration_evidence'\n  Available predicates (9):\n    code_path: nameExists\n    problem_statement: nameExists\n    regression_test_cmd: nameExists\n    code_path: isValidFilePath\n    problem_statement: isNonEmptyString\n    shell_run: toolExists\n    __step_tag_0: ext(PredicateKey(step_tag, exploratory, []))\n    __graph_contrib_0_repository_explored: ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))\n    repository_exploration_evidence: isNonEmptyString",
+    "semantic_verification": {
+      "status": "failure",
+      "is_sound": false,
+      "failure_info": {
+        "missing_predicate": {
+          "var_name": "repository_exploration_evidence",
+          "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(relevant_files)]))",
+          "predicate_json": {
+            "kind": "ext",
+            "key": {
+              "name": "coversAspect",
+              "family": "info_content",
+              "args": [
+                {
+                  "value": "relevant_files",
+                  "kind": "argStr"
+                }
+              ]
+            }
+          },
+          "is_sentinel": false
+        },
+        "failure_type": "failure",
+        "failed_node_name": "reproduce_issue",
+        "failed_node_id": 1,
+        "available_predicates_count": 9,
+        "available_predicates": [
+          {
+            "var_name": "code_path",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "problem_statement",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "regression_test_cmd",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_path",
+            "predicate_type": "isValidFilePath",
+            "predicate_json": {
+              "kind": "isValidFilePath"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "problem_statement",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "shell_run",
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_0",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_0_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "repository_exploration_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ]
+      },
+      "exit_facts_count": 0,
+      "exit_facts": []
+    },
+    "layer1": {
+      "verification_summary": {
+        "unstructured_nodes": 5,
+        "total_nodes": 5,
+        "structured_nodes": 0,
+        "deterministic_nodes": 0,
+        "composition_nodes": 0
+      },
+      "parameters": [
+        {
+          "var_name": "code_path",
+          "type": "TString"
+        },
+        {
+          "var_name": "problem_statement",
+          "type": "TString"
+        },
+        {
+          "var_name": "regression_test_cmd",
+          "type": "TString"
+        }
+      ],
+      "parallel_scoped_nodes": [],
+      "node_count": 5,
+      "exit_node_ids": [
+        4
+      ],
+      "entry_node_id": 0,
+      "edge_types": {
+        "switch": 0,
+        "sequential": 4,
+        "loop_back": 0,
+        "loop": 0,
+        "join": 0,
+        "fork": 0,
+        "branch": 0
+      },
+      "edge_count": 4
+    },
+    "goal_coverage": {
+      "sub_goals": [
+        {
+          "verification_nodes": [],
+          "variable_name": "repository_exploration_evidence",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": false,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": false,
+              "predicate_key": "contextContinuity",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": false,
+              "informational": false
+            }
+          ],
+          "name": "repository_explored",
+          "description": "Evidence that the repository structure was explored and relevant source files were identified based on the GitHub issue.",
+          "coverage_level": "PARTIAL",
+          "contributing_nodes": [
+            0
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "issue_reproduction_evidence",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": false,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": true,
+              "predicate_key": "contextContinuity",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": false,
+              "informational": false
+            }
+          ],
+          "name": "issue_reproduced",
+          "description": "Evidence that a reproduction script was created and the bug was reproduced. Requires context continuity from exploration step, which is MISSING.",
+          "coverage_level": "PARTIAL",
+          "contributing_nodes": [
+            1
+          ]
+        },
+        {
+          "verification_nodes": [
+            3
+          ],
+          "variable_name": "fix_implementation_evidence",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": false,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": true,
+              "predicate_key": "verificationCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": true,
+              "predicate_key": "contextContinuity",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": true,
+              "predicate_key": "informationSufficiency",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": true,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": false,
+              "informational": false
+            }
+          ],
+          "name": "fix_implemented",
+          "description": "Evidence that source code was modified to fix the issue. Requires context from exploration and reproduction, which is MISSING. Also needs retry capability, which is MISSING.",
+          "coverage_level": "PARTIAL",
+          "contributing_nodes": [
+            2
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "fix_verification_evidence",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": false,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": true,
+              "predicate_key": "contextContinuity",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": false,
+              "informational": false
+            }
+          ],
+          "name": "fix_verified",
+          "description": "Evidence that the fix was verified. Requires knowledge of what was fixed, which is MISSING (step type, no save_as from implement_fix).",
+          "coverage_level": "PARTIAL",
+          "contributing_nodes": [
+            3
+          ]
+        },
+        {
+          "verification_nodes": [],
+          "variable_name": "patch_submission_evidence",
+          "required_predicate": {
+            "kind": "isNonEmptyString"
+          },
+          "present_in_exit_facts": false,
+          "predicate_results": [
+            {
+              "short_label": "path",
+              "required": true,
+              "predicate_key": "pathCoverage",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "verify",
+              "required": false,
+              "predicate_key": "verificationCoverage",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "ctx_cont",
+              "required": true,
+              "predicate_key": "contextContinuity",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "info_suff",
+              "required": false,
+              "predicate_key": "informationSufficiency",
+              "passed": true,
+              "informational": false
+            },
+            {
+              "short_label": "loop_back",
+              "required": false,
+              "predicate_key": "unifiedLoopBack",
+              "passed": false,
+              "informational": false
+            },
+            {
+              "short_label": "failsafe",
+              "required": false,
+              "predicate_key": "failSafe",
+              "passed": false,
+              "informational": true
+            },
+            {
+              "short_label": "exit_facts",
+              "required": true,
+              "predicate_key": "exitFactsConfirmed",
+              "passed": false,
+              "informational": false
+            }
+          ],
+          "name": "patch_submitted",
+          "description": "Evidence that a git patch was created and submitted. Requires knowledge of modified files, which is MISSING.",
+          "coverage_level": "PARTIAL",
+          "contributing_nodes": [
+            4
+          ]
+        }
+      ],
+      "semantic_soundness": {
+        "status": "failure",
+        "is_sound": false,
+        "failure_info": {
+          "missing_predicate": {
+            "var_name": "repository_exploration_evidence",
+            "predicate_type": "ext(PredicateKey(info_content, coversAspect, [str(relevant_files)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "coversAspect",
+                "family": "info_content",
+                "args": [
+                  {
+                    "value": "relevant_files",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": false
+          },
+          "failure_type": "failure",
+          "failed_node_name": "reproduce_issue",
+          "failed_node_id": 1,
+          "available_predicates_count": 9,
+          "available_predicates": [
+            {
+              "var_name": "code_path",
+              "predicate_type": "nameExists",
+              "predicate_json": {
+                "kind": "nameExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "problem_statement",
+              "predicate_type": "nameExists",
+              "predicate_json": {
+                "kind": "nameExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "regression_test_cmd",
+              "predicate_type": "nameExists",
+              "predicate_json": {
+                "kind": "nameExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "code_path",
+              "predicate_type": "isValidFilePath",
+              "predicate_json": {
+                "kind": "isValidFilePath"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "problem_statement",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "shell_run",
+              "predicate_type": "toolExists",
+              "predicate_json": {
+                "kind": "toolExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "__step_tag_0",
+              "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "exploratory",
+                  "family": "step_tag",
+                  "args": []
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__graph_contrib_0_repository_explored",
+              "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "subGoalContribution",
+                  "family": "graph_level",
+                  "args": [
+                    {
+                      "value": "repository_explored",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "repository_exploration_evidence",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            }
+          ]
+        },
+        "exit_facts_count": 0,
+        "exit_facts": []
+      },
+      "overall_coverage_level": "Partially Covered (some checks missing)",
+      "node_level_quality": "Excellent",
+      "issues": [
+        {
+          "type": "missingFromExitFacts",
+          "sub_goal_name": "repository_explored"
+        },
+        {
+          "type": "requiredPredicateFailed",
+          "sub_goal_name": "issue_reproduced",
+          "predicate_key": "contextContinuity",
+          "description": "Each contributing node's information needs are satisfied by its execution context"
+        },
+        {
+          "type": "missingFromExitFacts",
+          "sub_goal_name": "issue_reproduced"
+        },
+        {
+          "type": "requiredPredicateFailed",
+          "sub_goal_name": "fix_implemented",
+          "predicate_key": "contextContinuity",
+          "description": "Each contributing node's information needs are satisfied by its execution context"
+        },
+        {
+          "type": "requiredPredicateFailed",
+          "sub_goal_name": "fix_implemented",
+          "predicate_key": "informationSufficiency",
+          "description": "Injected variables carry the specific information aspects the consuming node needs"
+        },
+        {
+          "type": "requiredPredicateFailed",
+          "sub_goal_name": "fix_implemented",
+          "predicate_key": "unifiedLoopBack",
+          "description": "Contributing node has retry capability: explicit loop, task conversation history, or structured predecessor info"
+        },
+        {
+          "type": "missingFromExitFacts",
+          "sub_goal_name": "fix_implemented"
+        },
+        {
+          "type": "requiredPredicateFailed",
+          "sub_goal_name": "fix_verified",
+          "predicate_key": "contextContinuity",
+          "description": "Each contributing node's information needs are satisfied by its execution context"
+        },
+        {
+          "type": "missingFromExitFacts",
+          "sub_goal_name": "fix_verified"
+        },
+        {
+          "type": "requiredPredicateFailed",
+          "sub_goal_name": "patch_submitted",
+          "predicate_key": "contextContinuity",
+          "description": "Each contributing node's information needs are satisfied by its execution context"
+        },
+        {
+          "type": "missingFromExitFacts",
+          "sub_goal_name": "patch_submitted"
+        }
+      ],
+      "formatted_text": "\n═══════════════════════════════════════════════════\nGOAL COVERAGE REPORT (Graph-Level Analysis v2)\n═══════════════════════════════════════════════════\n\nGoal: Given a GitHub issue, reproduce the bug and fix it by modifying source code, then submit a patch\nSemantic Soundness: Semantic Issues Detected\nNode-Level Quality: Excellent\n\nLegend: [+X]=required & pass  [-X]=required & FAIL  [~X]=optional/info & pass  [!X]=info & FAIL (not counted)\n\nSub-Goal Coverage (0/5 fully covered):\n  repository_explored: PARTIAL\n    Satisfied: [+path] [~ctx_cont] [~info_suff]\n    Failed:    [!failsafe] [-exit_facts]\n  issue_reproduced: PARTIAL\n    Satisfied: [+path]\n    Failed:    [-ctx_cont] [!failsafe] [-exit_facts]\n  fix_implemented: PARTIAL\n    Satisfied: [+path] [+verify]\n    Failed:    [-ctx_cont] [-info_suff] [-loop_back] [!failsafe] [-exit_facts]\n  fix_verified: PARTIAL\n    Satisfied: [+path] [~info_suff]\n    Failed:    [-ctx_cont] [!failsafe] [-exit_facts]\n  patch_submitted: PARTIAL\n    Satisfied: [+path] [~info_suff]\n    Failed:    [-ctx_cont] [!failsafe] [-exit_facts]\n\nCoverage Summary:\n  - Fully covered:    0\n  - Partially covered: 5\n  - Uncovered:         0\n  - Overall: Partially Covered (some checks missing)\n\nGraph-Level Issues:\n  - NOT IN EXIT FACTS: Sub-goal 'repository_explored' predicate not confirmed by Hoare-logic verification\n  - FAILED: Sub-goal 'issue_reproduced': Each contributing node's information needs are satisfied by its execution context\n  - NOT IN EXIT FACTS: Sub-goal 'issue_reproduced' predicate not confirmed by Hoare-logic verification\n  - FAILED: Sub-goal 'fix_implemented': Each contributing node's information needs are satisfied by its execution context\n  - FAILED: Sub-goal 'fix_implemented': Injected variables carry the specific information aspects the consuming node needs\n  - FAILED: Sub-goal 'fix_implemented': Contributing node has retry capability: explicit loop, task conversation history, or structured predecessor info\n  - NOT IN EXIT FACTS: Sub-goal 'fix_implemented' predicate not confirmed by Hoare-logic verification\n  - FAILED: Sub-goal 'fix_verified': Each contributing node's information needs are satisfied by its execution context\n  - NOT IN EXIT FACTS: Sub-goal 'fix_verified' predicate not confirmed by Hoare-logic verification\n  - FAILED: Sub-goal 'patch_submitted': Each contributing node's information needs are satisfied by its execution context\n  - NOT IN EXIT FACTS: Sub-goal 'patch_submitted' predicate not confirmed by Hoare-logic verification\n═══════════════════════════════════════════════════"
+    }
+  }
+}

@@ -1,0 +1,196 @@
+name: "process_serp_query_module"
+goal: "Process a single SERP query with parallel content learning extraction"
+
+# Submodule-specific config - uses a different model from the main workflow
+config:
+    model: "o3-mini"                 # Use a different model for this submodule
+    max_tokens_per_step: 100000         # Submodule uses smaller token limit
+    max_tool_calls_per_step: 10
+
+# Parameters from parent workflow
+parameters:
+    serp_entry: "${SERP_ENTRY}"  # JSON object: {"query": "...", "researchGoal": "..."}
+    user_query: "${USER_QUERY}"
+    current_depth: "${CURRENT_DEPTH}"
+    current_breadth: "${CURRENT_BREADTH}"
+    branch_id: "${BRANCH_ID}"
+    query_index: "${QUERY_INDEX}"
+    memory_file: "${MEMORY_FILE}"
+    branch_learning: "${BRANCH_LEARNING:-[]}"
+    max_content_workers: "${MAX_CONTENT_WORKERS:-5}"
+    max_depth: "${MAX_DEPTH}"
+
+workflow:
+    # ========================================
+    # Step 1: Extract query and research goal
+    # ========================================
+    - set_variable:
+        name: "serp_entry"
+        value: "{{serp_entry}}"
+
+    - set_variable:
+        name: "current_query"
+        value: "{{serp_entry.query}}"
+
+    - set_variable:
+        name: "research_goal"
+        value: "{{serp_entry.researchGoal}}"
+
+    # ========================================
+    # Step 2: Execute web search
+    # ========================================
+    - call:
+        module: "modules/web_search.yaml"
+        parameters:
+            query: "{{current_query}}"
+        save_as: "search_results"
+
+    - set_variable:
+        name: "downloaded_urls"
+        value: "[ x['url'] for x in {{search_results}} ]"
+
+    - set_variable:
+        name: "downloaded_content_paths"
+        value: "[ x['local_filename'] for x in {{search_results}} ]"
+
+    # ========================================
+    # Step 3: Store source URLs in memory
+    # ========================================
+    - step:
+        name: "extract_and_store_urls"
+        instruction: |
+            NOTE: Memory file at {{memory_file}}
+
+            Store all URLs into memory.
+
+            Store in memory:
+            memory("store",
+                   memory_file="{{memory_file}}",
+                   key="sources_d{{current_depth}}_b{{branch_id}}_q{{query_index}}",
+                   content="{{downloaded_urls}}",
+                   tags="sources,urls,depth{{current_depth}}")
+
+            Return confirmation message.
+
+    # ========================================
+    # Step 4: Prepare parameters for PARALLEL content processing
+    # ========================================
+    - step:
+        name: "prepare_content_params"
+        instruction: |
+            For each content path in: {{downloaded_content_paths}}
+
+            Create a list of parameter dictionaries for parallel processing:
+            [
+                {
+                    "content_path": "[path1]",
+                    "query": "{{current_query}}",
+                    "research_goal": "{{research_goal}}",
+                    "user_query": "{{user_query}}",
+                    "memory_file": "{{memory_file}}"
+                },
+                ...
+            ]
+
+            ONLY return as JSON array with no extra commentary.
+        save_as: "content_params"
+
+    # ========================================
+    # Step 5: PARALLEL - Process all content files simultaneously
+    # ========================================
+    - parallel:
+        module: "modules/extract_content_learnings.yaml"
+        parameters_list: "content_params"
+        save_results_as: "all_content_learnings"
+        max_workers: 5
+
+    # ========================================
+    # Step 6: Aggregate all learnings from parallel processing
+    # ========================================
+    - step:
+        name: "aggregate_learnings"
+        instruction: |
+            From all content learning results: {{all_content_learnings}}
+
+            Collect all the individual learnings, remove any duplicates, and consolidate them into 3 **Succinct** learnings.
+
+            Make sure all learnings needs to be closely relevant to user query: {{user_query}}
+
+            Return the aggregated learnings as a JSON array: ["learning1", "learning2", ...]
+
+            Return ONLY the aggregated learnings array with no extra commentary.
+        save_as: "aggregated_learnings"
+    
+    - set_variable:
+        name: "branch_learning"
+        value: "{{branch_learning}} + {{aggregated_learnings}}"
+
+    # ========================================
+    # Step 7: Generate follow-up questions based on all learnings
+    # ========================================
+    - if:
+        condition: "current_depth == max_depth"
+        then:
+            # Last round, no need to generate follow-up queries
+            - set_variable:
+                name: "next_query"
+                value: "[]"
+        else:
+            - step:
+                name: "generate_followup_questions"
+                instruction: |
+                    Given:
+                    - User query: {{user_query}}
+                    - Current SERP query: {{current_query}}
+                    - Research goal: {{research_goal}}
+                    - Recent learnings: {{branch_learning}}
+
+                    Generate {{current_breadth}} specific follow-up questions to deepen this research.
+
+                    Make questions:
+                    - Specific and actionable
+                    - Build on the learnings discovered
+                    - Target gaps in current knowledge
+                    - Aligned with the research goal
+
+                    Return ONLY a clean JSON array with no extra commentary: ["question1", "question2", ...]
+                save_as: "followup_questions"
+
+            # ========================================
+            # Step 8: Format next query for queue
+            # ========================================
+            - step:
+                name: "format_next_query"
+                instruction: |
+                    Create the next combined research query incorporating:
+
+                    Previous research goal: {{research_goal}}
+                    Follow-up research directions: {{followup_questions}}
+
+                    Format as:
+                    ```
+                    Previous research goal: [goal]
+                    Follow-up research directions: [questions]
+                    ```
+
+                    Return ONLY the formatted query string with no extra commentary.
+                save_as: "next_query"
+    
+    # ========================================
+    # Step 9: Return summary of next_query and updated_learnings
+    # ========================================
+    - step:
+        name: "create_return_dict"
+        instruction: |
+            Create a summary of the learning extraction:
+
+            Return as JSON:
+            {
+                "user_query": "{{next_query}}",
+                "branch_learning": {{branch_learning}},
+            }
+
+            Return ONLY the JSON object with no extra commentary.
+        save_as: "query_dict"
+
+    - return: "query_dict"

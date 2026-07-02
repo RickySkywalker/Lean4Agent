@@ -1,0 +1,343 @@
+# seed_004.yaml — SWE-agent plan sample, seed=4
+name: "swe_agent_triage_and_fix_seed_004"
+goal: "Reproduce the issue described by the PR and produce a git patch that fixes it."
+
+system_prompt: |
+  You are a helpful assistant who can interact multiple times with a computer shell to solve programming tasks.
+      STRICT FORMAT RULES:
+      - Your response must contain AT MOST one code block.
+      - If you include more than one code block, your response will be REJECTED.
+      - The code block must contain ONE command (or commands connected with && or ||).
+      - The code block must be either a bash block (raw shell command) or a subagent block (subagent name as the fence language).
+      - If you have nothing to execute, respond with plain text and NO code block.
+      Include a THOUGHT section before your command where you explain your reasoning process.
+      Format your response as shown in <format_example>.
+      <format_example>
+      THOUGHT: You should first consider the task goal, your current state, and plan for your future actions. Then tell the user whether you want to run a bash command or call a subagent to help with a task and explain in depth why or why not.
+
+config:
+  model: "${MODEL_NAME}"
+  temperature: 1.0
+  model_kwargs:
+    reasoning_effort: "high"
+  max_tool_calls_per_step: 20
+  max_tool_calls: 100
+  expose_submodules_as_tools: false
+  enable_inline_tool_calls: true
+
+parameters:
+  code_path: "${CODE_PATH:-/workspace/tmp/repo}"
+  problem_statement: "${PROBLEM_STATEMENT}"
+  regression_test_cmd: ""
+
+workflow:
+  # -------------------------------------------------------------
+  # Step 1 — Orient the agent and briefly scan /testbed
+  # -------------------------------------------------------------
+  - task:
+      name: "orient_and_scan"
+      instruction: |
+        <pr_description>
+        Consider the following PR description:
+        {{problem_statement}}
+        </pr_description>
+
+        You are a software engineer working interactively with a shell. Your job is to read the PR
+        description above and modify non-test source code inside /testbed so that the described issue
+        is fixed. Every turn you must THINK briefly about what to do next and then issue at least one
+        bash command; when you see the result, think again and issue the next command.
+
+        Boundaries for this task:
+        - MODIFY: Regular source code files under /testbed (this is the working directory for all your subsequent commands).
+        - DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.).
+
+        High-level workflow you are expected to follow in this plan:
+          1. Analyze the codebase by finding and reading relevant files.
+          2. Create a script to reproduce the issue.
+          3. Edit the source code to resolve the issue.
+          4. Verify your fix works by re-running your reproduction.
+          5. Test edge cases to ensure your fix is robust.
+
+        Command-loop mechanics:
+          You operate in a subshell that re-initialises every turn. You write a reasoning-text section,
+          then issue at least one bash tool call (you may issue multiple when they are independent).
+          Because every action runs in a fresh subshell, `cd` and environment-variable assignments do
+          NOT persist — prefix commands like `FOO=bar cd /testbed && ...` or source an env file.
+          Your response must include AT LEAST ONE bash tool call; responses without a tool call will
+          be interpreted as "done" and execution will stop.
+
+        Environment notes: you have a full non-interactive Linux shell. Always use flags like `-y`/`-f`
+        to avoid prompts, never invoke editors like vi/nano, and feel free to install or build any
+        additional tools you need.
+
+        Begin now. Do a shallow orientation pass over /testbed:
+        list the top-level layout, identify the main source package, and skim any README so we know
+        the project's structure before drilling in.
+
+        OUTPUT_FORMAT:
+        repo_layout: <one-line sketch, e.g. "src/foo, tests/, docs/">
+        main_package: <path>
+        build_system: <setuptools|poetry|flit|unknown>
+        skim_notes: <3-5 bullet points on project conventions>
+      save_as: "repo_overview"
+
+  # -------------------------------------------------------------
+  # Step 2 — Locate candidate files and extract a short shortlist
+  # -------------------------------------------------------------
+  - task:
+      name: "locate_candidate_files"
+      instruction: |
+        Using the PR description above and this orientation:
+        {{repo_overview}}
+
+        Find the source files most likely responsible for the reported behaviour. Prefer grep/find
+        over guesswork. Read a few candidate files enough to form an opinion — but DO NOT yet change
+        anything.
+
+        Return:
+        ```
+        CANDIDATE_FILES:
+        - <path_1>: <one-line reason>
+        - <path_2>: <one-line reason>
+        - <path_3>: <one-line reason>
+        PRIMARY_SUSPECT: <single path>
+        ```
+      save_as: "candidate_files_report"
+
+  # was discover: (dropped in AgentSPEX) — stateless task reproducing the old engine's discover prompt; save_as keeps the same list variable
+  - task:
+      name: "candidate_file_list"
+      instruction: |
+        Source: candidate_files_report
+
+        Task: Extract the absolute (or /testbed-relative) file paths listed under CANDIDATE_FILES as a
+        JSON array of strings. Include only real paths — skip labels, descriptions, and the
+        PRIMARY_SUSPECT line.
+
+        Return ONLY a JSON array of strings, no extra text.
+      save_as: "candidate_file_list"
+
+  # -------------------------------------------------------------
+  # Step 3 — Brief read pass over each candidate
+  # -------------------------------------------------------------
+  - for_each:
+      variable: "candidate_path"
+      in: "candidate_file_list"
+      limit: 4
+      steps:
+        - task:
+            name: "inspect_candidate"
+            instruction: |
+              Inspect the candidate source file {{candidate_path}}. Read its relevant sections
+              (use `sed -n 'A,Bp'` or `cat` as appropriate), note any functions or classes
+              involved in the reported issue, and jot a one-paragraph summary.
+
+              Be concise — this is a scouting pass, not the fix.
+
+  # -------------------------------------------------------------
+  # Step 4 — Write a reproduction script, run it, classify outcome
+  # -------------------------------------------------------------
+  - task:
+      name: "build_reproduction"
+      instruction: |
+        Write a minimal reproduction script at /testbed/reproduce_issue.py. The script should:
+          - Exercise the code path implied by the PR description.
+          - Print "BUG PRESENT" and exit 1 when the buggy behaviour shows up.
+          - Print "BUG FIXED" and exit 0 when the expected behaviour is observed.
+
+        After writing it, run it once and capture the output.
+
+        Report:
+        ```
+        REPRO_SCRIPT: /testbed/reproduce_issue.py
+        REPRO_STATUS: <reproduced|not_reproduced|ambiguous>
+        REPRO_OUTPUT_TAIL: <last ~10 lines of script output>
+        ```
+      save_as: "reproduction_report"
+
+  # -------------------------------------------------------------
+  # Step 5 — Decide the fix strategy from the reproduction + scouting
+  # -------------------------------------------------------------
+  - task:
+      name: "choose_fix_strategy"
+      instruction: |
+        Using the scouting pass and the reproduction, decide which *kind* of fix we need. Pick one
+        label from: {logic_fix, boundary_guard, refactor_small, data_model_fix}.
+
+        Justify briefly in one or two sentences.
+
+        {{candidate_files_report}}
+
+        {{reproduction_report}}
+
+        OUTPUT_FORMAT:
+        strategy: <one of: logic_fix | boundary_guard | refactor_small | data_model_fix>
+        target_file: <single path inside /testbed>
+        target_symbols: <comma-separated function/method/class names>
+        rationale: <1-2 sentences>
+      save_as: "fix_strategy"
+
+  # -------------------------------------------------------------
+  # Step 6 — Apply the fix, branching on the chosen strategy
+  # -------------------------------------------------------------
+  - switch:
+      on: "fix_strategy.strategy"
+      cases:
+        logic_fix:
+          - task:
+              name: "apply_logic_fix"
+              instruction: |
+                Strategy: {{fix_strategy}}
+                Reproduction: {{reproduction_report}}
+
+                Edit the target file's logic inline. Use `sed`/`python -c`/heredoc — no interactive
+                editors. Keep the change small and general. When done, show a `git diff` of the
+                affected file(s) so we have a record of exactly what changed.
+              save_as: "fix_application"
+
+        boundary_guard:
+          - task:
+              name: "apply_boundary_guard"
+              instruction: |
+                Strategy: {{fix_strategy}}
+                Reproduction: {{reproduction_report}}
+
+                Add a defensive guard (None check, empty-collection check, type check — whichever
+                fits) at the target location. Do not expand scope beyond what the PR implies.
+                Show the resulting `git diff`.
+              save_as: "fix_application"
+
+        refactor_small:
+          - task:
+              name: "apply_small_refactor"
+              instruction: |
+                Strategy: {{fix_strategy}}
+                Reproduction: {{reproduction_report}}
+
+                Perform the smallest restructuring necessary (e.g. rename-and-adjust, extract a
+                private helper, inline a one-liner) inside the target file. Do NOT touch public
+                signatures unless the PR description requires it. Show the diff.
+              save_as: "fix_application"
+
+        data_model_fix:
+          - task:
+              name: "apply_data_model_fix"
+              instruction: |
+                Strategy: {{fix_strategy}}
+                Reproduction: {{reproduction_report}}
+
+                Adjust the data-model definition (dataclass/field/default/validator). Keep the
+                change compatible with existing callers. Show the diff once applied.
+              save_as: "fix_application"
+      default:
+        - task:
+            name: "apply_generic_fix"
+            instruction: |
+              The chosen strategy did not match a known case. Fall back to the most direct minimal
+              code change implied by the PR description and the reproduction. Show the diff.
+            save_as: "fix_application"
+
+  # -------------------------------------------------------------
+  # Step 7 — Verify the fix; branch on reproduction outcome
+  # -------------------------------------------------------------
+  - task:
+      name: "verify_reproduction_post_fix"
+      instruction: |
+        Re-run the reproduction script and any quick targeted tests that make sense for the file
+        you edited:
+          cd /testbed && python reproduce_issue.py
+        and optionally a narrow pytest invocation limited to the module you touched.
+
+        Do NOT run the whole test suite.
+
+        If {{regression_test_cmd}} is non-empty, run it as well.
+
+        Report:
+        ```
+        REPRO_AFTER_FIX: <pass|fail>
+        TARGETED_TEST: <pass|fail|skipped>
+        NOTES: <1-2 lines of observed behaviour>
+        ```
+      save_as: "post_fix_verification"
+
+  - if:
+      condition: "post_fix_verification contains 'REPRO_AFTER_FIX: fail'"
+      then:
+        - task:
+            name: "adjust_fix_once"
+            instruction: |
+              The reproduction is still failing. Re-read the target file at the site of your edit
+              and the reproduction output:
+              {{post_fix_verification}}
+
+              Make ONE focused adjustment: either refine the conditional, fix an off-by-one,
+              or extend the guard. Re-run the reproduction script after the adjustment and include
+              its final line in your reply.
+            save_as: "fix_adjustment"
+      else:
+        - task:
+            name: "note_passing_verification"
+            instruction: |
+              Verification passed. Briefly note any remaining concerns for the edge-case pass and
+              any behaviour you're unsure about (one short paragraph).
+            save_as: "fix_adjustment"
+
+  # -------------------------------------------------------------
+  # Step 8 — Synthesize an edge-case checklist and run it
+  # -------------------------------------------------------------
+  # was synthesize: (dropped in AgentSPEX) — same stateless LLM call as a task; output_file kept for provenance though the new engine only persists via save_as
+  - task:
+      name: "edge_case_plan"
+      instruction: |
+        Based on:
+          strategy     : {{fix_strategy}}
+          fix outcome  : {{fix_application}}
+          verification : {{post_fix_verification}}
+          adjustment   : {{fix_adjustment}}
+
+        Enumerate 3–5 concrete edge cases to probe (empty input, None, very large input,
+        Unicode, negative numbers — whatever is actually relevant here). For each, describe the
+        one-liner you'd run to test it, run it in /testbed, and record the observed result.
+
+        Produce a final EDGE_CASE_REPORT:
+          - case: <desc> — <pass|fail> — <short observation>
+          - ...
+      output_file: "edge_case_report.md"
+
+  # -------------------------------------------------------------
+  # Step 9 — Produce the patch and submit
+  # -------------------------------------------------------------
+  - task:
+      name: "create_and_submit_patch"
+      instruction: |
+        Everything should now be ready. Produce and submit the patch.
+
+        When you've completed your work, you MUST submit your changes as a git patch.
+        Follow these steps IN ORDER, with SEPARATE commands:
+        Step 1: Create the patch file
+        Run `git diff -- path/to/file1 path/to/file2 > patch.txt` listing only the source files you modified.
+        Do NOT commit your changes.
+        <IMPORTANT>
+        The patch must only contain changes to the specific source files you modified to fix the issue.
+        Do not submit file creations or changes to any of the following files:
+        - test and reproduction files
+        - helper scripts, tests, or tools that you created
+        - installation, build, packaging, configuration, or setup scripts unless they are directly part of the issue you were fixing (you can assume that the environment is already set up for your client)
+        - binary or compiled files
+        </IMPORTANT>
+        Step 2: Verify your patch
+        Inspect patch.txt to confirm it only contains your intended changes and headers show `--- a/` and `+++ b/` paths.
+        Step 3: Submit (EXACT command required)
+        You MUST use this EXACT command to submit:
+        ```bash
+        echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt
+        ```
+        If the command fails (nonzero exit status), it will not submit.
+        <CRITICAL>
+        - Creating/viewing the patch and submitting it MUST be separate commands (not combined with &&).
+        - If you modify patch.txt after verifying, you SHOULD verify again before submitting.
+        - You CANNOT continue working (reading, editing, testing) in any way on this task after submitting.
+        - Unless you think the task is finished and ready for submission, you MUST contain a tool-call in every response. When you make no tool call, it will be treated as a signal that you have already completed the task and submitted your answer, and the system will stop you from making any further tool calls.
+        </CRITICAL>
+        </instructions>
+      save_as: "submission_result"

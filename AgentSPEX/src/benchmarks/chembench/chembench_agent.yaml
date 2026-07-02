@@ -1,0 +1,77 @@
+name: chembench_agent
+goal: "Answer a chemistry question with precise reasoning"
+system_prompt: |
+  You are an expert chemist. Reason step by step. Be precise with formulas, units, and significant figures.
+  For numerical answers, carry full precision through intermediate steps — do NOT round until the final answer.
+  For counting problems (e.g. electrons, peaks, bonds), explicitly enumerate each item before giving the total.
+config:
+  model: "gpt-5"
+  temperature: 1.0
+  model_kwargs:
+      reasoning_effort: "high"
+  enabled_tools: []
+workflow:
+  - task:
+      name: analyze
+      instruction: |
+        Analyze this chemistry problem. Identify:
+        1. Problem type (multiple choice or numerical)
+        2. Core concepts, laws, or formulas needed
+        3. Given data and what needs to be found
+        4. Potential pitfalls (unit conversions, edge cases, trick options)
+
+        Do NOT solve yet, only analyze.
+
+        {{problem_statement}}
+      save_as: analysis
+
+  - task:
+      name: solve
+      instruction: |
+        Based on your analysis, solve this problem step by step.
+        Show all work clearly.
+        Wrap your final answer in [ANSWER]...[/ANSWER] tags.
+
+        Your analysis:
+        {{analysis}}
+
+        Problem:
+        {{problem_statement}}
+      save_as: solution
+
+  - validate:
+      name: check_answer
+      criteria:
+        - "Problem: {{problem_statement}} --- Solution: {{solution}} --- Check: The solution contains [ANSWER]...[/ANSWER] tags in the correct format"
+        - "The reasoning is logically sound with no calculation errors"
+        - "The final answer is consistent with the reasoning steps"
+        - "For MCQ: each option was properly considered before selecting"
+        - "For numerical: units and significant figures are correct"
+      on_failure:
+        - task:
+            name: retry
+            instruction: |
+              The previous solution had errors. Carefully re-solve from scratch.
+              Wrap your final answer in [ANSWER]...[/ANSWER] tags.
+
+              Previous attempt (with errors):
+              {{solution}}
+
+              Original problem:
+              {{problem_statement}}
+            save_as: solution
+
+  - task:
+      name: return_solution
+      instruction: |
+        Extract ONLY the final answer from the solution below and return it in [ANSWER]...[/ANSWER] tags.
+
+        If the answer is multiple choice:
+        You MUST include the letter(s) of the correct answer (separated by comma if there are many) within the following tags: [ANSWER] and [/ANSWER].
+        For example, '[ANSWER]<answer>[/ANSWER]', where <answer> is comma- or space-separated list of the correct letters. Always answer in exactly this format of comma-separated letters between the two tags, even if you are unsure. We require this because we use automatic parsing.
+
+        If the answer is numerical:
+        You MUST include the final answer within the following tags: [ANSWER] and [/ANSWER].
+        For example, '[ANSWER]<answer>[/ANSWER]', where <answer> is only one number. Always answer in exactly this format, with ONE NUMBER between the two tags, even if you are unsure. Use dots as decimal separator. We require this because we use automatic parsing.
+
+        {{solution}}

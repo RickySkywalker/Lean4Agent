@@ -1,0 +1,80 @@
+[
+  {
+    "id": "undefined_identifier_in_patch",
+    "trigger": "The failed attempt introduced or referenced an identifier (variable, parameter, attribute, imported name) inside a method body that is not reachable from the enclosing scope — not in the method's signature parameters, not a `self` attribute, not a module-level import, not a local binding the patch declared.",
+    "symptom_markers": ["NameError", "name '.*' is not defined", "AttributeError: .* has no attribute", "no attribute", "not defined in this scope", "signature has no .* parameter", "referenced a variable .* that was not in"],
+    "general_rule": "Before writing any code hunk inside a method, enumerate every identifier the new code will reference and verify each resolves to one of: the method's signature parameters, `self` attributes (confirm by grepping the class body for the attribute's initialisation), module-level imports, or local bindings the patch itself declares. If an identifier does not resolve, introduce it explicitly — add a new parameter, add a new `self.attr`, or add a new import — rather than leaving it as a free name on the assumption a similar method has that name in scope."
+  },
+  {
+    "id": "backward_compat_guard_instead_of_unifying_fix",
+    "trigger": "The failed attempt added a conditional guard (e.g. `if isinstance(x, T)`) that produces the legacy output shape for the demo input, instead of unifying behaviour across all sibling inputs. Tests tightened to require the unified shape regress the non-demo inputs the class already handled.",
+    "symptom_markers": ["Tuples differ", "expected .* got .*", "regressed sibling", "demo input passes but", "isinstance guard", "backward compatibility"],
+    "general_rule": "When the issue description or its linked PR asks for a unifying change across input shapes, implement the full structural fix — a single code path that produces the canonical output for every input shape the class accepts — rather than a conditional shortcut that only handles the demo input. Evaluation suites routinely tighten their assertions to require the unified shape across all inputs a class supports, so a guarded shortcut will regress the sibling cases the class was already handling correctly before your edit."
+  },
+  {
+    "id": "keyword_filter_masked_failing_tests",
+    "trigger": "The failed attempt declared verification complete after running a keyword-filtered subset of tests (e.g. `pytest -k <substring>`) that excluded the very test cases whose assertions pin down the bug. The explicit FAIL_TO_PASS test path was not executed.",
+    "symptom_markers": ["keyword filter", "pytest -k", "substring filter", "filtered subset", "declared complete after", "did not run the exact"],
+    "general_rule": "Do not use keyword-filter pytest invocations (`pytest -k <substring>`) as your completion check. Run the affected test module by its explicit module path — the same path the evaluation harness will use — and require zero new failures relative to the pre-edit baseline. Keyword filters routinely exclude the very assertion that pins the bug, so their passing signal is unreliable."
+  },
+  {
+    "id": "reproduction_script_diverges_from_upstream_test",
+    "trigger": "The failed attempt's reproduction script appeared to `pass` but the upstream FAIL_TO_PASS test continued to fail. The reproduction is exercising a different code path or different input shape than the upstream test.",
+    "symptom_markers": ["reproduction passes", "repro script ok", "reproduced but upstream", "different code path", "passed locally but failed in harness"],
+    "general_rule": "A reproduction script that 'passes' without triggering the upstream assertion is insufficient — it is exercising a different code path than the failing test. Before trusting a reproduction, confirm it actually reproduces the upstream assertion on an unmodified checkout (the check should FAIL on main and PASS after your fix). If running your reproduction alone does not show the original error, adjust the reproduction until it does, then proceed."
+  },
+  {
+    "id": "byte_compile_mistaken_for_verification",
+    "trigger": "The failed attempt treated a successful `python -m py_compile` or a successful import as evidence the fix works, without executing the failing test path.",
+    "symptom_markers": ["py_compile", "import succeeded", "compiled cleanly", "no syntax error", "loaded without error"],
+    "general_rule": "A clean `python -m py_compile` or a clean `import` of the edited module is not verification. Only running the test paths that actually exercise the changed behaviour constitutes verification. After every edit, execute the full module containing the FAIL_TO_PASS test and confirm that test passes."
+  },
+  {
+    "id": "sibling_call_site_bypasses_fix",
+    "trigger": "The fix is correct at one call site but a sibling path — different entry point, different caller, different wrapper — bypasses the changed code and preserves the original bug.",
+    "symptom_markers": ["sibling path", "bypasses the fix", "different entry point", "other caller", "wrapper still produces", "call chain not updated"],
+    "general_rule": "Before committing to an edit at one call site, grep the repository for every other site that touches the same state — same attribute, same function, same protocol. A correct local fix can still be wrong if a sibling path bypasses it. Identify sibling call sites up front and either apply the same fix there or factor the changed logic into a shared helper both paths call."
+  },
+  {
+    "id": "class_invariant_broken_for_other_methods",
+    "trigger": "The patch changed one method in a class but broke an invariant that other methods in the same class relied on, producing P2P regressions inside the class's own test file.",
+    "symptom_markers": ["P2P regressed", "class invariant", "other methods assume", "same class failed", "sibling test in same module"],
+    "general_rule": "Before editing any method in a non-trivial class, read the full class body and identify the invariants the class maintains (shape of returned tuples, contract of accessor methods, ordering guarantees, mutability assumptions). Your patch must preserve every invariant the class's existing tests already pin down. If the targeted behaviour conflicts with an existing invariant, the fix is larger than one method and must be scoped accordingly."
+  },
+  {
+    "id": "new_top_level_import_broke_module_load",
+    "trigger": "The failed attempt added a new top-level `import` or a new top-level statement that causes a circular import, import-time side effect, or module-load failure, breaking every test that depends on the module.",
+    "symptom_markers": ["ImportError", "circular import", "cannot import name", "all tests failed", "P2P 0/", "ModuleNotFoundError", "module-level", "top-level import"],
+    "general_rule": "Avoid adding top-level `import` statements to existing modules unless the imported name is unavoidably required at module load time. Prefer function-local imports to sidestep circular-import and import-time-side-effect pitfalls. After any edit that touches imports, sanity-check the module with `python -c 'import <module_path>'` before running tests — if this fails, every downstream test will fail for reasons unrelated to your bug fix."
+  },
+  {
+    "id": "test_or_config_file_modified",
+    "trigger": "The failed attempt edited test files, `conftest.py`, `pyproject.toml`, `setup.cfg`, or similar configuration to coerce a pass, rather than fixing the source code.",
+    "symptom_markers": ["modified tests/", "touched test_", "pyproject.toml changed", "setup.cfg changed", "conftest.py edited", "test file modified"],
+    "general_rule": "Never edit files under `tests/`, `test_*.py`, `conftest.py`, `pyproject.toml`, `setup.cfg`, `tox.ini`, or any similar configuration or test-infrastructure file to make a failing test pass. The bug is in source code; the fix belongs in source code. If a test looks wrong, read it carefully — the test is almost always correct and is pinning a real invariant your fix must uphold."
+  },
+  {
+    "id": "assertion_gap_not_analysed",
+    "trigger": "The failed attempt made a speculative edit without computing the precise mismatch between the value the failing assertion expects and the value the current code produces, so the fix closed the wrong gap.",
+    "symptom_markers": ["speculative edit", "gap not stated", "similar but different assertion", "still fails with", "F2P still fails"],
+    "general_rule": "For each failing assertion, state precisely what value the assertion expects and what value the current code actually produces (if necessary, instrument with prints or pdb to pin down the producing expression). Design the fix to close exactly that gap. Do not make speculative edits without a precise gap statement — they are likely to miss the bug or introduce new ones."
+  },
+  {
+    "id": "unrelated_failure_dismissed_as_flake",
+    "trigger": "After the patch, a previously-passing test started failing and the failed attempt labelled it 'unrelated' or 'pre-existing flake' without reproducing the failure on an unmodified checkout.",
+    "symptom_markers": ["pre-existing flake", "unrelated failure", "not caused by my fix", "was already failing", "ignoring this test"],
+    "general_rule": "If a test that was green before your edit now fails, treat your edit as the cause until you have reproduced the same failure on an unmodified checkout (`git stash` your changes, rerun the test, confirm it still fails). Only after that reproduction has established independence may you call the failure unrelated or pre-existing. The default assumption is always: your patch caused it."
+  },
+  {
+    "id": "partial_implementation_body_missing",
+    "trigger": "The failed attempt added a method signature, a stub, or a `pass`/`TODO`-bodied function that changes the class surface but never wires the actual logic, so the behaviour the test checks is unchanged.",
+    "symptom_markers": ["pass body", "TODO", "stub implementation", "signature added but body", "NotImplementedError", "no behaviour change"],
+    "general_rule": "After adding any new method, accessor, or code path, verify it produces the intended end-to-end behaviour by exercising it with a concrete input and observing the resulting value — do not trust a signature change alone. A method whose body is `pass`, `...`, `return None`, or `raise NotImplementedError` changes the surface but not the behaviour any test checks."
+  },
+  {
+    "id": "shared_mutable_state_leak",
+    "trigger": "The failed attempt mutated a shared mutable default (class-level list/dict, module-level singleton, cached object) causing inter-test pollution so unrelated tests fail depending on order of execution.",
+    "symptom_markers": ["shared mutable", "inter-test pollution", "test order-dependent", "cached state", "mutable default", "module-level list"],
+    "general_rule": "Never mutate a shared mutable object in place — module-level lists/dicts, class-level defaults, cached singletons. Copy-before-modify is the default: `new = list(existing); new.append(x)` rather than `existing.append(x)`. In-place mutation of shared state leaks between tests and produces order-dependent failures that the harness will surface as regressions."
+  }
+]

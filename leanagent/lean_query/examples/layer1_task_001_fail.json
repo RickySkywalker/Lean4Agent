@@ -1,0 +1,478 @@
+{
+  "theorem_results": {
+    "noOrphanNodes": true,
+    "exitNodesValid": true,
+    "entryNodeValid": true,
+    "edgesValid": true,
+    "allWritesConsistent": true,
+    "allReadResolvable": false,
+    "allExitsReachable": true
+  },
+  "per_node_results": [
+    {
+      "writes_consistent": true,
+      "writes": [],
+      "successors": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "step_type": "parallel",
+      "reads": [],
+      "reachable_from_entry": true,
+      "predecessors": [],
+      "output_type_determined": true,
+      "node_name": "parallel_fork_0",
+      "node_id": 0,
+      "needs_semantic_spec": false,
+      "llm_instruction_present": false
+    },
+    {
+      "writes_consistent": true,
+      "writes": [
+        {
+          "var_name": "results_q1",
+          "type": "TString"
+        }
+      ],
+      "successors": [
+        5
+      ],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "end_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "per_query_limit",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "query1",
+          "type_compatible": true,
+          "type": "TString",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "start_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [
+        0
+      ],
+      "output_type_determined": false,
+      "node_name": "search_q1",
+      "node_id": 1,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [
+        {
+          "var_name": "results_q2",
+          "type": "TString"
+        }
+      ],
+      "successors": [
+        5
+      ],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "end_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "per_query_limit",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "query2",
+          "type_compatible": true,
+          "type": "TString",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "start_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [
+        0
+      ],
+      "output_type_determined": false,
+      "node_name": "search_q2",
+      "node_id": 2,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [
+        {
+          "var_name": "results_q3",
+          "type": "TString"
+        }
+      ],
+      "successors": [
+        5
+      ],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "end_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "per_query_limit",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "query3",
+          "type_compatible": true,
+          "type": "TString",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "start_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [
+        0
+      ],
+      "output_type_determined": false,
+      "node_name": "search_q3",
+      "node_id": 3,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [
+        {
+          "var_name": "results_q4",
+          "type": "TString"
+        }
+      ],
+      "successors": [
+        5
+      ],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "end_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "per_query_limit",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "query4",
+          "type_compatible": true,
+          "type": "TString",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "start_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [
+        0
+      ],
+      "output_type_determined": false,
+      "node_name": "search_q4",
+      "node_id": 4,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [],
+      "successors": [
+        6
+      ],
+      "step_type": "parallel",
+      "reads": [],
+      "reachable_from_entry": true,
+      "predecessors": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "output_type_determined": true,
+      "node_name": "parallel_join_5",
+      "node_id": 5,
+      "needs_semantic_spec": false,
+      "llm_instruction_present": false
+    },
+    {
+      "writes_consistent": true,
+      "writes": [
+        {
+          "var_name": "candidate_list",
+          "type": "TString"
+        }
+      ],
+      "successors": [
+        7
+      ],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "candidate_max",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "candidate_min",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "end_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "results_q1",
+          "type_compatible": false,
+          "type": "TString",
+          "source": "unresolved",
+          "resolved": false
+        },
+        {
+          "var_name": "results_q2",
+          "type_compatible": false,
+          "type": "TString",
+          "source": "unresolved",
+          "resolved": false
+        },
+        {
+          "var_name": "results_q3",
+          "type_compatible": false,
+          "type": "TString",
+          "source": "unresolved",
+          "resolved": false
+        },
+        {
+          "var_name": "results_q4",
+          "type_compatible": false,
+          "type": "TString",
+          "source": "unresolved",
+          "resolved": false
+        },
+        {
+          "var_name": "start_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [
+        5
+      ],
+      "output_type_determined": false,
+      "node_name": "merge_dedupe_select_candidates",
+      "node_id": 6,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [
+        {
+          "var_name": "papers_structured",
+          "type": "TString"
+        }
+      ],
+      "successors": [],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "arxiv_num_results",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "candidate_list",
+          "type_compatible": true,
+          "type": "TString",
+          "source": "predecessor",
+          "resolved": true
+        },
+        {
+          "var_name": "candidate_max",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "candidate_min",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "end_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        },
+        {
+          "var_name": "start_year",
+          "type_compatible": true,
+          "type": "TInt",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [
+        6
+      ],
+      "output_type_determined": false,
+      "node_name": "enrich_with_arxiv_and_score",
+      "node_id": 7,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    }
+  ],
+  "layer": 1,
+  "graph_level_results": {
+    "verification_summary": {
+      "unstructured_nodes": 6,
+      "total_nodes": 8,
+      "structured_nodes": 0,
+      "deterministic_nodes": 2,
+      "composition_nodes": 0
+    },
+    "parameters": [
+      {
+        "var_name": "query1",
+        "type": "TString"
+      },
+      {
+        "var_name": "query2",
+        "type": "TString"
+      },
+      {
+        "var_name": "query3",
+        "type": "TString"
+      },
+      {
+        "var_name": "query4",
+        "type": "TString"
+      },
+      {
+        "var_name": "start_year",
+        "type": "TInt"
+      },
+      {
+        "var_name": "end_year",
+        "type": "TInt"
+      },
+      {
+        "var_name": "per_query_limit",
+        "type": "TInt"
+      },
+      {
+        "var_name": "arxiv_num_results",
+        "type": "TInt"
+      },
+      {
+        "var_name": "candidate_min",
+        "type": "TInt"
+      },
+      {
+        "var_name": "candidate_max",
+        "type": "TInt"
+      }
+    ],
+    "parallel_scoped_nodes": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "node_count": 8,
+    "exit_node_ids": [
+      7
+    ],
+    "entry_node_id": 0,
+    "edge_types": {
+      "switch": 0,
+      "sequential": 2,
+      "loop_back": 0,
+      "loop": 0,
+      "join": 1,
+      "fork": 1,
+      "branch": 0
+    },
+    "edge_count": 4
+  }
+}

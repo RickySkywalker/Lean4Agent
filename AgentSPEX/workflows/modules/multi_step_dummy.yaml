@@ -1,0 +1,42 @@
+name: "multi_step_dummy"
+goal: "A multi-step dummy module for testing submodule checkpoint"
+
+parameters:
+  message: "default_message"
+
+workflow:
+  # Step 1: Quick step
+  - save:
+      name: "step1_marker"
+      output_file: "submodule_step1.txt"
+      content: "Submodule step 1 done: {{message}}\n"
+
+  # Step 2: First sleep step
+  - step:
+      name: "sleep_step_1"
+      instruction: |
+        Use the shell_run tool to sleep for 2 seconds:
+        shell_run(text="sleep 2 && echo SLEPT_1")
+        
+        Return "Slept 1 successfully"
+      save_as: "sleep_result_1"
+
+  # Step 3: Second sleep step (allows interruption here)
+  - step:
+      name: "sleep_step_2"
+      instruction: |
+        Use the shell_run tool to sleep for 3 seconds:
+        shell_run(text="sleep 3 && echo SLEPT_2")
+        
+        Return "Slept 2 successfully"
+      save_as: "sleep_result_2"
+
+  # Step 4: Final step
+  - save:
+      name: "step4_marker"
+      output_file: "submodule_step4.txt"
+      content: "Submodule step 4 done: {{sleep_result_1}} {{sleep_result_2}}\n"
+
+  - return:
+      values:
+        result: "Submodule completed: {{message}}"

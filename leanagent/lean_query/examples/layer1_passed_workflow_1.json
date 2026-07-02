@@ -1,0 +1,155 @@
+{
+  "theorem_results": {
+    "noOrphanNodes": true,
+    "exitNodesValid": true,
+    "entryNodeValid": true,
+    "edgesValid": true,
+    "allWritesConsistent": true,
+    "allReadResolvable": true,
+    "allExitsReachable": true
+  },
+  "per_node_results": [
+    {
+      "writes_consistent": true,
+      "writes": [],
+      "successors": [
+        1
+      ],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "problem_statement",
+          "type_compatible": true,
+          "type": "TString",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [],
+      "output_type_determined": false,
+      "node_name": "explore_repository",
+      "node_id": 0,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [],
+      "successors": [
+        2
+      ],
+      "step_type": "task",
+      "reads": [],
+      "reachable_from_entry": true,
+      "predecessors": [
+        0
+      ],
+      "output_type_determined": false,
+      "node_name": "reproduce_issue",
+      "node_id": 1,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [],
+      "successors": [
+        3
+      ],
+      "step_type": "task",
+      "reads": [],
+      "reachable_from_entry": true,
+      "predecessors": [
+        1
+      ],
+      "output_type_determined": false,
+      "node_name": "fix_issue",
+      "node_id": 2,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [],
+      "successors": [
+        4
+      ],
+      "step_type": "task",
+      "reads": [
+        {
+          "var_name": "regression_test_cmd",
+          "type_compatible": true,
+          "type": "TString",
+          "source": "parameter",
+          "resolved": true
+        }
+      ],
+      "reachable_from_entry": true,
+      "predecessors": [
+        2
+      ],
+      "output_type_determined": false,
+      "node_name": "verify_fix",
+      "node_id": 3,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    },
+    {
+      "writes_consistent": true,
+      "writes": [],
+      "successors": [],
+      "step_type": "task",
+      "reads": [],
+      "reachable_from_entry": true,
+      "predecessors": [
+        3
+      ],
+      "output_type_determined": false,
+      "node_name": "create_patch",
+      "node_id": 4,
+      "needs_semantic_spec": true,
+      "llm_instruction_present": true
+    }
+  ],
+  "layer": 1,
+  "graph_level_results": {
+    "verification_summary": {
+      "unstructured_nodes": 5,
+      "total_nodes": 5,
+      "structured_nodes": 0,
+      "deterministic_nodes": 0,
+      "composition_nodes": 0
+    },
+    "parameters": [
+      {
+        "var_name": "code_path",
+        "type": "TString"
+      },
+      {
+        "var_name": "problem_statement",
+        "type": "TString"
+      },
+      {
+        "var_name": "regression_test_cmd",
+        "type": "TString"
+      }
+    ],
+    "parallel_scoped_nodes": [],
+    "node_count": 5,
+    "exit_node_ids": [
+      4
+    ],
+    "entry_node_id": 0,
+    "edge_types": {
+      "switch": 0,
+      "sequential": 4,
+      "loop_back": 0,
+      "loop": 0,
+      "join": 0,
+      "fork": 0,
+      "branch": 0
+    },
+    "edge_count": 4
+  }
+}

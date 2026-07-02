@@ -1,0 +1,429 @@
+name: writing_bench_agent
+goal: "Complete a writing task to the highest quality using a file-based agentic workflow"
+
+system_prompt: |
+  You are an expert writer and writing assistant. You produce high-quality,
+  publication-ready content that precisely follows all requirements for format,
+  style, length, language, and structure. You are thorough, detail-oriented,
+  and self-critical. When revising, you address every identified issue while
+  preserving what already works well.
+
+config:
+  model: "claude-sonnet-4-5"
+  model_kwargs:
+    temperature: 1.0
+    "thinking":
+      "type": "enabled"
+      "budget_tokens": 2000
+  max_tool_calls_per_step: 25
+  max_tokens: 64000
+  enabled_tools: ["shell_run", "fs_read", "fs_write", "string_replace", "firecrawl_search"]
+
+parameters:
+  output_dir: "/workspace/"
+
+workflow:
+  # ============================================================
+  # PHASE 1: Requirement Extraction
+  # ============================================================
+  - task:
+      name: "extract_requirements"
+      enabled_tools: []
+      system_prompt: |
+        You are a writing task analyst. Extract structured requirements from writing queries.
+        Be precise and exhaustive. Output valid JSON only.
+      instruction: |
+        Analyze the following writing query and extract all requirements into a structured JSON object.
+
+        **Query:**
+        {{problem_statement}}
+
+        Extract the following fields (use null if not specified):
+        {
+          "format": "document type/template requested (e.g., paper outline, essay, report, screenplay)",
+          "length": "any word/character count requirements mentioned (extract exact numbers)",
+          "style": "tone, voice, register requirements (e.g., formal academic, casual, professional)",
+          "language": "language the output should be written in (e.g., English, Chinese, etc.)",
+          "domain": "subject area / field of expertise needed",
+          "template": "any specific template or journal format referenced",
+          "structure": "any structural requirements (sections, headings, etc.)",
+          "reference_materials": "summary of any reference texts or examples provided in the query",
+          "special_constraints": "any other constraints not captured above",
+          "web_research_needed": "yes" or "no"
+        }
+
+        Return ONLY the JSON object, no markdown fences, no explanation.
+      save_as: "requirements"
+
+  # ============================================================
+  # PHASE 2: Determine output file format
+  # ============================================================
+  - task:
+      name: "determine_output_file"
+      enabled_tools: []
+      system_prompt: "Output ONLY a file path. No explanation, no markdown, no quotes."
+      instruction: |
+        Based on the requirements, choose the best file format for the writing output.
+
+        **Requirements:**
+        {{requirements}}
+
+        Rules:
+        - The output directory is: {{output_dir}}
+        - Use "draft" as the base name
+        - Choose extension based on the task:
+          * draft.md — Markdown (default for most writing tasks)
+          * draft.txt — Plain text (for simple documents without formatting needs)
+          * draft.tex — LaTeX (only if the task explicitly requires LaTeX format)
+          * draft.html — HTML (only if the task explicitly requires HTML)
+        - All these formats work with our editing tools (string_replace, fs_read, fs_write)
+
+        Output ONLY the full file path: {{output_dir}}/<filename>
+        For example: {{output_dir}}/draft.md
+        Nothing else.
+      save_as: "output_file_path"
+
+  # ============================================================
+  # PHASE 3: Rubric Generation
+  # ============================================================
+  - task:
+      name: "generate_rubric"
+      enabled_tools: []
+      system_prompt: |
+        You are an expert writing evaluator. Generate evaluation rubrics that are specific,
+        measurable, and directly tied to the task requirements.
+      instruction: |
+        Based on the writing task and its extracted requirements, generate a self-evaluation
+        rubric with 5 specific criteria. Each criterion should be directly checkable against
+        the final output.
+
+        **Original Query:**
+        {{problem_statement}}
+
+        **Extracted Requirements:**
+        {{requirements}}
+
+        For each criterion, provide:
+        1. Criterion name (short)
+        2. What to check (specific, measurable description)
+        3. How to verify (concrete verification method)
+
+        For measurable criteria, include the shell command to verify. Note:
+        - English word count: wc -w <file>
+        - Chinese/CJK character count: use python3 with re.findall for
+          characters in Unicode range \u4e00-\u9fff
+        - Line/section count: grep -c "pattern" <file>
+
+        Format as a numbered list. Be specific to THIS task — not generic writing quality.
+      save_as: "rubric"
+
+  # ============================================================
+  # PHASE 4: Drafting (file-based, tool-enabled)
+  # ============================================================
+  - task:
+      name: "write_draft"
+      instruction: |
+        Write the required content for the following task. You MUST write the output
+        into the file using fs_write.
+
+        **Output file:** {{output_file_path}}
+
+        **Original Query:**
+        {{problem_statement}}
+
+        **Requirements:**
+        {{requirements}}
+
+        CRITICAL INSTRUCTIONS:
+        1. Write the draft INCREMENTALLY — one section/chunk at a time.
+           Do NOT try to write the entire document in a single fs_write call;
+           long content will be truncated by the API output token limit.
+           a. First call: fs_write("{{output_file_path}}", <first section>)
+              — creates the file with the title and first major section.
+           b. All subsequent calls: fs_write("{{output_file_path}}", <next section>, append=true)
+              — appends each remaining section to the file.
+           c. Keep each chunk to roughly 800–1,500 words so it fits comfortably
+              within a single tool-call response.
+           d. Continue appending until every required section is written.
+        2. Match the EXACT output format requested:
+           - brainstorm ≠ finished piece
+           - outline ≠ full paper
+           - speech ≠ written report
+           - template ≠ filled document
+        3. If the output is meant for oral delivery, ensure appropriate length and
+           spoken-word style.
+        4. Use the correct language as specified in the requirements.
+        5. If the query provides reference/example text, study its style closely.
+           Directly quote and reference specific passages from the source material.
+           NEVER fabricate quotes, references, statistics, or case names.
+        6. For documents requiring domain expertise (legal, financial, technical),
+           use precise terminology, realistic figures, and specific details.
+        7. After writing ALL sections, verify the length constraint with shell_run:
+           - English: shell_run("wc -w {{output_file_path}}")
+           - Chinese/CJK: use a python3 one-liner to count characters in the
+             CJK Unicode range (\u4e00-\u9fff) from the file
+        8. If the count does not meet requirements, use string_replace to adjust
+           content (add or trim sections), then re-check.
+        9. Do NOT use fs_read in this step — you already know what you wrote.
+
+        When finished, state: the filename, the format used, and the measured length.
+      save_as: "draft_status"
+
+  # ============================================================
+  # PHASE 5: Verify constraints (shell_run only — NO fs_read)
+  # ============================================================
+  - task:
+      name: "verify_constraints"
+      instruction: |
+        Verify that the draft at {{output_file_path}} meets all measurable constraints.
+        Use ONLY shell_run commands. Do NOT use fs_read — avoid loading the full content.
+
+        **Requirements:**
+        {{requirements}}
+
+        **Rubric:**
+        {{rubric}}
+
+        Run the appropriate checks:
+        1. Word count (English text): shell_run("wc -w {{output_file_path}}")
+        2. Character count (Chinese/CJK text): use python3 with re.findall on the
+           CJK Unicode range to count Chinese characters from the file
+        3. Total characters: shell_run("wc -m {{output_file_path}}")
+        4. Line count: shell_run("wc -l {{output_file_path}}")
+        5. Section/heading structure: shell_run("grep -n '^#' {{output_file_path}}")
+           or for LaTeX: shell_run("grep -n '\\\\section\\|\\\\subsection' {{output_file_path}}")
+        6. Any other structural checks relevant to the rubric
+
+        Report results as a structured summary: each check, its result, and PASS/FAIL.
+      save_as: "verification_results"
+
+  # ============================================================
+  # PHASE 6: Self-Critique (reads file ONCE via fs_read)
+  # ============================================================
+  - task:
+      name: "self_critique"
+      enabled_tools: ["fs_read"]
+      system_prompt: |
+        You are a strict but fair writing evaluator. Output valid JSON only.
+        You evaluate writing against specific rubric criteria and requirements.
+      instruction: |
+        Evaluate the draft at {{output_file_path}} against the rubric criteria.
+
+        Read the draft ONCE using fs_read("{{output_file_path}}"). Do not call
+        fs_read again or use shell_run — the constraint results are provided below.
+
+        **Original Query:**
+        {{problem_statement}}
+
+        **Rubric:**
+        {{rubric}}
+
+        **Requirements:**
+        {{requirements}}
+
+        **Constraint Verification Results:**
+        {{verification_results}}
+
+        EVALUATION GUIDELINES:
+        - The constraint check results are provided above — do NOT re-run them.
+        - Judge the draft against what was ACTUALLY REQUESTED in the query.
+        - If the query asks for an outline, plan, or template, evaluate it AS such.
+          Do NOT penalize for placeholders or markers expected in that format.
+        - Only mark a criterion as FAIL if there is a genuine, substantive gap.
+        - Minor suggestions for improvement are NOT failures.
+
+        For each rubric criterion, determine PASS or FAIL.
+
+        Return a JSON object with this exact structure (no markdown fences):
+        {
+          "has_failures": "yes" or "no",
+          "criteria": [
+            {"name": "criterion name", "verdict": "PASS" or "FAIL", "note": "brief reason"}
+          ],
+          "failures_detail": [
+            {
+              "criterion": "name of failing criterion",
+              "what_is_wrong": "specific description of the gap",
+              "where_in_draft": "section or location reference",
+              "how_to_fix": "concrete fix instruction"
+            }
+          ]
+        }
+
+        The "failures_detail" array should be EMPTY if has_failures is "no".
+        Return ONLY the JSON object.
+      save_as: "critique"
+
+  # ============================================================
+  # PHASE 7: Conditional Revision (file-based targeted edits)
+  # ============================================================
+  - if:
+      condition: "{{critique.has_failures}} == no"
+      then:
+        - set_variable:
+            name: "revision_status"
+            value: "no_revision_needed"
+      else:
+        - task:
+            name: "revise_draft"
+            enabled_tools: ["fs_read", "string_replace", "shell_run", "firecrawl_search"]
+            instruction: |
+              Revise the draft at {{output_file_path}} to fix the identified failures.
+
+              **Original Query:**
+              {{problem_statement}}
+
+              **Critique (with failure details):**
+              {{critique}}
+
+              **Requirements:**
+              {{requirements}}
+
+              INSTRUCTIONS:
+              1. Read the file ONCE using fs_read("{{output_file_path}}")
+              2. Use ONLY string_replace for ALL edits — both fixes and additions.
+                 NEVER use fs_write — it risks timeout and truncation on long content.
+                   string_replace("{{output_file_path}}", "exact old text", "new text")
+              3. To ADD new content (e.g., missing sections), find the text just
+                 before where the new content should go and replace it with
+                 itself + the new content. For example, to append a new section
+                 after the conclusion, replace the last paragraph with itself
+                 plus the new section text.
+              4. Work ONE section or fix at a time. Do not try to add multiple
+                 large sections in a single string_replace call — keep each
+                 replacement under ~800 words of new text.
+              5. Fix ONLY the specific failures listed in the critique
+              6. Do NOT remove or restructure content that already works well
+              7. After all edits, verify constraints with shell_run (word/char count)
+              8. Do NOT output the full document as your response — edit the file directly
+
+              When done, summarize the changes you made.
+            save_as: "revision_status"
+
+  # ============================================================
+  # PHASE 8: Classify length requirement type
+  # ============================================================
+  - task:
+      name: "classify_length_type"
+      enabled_tools: []
+      system_prompt: |
+        You are a writing requirement analyst. Output ONLY one word from the
+        allowed list. No explanation, no punctuation, no extra text.
+      instruction: |
+        Classify the length constraint in this writing task into exactly ONE type.
+
+        **Original Query:**
+        {{problem_statement}}
+
+        **Extracted Requirements:**
+        {{requirements}}
+
+        Types:
+        - none: No explicit word count, character count, line count, or duration
+        - whole_doc: A single total word or character count for the entire document
+          (e.g., "2000-2500 words", "3000字左右", "no less than 5000 words",
+           "approximately 1500 words", "a 2500-word report")
+        - per_section: Per-section, per-item, or per-part word/character count
+          (e.g., "each review 200-300 words", "each section ~1000 words",
+           "每条评论150-200字"; may also include a total count alongside)
+        - line_count: Line or stanza count, typically for poetry
+          (e.g., "12-16 lines", "within 20 lines", fixed forms like qilu/sonnets)
+        - time_based: Duration/time constraint for spoken or video content
+          (e.g., "10-minute speech", "25-second video", "2-hour script")
+
+        Output ONLY the type word. Nothing else.
+      save_as: "length_type"
+
+  # ============================================================
+  # PHASE 9: Inject verified word/character counts into draft
+  # ============================================================
+  - if:
+      condition: "{{length_type}} == none"
+      then:
+        - set_variable:
+            name: "annotation_status"
+            value: "skipped_no_length_requirement"
+      else:
+        - task:
+            name: "annotate_word_counts"
+            instruction: |
+              Add verified word/character count annotations to the draft at
+              {{output_file_path}} so that evaluators can see exact verified
+              counts instead of estimating.
+
+              **Length requirement type:** {{length_type}}
+              **Original Query:** {{problem_statement}}
+              **Requirements:** {{requirements}}
+
+              ═══════════════════════════════════════════════
+              COUNTING METHODS
+              ═══════════════════════════════════════════════
+              Use shell_run for ALL counting. NEVER estimate or guess.
+
+              English word count:
+                shell_run("wc -w < {{output_file_path}}")
+
+              Chinese 字数 (character count — includes CJK characters AND
+              Chinese punctuation, matching the common understanding of 字数):
+                shell_run("python3 -c \"import re; t=open('{{output_file_path}}').read(); print(len(re.findall(r'[\\u4e00-\\u9fff\\u3000-\\u303f\\uff00-\\uffef]', t)))\"")
+
+              ═══════════════════════════════════════════════
+              INSTRUCTIONS BY TYPE
+              ═══════════════════════════════════════════════
+
+              ── IF type is "whole_doc" ──
+              1. Run the appropriate count command above.
+              2. Append ONE annotation line at the very end of the file
+                 using string_replace on the last line:
+                   *[Verified total word count: X words]*
+                 or for Chinese:
+                   *[Verified total character count (字数): X 字]*
+
+              ── IF type is "per_section" ──
+              1. Read the file ONCE with fs_read("{{output_file_path}}")
+              2. Identify the repeating structural units (sections, reviews,
+                 items, chapters, etc.) by their headings or delimiters.
+              3. Write a SINGLE python3 script via shell_run that:
+                 - Reads the file
+                 - Splits by the identified section boundaries
+                 - Counts words (English) or 字数 (Chinese) in each section's
+                   MAIN CONTENT only (exclude headings, metadata, tags)
+                 - Prints per-section counts as JSON
+              4. For EACH section, use string_replace to insert an annotation
+                 right before the section delimiter (e.g., before "---" or
+                 before the next heading):
+                   *[Verified word count of above content: X words]*
+                 or for Chinese:
+                   *[Verified character count of above content (字数): X 字]*
+              5. Also append a total count at the very end.
+
+              ── IF type is "line_count" ──
+              1. Count content lines (exclude blank lines):
+                 shell_run("grep -cv '^[[:space:]]*$' {{output_file_path}}")
+              2. Append at the end:
+                   *[Verified content line count: X lines]*
+
+              ── IF type is "time_based" ──
+              1. Run the appropriate word/character count.
+              2. Estimate duration at ~150 words per minute for English,
+                 ~150 characters per minute for Chinese.
+              3. Append at the end:
+                   *[Verified word count: X words, estimated duration at 150 wpm: ~Y minutes]*
+                 or for Chinese:
+                   *[Verified character count (字数): X 字, estimated duration at 150 chars/min: ~Y minutes]*
+
+              ═══════════════════════════════════════════════
+              CRITICAL RULES
+              ═══════════════════════════════════════════════
+              - Use shell_run for ALL counting. NEVER estimate or guess.
+              - Use string_replace to inject annotations. Do NOT rewrite the file.
+              - Annotation format: *[Verified ...]*  (italic in markdown)
+              - Do NOT modify any actual content — ONLY add annotation lines.
+              - For per_section: count only the main body content of each
+                section, not headings, metadata lines, or tags.
+            save_as: "annotation_status"
+
+  # ============================================================
+  # PHASE 10: Return file path (run.py reads content from file)
+  # ============================================================
+  - return: "output_file_path"

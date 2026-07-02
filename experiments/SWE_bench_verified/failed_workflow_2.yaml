@@ -1,0 +1,304 @@
+name: "swe_agent_structured_seed_001"
+goal: "Reproduce the issue described by the PR and produce a git patch that fixes it."
+
+system_prompt: |
+  You are a helpful assistant who can interact multiple times with a computer shell to solve programming tasks.
+      STRICT FORMAT RULES:
+      - Your response must contain AT MOST one code block.
+      - If you include more than one code block, your response will be REJECTED.
+      - The code block must contain ONE command (or commands connected with && or ||).
+      - The code block must be either a bash block (raw shell command) or a subagent block (subagent name as the fence language).
+      - If you have nothing to execute, respond with plain text and NO code block.
+      Include a THOUGHT section before your command where you explain your reasoning process.
+      Format your response as shown in <format_example>.
+      <format_example>
+      THOUGHT: You should first consider the task goal, your current state, and plan for your future actions. Then tell the user whether you want to run a bash command or call a subagent to help with a task and explain in depth why or why not.
+
+config:
+  model: "${MODEL_NAME}"
+  temperature: 1.0
+  model_kwargs:
+    reasoning_effort: "high"
+  max_tool_calls_per_step: 20
+  max_tool_calls: 100
+  expose_submodules_as_tools: false
+  enable_inline_tool_calls: true
+
+parameters:
+  code_path: "${CODE_PATH:-/workspace/tmp/repo}"
+  problem_statement: "${PROBLEM_STATEMENT}"
+  regression_test_cmd: ""
+
+workflow:
+  # ------------------------------------------------------------------
+  # Step 1: Present the PR, orient the agent, and explore the repo
+  # ------------------------------------------------------------------
+  - task:
+      name: "orient_and_survey_repo"
+      instruction: |
+        <pr_description>
+        Consider the following PR description:
+        {{problem_statement}}
+        </pr_description>
+
+        You are a software engineer driving a shell one command at a time to fix a
+        bug reported in the PR above. Make changes ONLY to non-test source files in
+        /testbed so the fix is general and consistent with the surrounding codebase.
+
+        This is an interactive loop: THOUGHT first, then a single bash tool call
+        (or multiple independent ones), see the result, then continue. Always
+        include a THOUGHT section and at least one tool call per response.
+
+        Scope:
+        - MODIFY: regular source files in /testbed (this is the working directory)
+        - DO NOT MODIFY: tests, pyproject.toml, setup.cfg, or other config files
+
+        Reference workflow you will follow across the next steps:
+          1. Analyze the codebase by finding and reading the files relevant to the issue
+          2. Write a script that reproduces the bug
+          3. Edit source code to fix it
+          4. Re-run the reproduction to confirm the fix
+          5. Probe a handful of edge cases to make sure the fix is robust
+
+        Command-loop mechanics:
+        You are operating in an environment where
+        1. You issue at least one command
+        3. The system executes the command(s) in a subshell
+        4. You see the result(s)
+        5. You write your next command(s)
+        Each response should include:
+        1. **Reasoning text** where you explain your analysis and plan
+        2. At least one tool call with your command
+        **CRITICAL REQUIREMENTS:**
+        - Your response SHOULD include reasoning text explaining what you're doing
+        - Your response MUST include AT LEAST ONE bash tool call. You can make MULTIPLE tool calls in a single response when the commands are independent (e.g., searching multiple files, reading different parts of the codebase).
+        - Directory or environment variable changes are not persistent. Every action is executed in a new subshell.
+        - However, you can prefix any action with `MY_ENV_VAR=MY_VALUE cd /path/to/working/dir && ...` or write/load environment variables from files
+        Example of a CORRECT response:
+        <example_response>
+        I need to understand the Builder-related code. Let me find relevant files and check the project structure.
+        [Makes multiple bash tool calls: {"command": "ls -la"}, {"command": "find src -name '*.java' | grep -i builder"}, {"command": "cat README.md | head -50"}]
+        </example_response>
+
+        Environment notes:
+        - Full Linux shell
+        - Always pass non-interactive flags (-y, -f)
+        - Avoid vi/nano/any tool that waits on stdin
+        - You can install missing tools if you need them
+        - You can also create helper scripts or tools; just don't include them in the final patch
+
+        Begin now: inspect /testbed. Start with `ls -la /testbed`, glance at
+        README/pyproject to understand the project, then use find/grep to locate
+        files whose names or contents line up with the PR description.
+
+        OUTPUT_FORMAT (end your final response for this step with this block):
+        PROJECT: <short project name / purpose>
+        ISSUE_SUMMARY: <1-2 sentences>
+        CANDIDATE_FILES: <comma-separated paths under /testbed that likely contain the bug>
+        NOTES: <anything else worth remembering>
+      save_as: "orientation_report"
+
+  # ------------------------------------------------------------------
+  # Step 2: Write + run a reproduction script
+  # ------------------------------------------------------------------
+  - task:
+      name: "build_reproduction"
+      instruction: |
+        Context from the previous step:
+        {{orientation_report}}
+
+        Write a small reproduction that demonstrates the bug described in the PR.
+
+        Concrete plan:
+        1. Create /testbed/reproduce_issue.py (or .sh if shell is clearly more
+           natural) with the smallest possible input that triggers the bug.
+        2. Run it from /testbed and capture stdout+stderr.
+        3. Confirm the observed output matches the bug described in the PR. If
+           it does not reproduce, iterate: adjust imports, Python path, inputs,
+           or shell environment, and re-run.
+
+        Boundaries:
+        - Work under /testbed; every command should be prefixed with `cd /testbed && ...`
+          because cwd does not persist between tool calls.
+        - Do NOT edit source code yet. This step only builds the repro.
+
+        OUTPUT_FORMAT (finish with this block):
+        REPRO_STATUS: <reproduced | partially_reproduced | could_not_reproduce>
+        REPRO_SCRIPT: <absolute path>
+        OBSERVED_OUTPUT: <quoted short excerpt showing the bug>
+        EXPECTED_OUTPUT: <what the correct behavior should be>
+      save_as: "repro_report"
+
+  # ------------------------------------------------------------------
+  # Step 3: Only continue to root-cause + fix if we actually reproduced.
+  #         If we could not reproduce, try once more with a broader harness.
+  # ------------------------------------------------------------------
+  - if:
+      condition: "repro_report contains could_not_reproduce"
+      then:
+        - task:
+            name: "reproduction_retry"
+            instruction: |
+              The first reproduction attempt did not trigger the bug:
+              {{repro_report}}
+
+              Before giving up, try once more with a different angle:
+              - Re-read the PR description and extract any concrete inputs,
+                CLI invocations, or API calls it mentions.
+              - If the bug is behavioral (wrong result, not an exception),
+                add assertions that compare actual vs expected.
+              - If the bug depends on a specific version, check
+                `pip show <pkg>` and adjust the environment if needed.
+              - If the bug shows up only in an integration path, call the
+                relevant entry point directly from your script instead of a
+                unit function.
+
+              Update /testbed/reproduce_issue.py and rerun from /testbed.
+              Then report with the same OUTPUT_FORMAT as the previous step.
+            save_as: "repro_report"
+      else:
+        - task:
+            name: "reproduction_confirmed"
+            instruction: |
+              Reproduction already succeeded:
+              {{repro_report}}
+              Acknowledge this briefly and echo a one-line confirmation; no
+              further action is needed in this step.
+
+  # ------------------------------------------------------------------
+  # Step 4: Localize root cause (read-only diagnostic)
+  # ------------------------------------------------------------------
+  - task:
+      name: "diagnose_root_cause"
+      instruction: |
+        Using:
+          orientation: {{orientation_report}}
+          reproduction: {{repro_report}}
+
+        Walk the failing path from entry point down to the line(s) responsible.
+
+        Approach:
+        - If the repro produced a traceback, follow it frame by frame with
+          `sed -n 'START,ENDp' file.py` to read each frame in context.
+        - If the bug is logical (wrong output, no traceback), trace the data
+          flow by greping for the key identifiers and reading the handlers.
+        - Confirm the suspected line(s) by reading a comfortable surrounding
+          window (20-40 lines of context), not just the one flagged line.
+
+        STRICT: do not modify any files in this step. This is pure analysis.
+
+        OUTPUT_FORMAT:
+        BUG_LOCATION: <file:line or file:function>
+        ROOT_CAUSE: <one paragraph explanation of WHY the current code is wrong>
+        FILES_TO_MODIFY: <comma-separated source file paths>
+        FIX_STRATEGY: <2-3 sentence description of the change you will make>
+        EDGE_CASES_TO_CHECK: <comma-separated short descriptions, 3-6 items>
+      save_as: "diagnosis"
+
+  # ------------------------------------------------------------------
+  # Step 5: Implement the fix
+  # ------------------------------------------------------------------
+  - task:
+      name: "apply_fix"
+      instruction: |
+        Apply the fix described in the diagnosis:
+        {{diagnosis}}
+
+        Editing rules:
+        - Use sed, python -c, or heredoc redirects. No interactive editors.
+        - Every command is `cd /testbed && ...`.
+        - Keep the diff minimal: change only what the diagnosis calls out.
+        - Match the file's existing style (indentation, quoting, naming).
+        - Do NOT touch test files or configuration files.
+        - After each edit, print the modified region back with `sed -n` so you
+          can eyeball that the change landed correctly.
+
+        Then re-run the reproduction script once:
+          cd /testbed && python reproduce_issue.py
+        to verify the obvious "is the bug gone?" signal before moving on.
+
+        Report back:
+        MODIFIED_FILES: <one per line>
+        EDIT_SUMMARY: <for each file, 1-2 lines on what changed>
+        POST_FIX_REPRO: <short quote of the script's output now>
+      save_as: "fix_result"
+
+  # ------------------------------------------------------------------
+  # Step 6: Pull edge cases out of the diagnosis and hammer them
+  # ------------------------------------------------------------------
+  # was discover: (dropped in AgentSPEX) — stateless task reproducing the old engine's discover prompt; save_as keeps the same list variable
+  - task:
+      name: "edge_case_list"
+      instruction: |
+        Source: diagnosis
+
+        Task: Extract the contents of the EDGE_CASES_TO_CHECK line from the
+        diagnosis as a JSON array of short strings (one string per edge
+        case). If the field is missing or empty, return an empty array.
+
+        Return ONLY a JSON array of strings, no extra text.
+      save_as: "edge_case_list"
+
+  - for_each:
+      variable: "edge_case"
+      in: "edge_case_list"
+      limit: 6
+      steps:
+        - task:
+            name: "probe_edge_case"
+            instruction: |
+              Fix applied so far:
+              {{fix_result}}
+
+              Probe this edge case and confirm the fix still behaves correctly:
+                EDGE CASE: {{edge_case}}
+
+              Actions:
+              1. Extend /testbed/reproduce_issue.py (or write a tiny ad-hoc
+                 script) that exercises this edge case specifically.
+              2. Run it with `cd /testbed && python <script>`.
+              3. If it misbehaves, go back into the source files you already
+                 modified and refine the fix so both the original repro AND
+                 this edge case pass. Keep the overall diff minimal.
+              4. If a regression test command is provided, also run it once:
+                   {{regression_test_cmd}}
+
+              Report:
+              EDGE_CASE: {{edge_case}}
+              STATUS: <pass | fail | refined_fix>
+              NOTES: <what happened, what you changed if anything>
+
+  # ------------------------------------------------------------------
+  # Step 7: Produce the patch and submit it
+  # ------------------------------------------------------------------
+  - task:
+      name: "create_and_submit_patch"
+      instruction: |
+        When you've completed your work, you MUST submit your changes as a git patch.
+        Follow these steps IN ORDER, with SEPARATE commands:
+        Step 1: Create the patch file
+        Run `git diff -- path/to/file1 path/to/file2 > patch.txt` listing only the source files you modified.
+        Do NOT commit your changes.
+        <IMPORTANT>
+        The patch must only contain changes to the specific source files you modified to fix the issue.
+        Do not submit file creations or changes to any of the following files:
+        - test and reproduction files
+        - helper scripts, tests, or tools that you created
+        - installation, build, packaging, configuration, or setup scripts unless they are directly part of the issue you were fixing (you can assume that the environment is already set up for your client)
+        - binary or compiled files
+        </IMPORTANT>
+        Step 2: Verify your patch
+        Inspect patch.txt to confirm it only contains your intended changes and headers show `--- a/` and `+++ b/` paths.
+        Step 3: Submit (EXACT command required)
+        You MUST use this EXACT command to submit:
+        ```bash
+        echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt
+        ```
+        If the command fails (nonzero exit status), it will not submit.
+        <CRITICAL>
+        - Creating/viewing the patch and submitting it MUST be separate commands (not combined with &&).
+        - If you modify patch.txt after verifying, you SHOULD verify again before submitting.
+        - You CANNOT continue working (reading, editing, testing) in any way on this task after submitting.
+        - Unless you think the task is finished and ready for submission, you MUST contain a tool-call in every response. When you make no tool call, it will be treated as a signal that you have already completed the task and submitted your answer, and the system will stop you from making any further tool calls.
+        </CRITICAL>
+        </instructions>

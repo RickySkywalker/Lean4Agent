@@ -1,0 +1,362 @@
+name: "annotate_layer3"
+goal: |
+    Given (a) a SWE-agent run's event log, (b) its SWE-bench evaluation results (report.json + test_output.txt),
+    and (c) a reference Layer 2 IR JSON for the agent's task plan, produce an annotated Layer 3 IR JSON
+    whose `exec_state` and `llm_injections` fields are filled in by per-step LLM analysis. The Lean file
+    is generated OUTSIDE this YAML by the outer driver (ir_to_lean.py) — this workflow only produces JSON.
+
+config:
+    model: "${MODEL_NAME}"
+    max_tokens_per_step: 16384
+    max_tool_calls_per_step: 20
+    plan_revision_max_steps: 0
+    enable_inline_tool_calls: true
+
+parameters:
+    instance_id: "${INSTANCE_ID}"
+    plan_name: "${PLAN_NAME:-passed_workflow_1}"
+    # Container-view paths (under /workspace/…) used by shell_run to read files.
+    event_log_path: "${EVENT_LOG_PATH}"
+    full_log_path: "${FULL_LOG_PATH:-}"
+    report_path: "${REPORT_PATH}"
+    test_output_path: "${TEST_OUTPUT_PATH}"
+    layer2_ir_path: "${LAYER2_IR_PATH}"
+    staging_dir: "${STAGING_DIR}"
+    output_ir_path: "${OUTPUT_IR_PATH}"
+    package_dir: "${PACKAGE_DIR}"
+    # Host-view paths embedded into the final Lean IR's report_path/event_log_path
+    # fields so that when `lake env lean` runs on the host, the paths resolve.
+    host_event_log_path: "${HOST_EVENT_LOG_PATH}"
+    host_report_path: "${HOST_REPORT_PATH}"
+    prefix: "${PREFIX:-}"
+    suffix: "${SUFFIX:-}"
+    banner_title: "${BANNER_TITLE:-}"
+    banner_subtitle: "${BANNER_SUBTITLE:-}"
+
+workflow:
+    # =========================================================================
+    # PHASE 1 — deterministic preparation (shell only, no LLM judgement needed)
+    # =========================================================================
+    - step:
+        name: "segment_trace"
+        instruction: |
+            Use the shell_run tool to invoke the trace segmenter:
+
+            ```bash
+            python {{package_dir}}/trace_segmenter.py \
+                --event_log {{event_log_path}} \
+                --full_log "{{full_log_path}}" \
+                --staging_dir {{staging_dir}} \
+                --instance_id {{instance_id}}
+            ```
+
+            After the command succeeds, reply with exactly the string OK and nothing else.
+        save_as: "segment_status"
+
+    - step:
+        name: "extract_eval_evidence"
+        instruction: |
+            Use shell_run to extract compact evaluation evidence:
+
+            ```bash
+            python {{package_dir}}/eval_forensics.py \
+                --report {{report_path}} \
+                --test_output {{test_output_path}} \
+                --staging_dir {{staging_dir}} \
+                --instance_id {{instance_id}}
+            ```
+
+            After the command succeeds, reply with exactly the string OK and nothing else.
+        save_as: "forensics_status"
+
+    - step:
+        name: "init_layer3_ir"
+        instruction: |
+            Use shell_run to seed the initial Layer 3 IR. Note that the event_log_path
+            and report_path passed here are HOST-view paths — they become the literal
+            `reportPath_<sfx>` and `eventLogPath_<sfx>` strings in the generated Lean
+            file, which must be valid when Lean runs on the host (NOT inside Docker).
+
+            ```bash
+            python {{package_dir}}/layer3_ir_init.py \
+                --layer2_ir {{layer2_ir_path}} \
+                --trace_index {{staging_dir}}/trace_index.json \
+                --instance_id {{instance_id}} \
+                --plan_name {{plan_name}} \
+                --event_log_path {{host_event_log_path}} \
+                --report_path {{host_report_path}} \
+                --out {{output_ir_path}} \
+                --prefix "{{prefix}}" \
+                --suffix "{{suffix}}" \
+                --banner_title "{{banner_title}}" \
+                --banner_subtitle "{{banner_subtitle}}"
+            ```
+
+            After the command succeeds, reply with exactly the string OK and nothing else.
+        save_as: "init_status"
+
+    # =========================================================================
+    # PHASE 2 — structural load
+    # =========================================================================
+    - step:
+        name: "count_steps"
+        instruction: |
+            Use shell_run to determine how many trajectory steps were segmented. Run:
+
+            ```bash
+            python -c "import json; print(len(json.load(open('{{staging_dir}}/trace_index.json'))['steps']))"
+            ```
+
+            Reply with ONLY the integer count — no prose, no quotes, no additional text.
+        save_as: "num_steps"
+
+    - step:
+        name: "load_eval_evidence_text"
+        instruction: |
+            Use shell_run to print the compact eval evidence so it is available in this conversation
+            for the per-step analyses below:
+
+            ```bash
+            cat {{staging_dir}}/eval_evidence.json
+            ```
+
+            After printing, reply with exactly the string LOADED and nothing else.
+        save_as: "eval_evidence_loaded"
+
+    - set_variable:
+        name: "i"
+        value: 0
+
+    # =========================================================================
+    # PHASE 3 — per-step annotation loop
+    # Each iteration (a) loads context for step index {{i}}, (b) reasons about
+    # whether the postcondition predicates hold, (c) persists the verdict into
+    # the IR via EditJson. All three happen inside ONE step so the LLM can
+    # weave reasoning and tool calls naturally.
+    # =========================================================================
+    - while:
+        condition: "i < num_steps"
+        max_iterations: 25
+        steps:
+            - step:
+                name: "annotate_step"
+                instruction: |
+                    You are annotating ONE workflow step (index {{i}}) for Layer 3 verification.
+
+                    Context you already have from prior turns:
+                    - The eval evidence JSON (resolved flag, FAIL_TO_PASS pass/fail, failure_excerpts, summary_tail).
+
+                    Execute the following THREE shell_run commands to pull the per-step context:
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{staging_dir}}/trace_index.json --path '["steps", {{i}}]' --get
+                    ```
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} --path '["workflow", "nodes", {{i}}]' --get
+                    ```
+
+                    ```bash
+                    SID=$(python {{package_dir}}/EditJson.py --json_path {{staging_dir}}/trace_index.json --path '["steps", {{i}}, "step_id"]' --get | tr -d '"'); cat {{staging_dir}}/step_${SID}_summary.md
+                    ```
+
+                    Now reason about the three inputs:
+                    - `postcond_extra` from the Layer 2 node lists the evidence variables that must hold
+                      after this step executes (e.g. `fix_implementation_evidence`, `reproduction_evidence`,
+                      `shell_run`). For every variable in `postcond_extra` that is NOT a tool (i.e. not the
+                      one with predicate kind `toolExists`), you must produce one `exec_state_entry` and
+                      one `llm_injection`. Tool-existence predicates (`shell_run`) are auto-satisfied by
+                      the runtime, so skip them. The `step_name` in injections is the semantic node's `name`.
+
+                    Decide `holds: true|false` per variable. The decision MUST be GROUND-TRUTH driven —
+                    we observed in prior runs that judges defaulted to `holds=true` and produced
+                    Layer-3 verdicts that contradicted the harness (`resolved=false` with all steps
+                    "confirmed"), making the downstream evolve pipeline a no-op. The new conservative
+                    rules below close that loophole:
+
+                    GROUND-TRUTH GATE (apply FIRST, before any other consideration):
+                      - Read `eval_evidence.resolved`. If it is `false`, the harness has DEFINITIVELY
+                        observed the bug persists. In that case, for the canonical "produces a fix"
+                        steps — fix_issue, verify_fix, create_patch — the variables
+                        `fix_implementation_evidence`, `fix_verification_evidence`,
+                        `patch_submission_evidence` MUST be set to `holds=false`. Period. Their
+                        `llm_explanation` should cite the specific failing test from `f2p_fail` (or
+                        `p2p_fail` for regressions). Do NOT decide "holds=true" for these variables
+                        when resolved=false: the harness is the ground truth, the agent's claim of
+                        "I fixed it" is not.
+                      - If `eval_evidence.resolved` is `true` AND the step's variable's f2p test is
+                        listed in `f2p_pass`, then `holds=true` is justified for that variable.
+
+                    PRECEDING-STEP RULE (apply when GROUND-TRUTH GATE doesn't determine a verdict):
+                      - For exploration / reproduction / tool-existence steps that ran BEFORE the
+                        fix step, `holds=true` is the right default IF the trace summary shows the
+                        artefact was produced (file written, command exited 0, output captured).
+                      - `holds=false` for these only if the trace shows abandonment ("I could not",
+                        "skipping", "let me try a different") or a hard error that broke the step.
+
+                    EVIDENCE-CITATION REQUIREMENT (mandatory for every injection):
+                      - `llm_explanation` MUST cite at least ONE specific evidence anchor:
+                        * a failing test name from `f2p_fail` / `p2p_fail` (when holds=false),
+                        * `patch_successfully_applied=true` AND `f2p_pass` listing the relevant
+                          test (when holds=true on a fix variable), or
+                        * a concrete trace observation (file path, exit code, command name) for
+                          non-fix variables.
+                      - Hand-wavy reasoning ("the agent did its best", "looks fine", "appears to
+                        have completed") is FORBIDDEN — any injection whose explanation lacks a
+                        concrete anchor will be rejected by the consistency review.
+
+                    `confidence` is a float in [0.5, 0.99]. Use ≥0.9 only when the GROUND-TRUTH GATE
+                    fired (you have the harness's verdict). Use 0.5-0.7 when only trace evidence is
+                    available without harness confirmation.
+
+                    Now persist each (exec_state_entry, llm_injection) pair to the Layer 3 IR. For each
+                    evidence variable (not a tool), issue these two shell_run commands, replacing
+                    <VAR>, <RAW>, <STEP>, <HOLDS>, <CONF>, <EXPL> with your computed values:
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                        --path '["exec_state"]' --list_append '["<VAR>", "<RAW>"]'
+                    ```
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                        --path '["llm_injections"]' --list_append '{"step_name": "<STEP>", "var_name": "<VAR>", "holds": <HOLDS>, "confidence": <CONF>, "llm_explanation": "<EXPL>"}'
+                    ```
+
+                    Escape any embedded double-quotes in <RAW> and <EXPL> using backslashes so the JSON
+                    parses. `<HOLDS>` is bare true/false; `<CONF>` is a bare decimal; strings are
+                    JSON-quoted. Use single quotes around the outer '<...>' JSON literal in the shell
+                    command so the inner double-quotes survive.
+
+                    Before moving on, verify the append with:
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} --path '["llm_injections"]' --get | python -c "import json,sys; print(len(json.load(sys.stdin)))"
+                    ```
+
+                    After all appends succeed, reply with exactly the string APPLIED and nothing else.
+                save_as: "annotate_status"
+
+            - increment: "i"
+
+    # =========================================================================
+    # PHASE 4 — cross-step consistency check
+    # =========================================================================
+    - step:
+        name: "final_consistency_review"
+        instruction: |
+            Use shell_run to print the current list of llm_injections and the eval_evidence side-by-side:
+
+            ```bash
+            python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} --path '["llm_injections"]' --get
+            cat {{staging_dir}}/eval_evidence.json
+            ```
+
+            Scan the injections for entries that clearly contradict the eval evidence. The
+            GROUND-TRUTH PRINCIPLE remains: the harness's `resolved` flag and `f2p_fail` /
+            `p2p_fail` lists are authoritative. Any injection whose `holds` value disagrees with
+            these MUST be flipped here.
+
+            Mandatory contradictions to flag (in priority order):
+
+            1. HARNESS-DISAGREEMENT (highest priority): `eval_evidence.resolved == false` AND the
+               injection has `holds=true` for any of these canonical fix-side variables:
+                  fix_implementation_evidence, fix_verification_evidence, patch_submission_evidence
+               The bug persists per the harness, so by definition the fix step's evidence does
+               NOT hold. Flip `holds` to `false` and update `llm_explanation` to cite the failing
+               test from `f2p_fail`. This is the SAME rule the per-step judge was supposed to
+               apply but historically violated; this review is the safety net.
+
+            2. ABANDONMENT-MARKER: the trace summary for the step contains "I could not", "unable
+               to", "skipping", "let me try a different", or "give up" yet the injection has
+               `holds=true`. Flip to `holds=false` with explanation citing the abandonment marker.
+
+            3. UPSTREAM-VARIABLE-FALSE: an early step's `repository_explored` /
+               `issue_reproduced` injection is `holds=false` but the trace clearly shows the
+               artefact (file written, exit 0). Flip to `holds=true` with trace citation.
+
+            4. EXPLANATION-TOO-SHALLOW: the `llm_explanation` does not cite a concrete evidence
+               anchor (failing test name, exit code, file path, or specific report.json flag).
+               Replace it with a citation-bearing rewrite (do NOT change `holds`).
+
+            5. SCHEMA-VIOLATION: a `var_name` that does NOT appear as a postcond_extra variable
+               in the corresponding Layer 2 semantic node — this is a junk injection and should
+               be flagged.
+
+            For category 1 (HARNESS-DISAGREEMENT) the answer is mechanical and you should not
+            second-guess it: when resolved=false, fix-side variables CANNOT be holds=true. Any
+            "but the trace looked OK" reasoning is wrong here — the harness's verdict overrides.
+
+            Reply with a single JSON value (no markdown, no prose). Either:
+            - exactly `[]` if no corrections are needed, OR
+            - an array of correction objects of the form
+              `[{"index": <int>, "field": "holds"|"confidence"|"llm_explanation", "value": <new value>}]`
+
+            A value for `holds` must be a JSON boolean; a value for `confidence` must be a JSON number
+            in [0.5, 0.99]; a value for `llm_explanation` must be a JSON string.
+        save_as: "corrections"
+
+    - step:
+        name: "apply_corrections"
+        instruction: |
+            The previous step emitted this corrections JSON value:
+
+            ```json
+            {{corrections}}
+            ```
+
+            If the value is exactly `[]` (or an empty array), reply with exactly the string NOOP and
+            take no other action.
+
+            Otherwise, for EACH correction entry, invoke shell_run with:
+
+            ```bash
+            python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                --path '["llm_injections", <index>, "<field>"]' --set '<value_as_json_literal>'
+            ```
+
+            where <value_as_json_literal> is a valid JSON value (e.g. `false`, `0.92`, `"updated explanation"`).
+            After all edits complete, reply with exactly the string APPLIED and nothing else.
+        save_as: "final_apply_status"
+
+    # =========================================================================
+    # PHASE 4.5 — DETERMINISTIC GROUND-TRUTH GATE
+    # Belt-and-suspenders pass: even after the LLM judge + LLM consistency review,
+    # we have observed `holds=true` on fix-side variables when the harness reports
+    # `resolved=false`. This script flips those mechanically — the harness is the
+    # ground truth, full stop. Idempotent.
+    # =========================================================================
+    - step:
+        name: "ground_truth_gate"
+        instruction: |
+            Run the deterministic ground-truth gate over the Layer-3 IR. It
+            reads `eval_evidence.json` and the IR's `llm_injections`, and
+            flips any fix-side variable (`fix_implementation_evidence`,
+            `fix_verification_evidence`, `patch_submission_evidence`) whose
+            `holds` value disagrees with `eval_evidence.resolved`. The
+            harness is authoritative.
+
+            ```bash
+            python {{package_dir}}/tighten_layer3_verdicts.py \
+                --layer3_ir {{output_ir_path}} \
+                --eval_evidence {{staging_dir}}/eval_evidence.json
+            ```
+
+            On success the script prints `OK:` followed by the (possibly
+            empty) list of flips. Reply with exactly the string GATED and
+            nothing else.
+        save_as: "ground_truth_gate_status"
+
+    # =========================================================================
+    # PHASE 5 — status
+    # =========================================================================
+    - step:
+        name: "report_status"
+        instruction: |
+            Print a one-line status summary using shell_run:
+
+            ```bash
+            python {{package_dir}}/summarize_ir.py --ir {{output_ir_path}}
+            ```
+
+            Then reply with exactly the string DONE and nothing else.

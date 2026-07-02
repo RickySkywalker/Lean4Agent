@@ -1,0 +1,201 @@
+# claude_write_plan_3.yaml
+name: "swe_agent"
+goal: "Given a GitHub issue, reproduce the bug and fix it by producing a minimal source-code patch"
+
+system_prompt: |
+  You are a helpful assistant who can interact multiple times with a computer shell to solve programming tasks.
+  STRICT FORMAT RULES:
+  - Your response must contain AT MOST one code block.
+  - If you include more than one code block, your response will be REJECTED.
+  - The code block must contain ONE command (or commands connected with && or ||).
+  - The code block must be either a bash block (raw shell command) or a subagent block (subagent name as the fence language).
+  - If you have nothing to execute, respond with plain text and NO code block.
+  Include a THOUGHT section before your command where you explain your reasoning process.
+  <format_example>
+  THOUGHT: You should first consider the task goal, your current state, and plan for your future actions. Then tell the user whether you want to run a bash command or call a subagent to help with a task and explain in depth why or why not.
+  </format_example>
+
+config:
+  model: "${MODEL_NAME}"
+  temperature: 1.0
+  model_kwargs:
+    reasoning_effort: "high"
+  max_tool_calls_per_step: 20
+  max_tool_calls: 100
+  expose_submodules_as_tools: false
+  enable_inline_tool_calls: true
+
+parameters:
+  code_path: "${CODE_PATH:-/workspace/tmp/repo}"
+  problem_statement: "${PROBLEM_STATEMENT}"
+  regression_test_cmd: "Currently do not have regression test command"
+
+workflow:
+  # ------------------------------------------------------------------
+  # Step 1: Present the PR description and orient the agent
+  # ------------------------------------------------------------------
+  - step:
+      name: "present_problem"
+      instruction: |
+        <pr_description>
+        Consider the following PR description:
+        {{problem_statement}}
+        </pr_description>
+
+        You're a software engineer interacting continuously with a computer by submitting commands.
+        You'll be helping implement necessary changes to meet requirements in the PR description.
+        Your task is specifically to make changes to non-test files in the current directory in order to fix the issue described in the PR description in a way that is general and consistent with the codebase.
+        <IMPORTANT>This is an interactive process where you will think and issue AT LEAST ONE command for every step, see the result, then think and issue your next command(s).</IMPORTANT>
+
+        For each response:
+        1. Include a THOUGHT section explaining your reasoning and what you're trying to accomplish
+        2. Provide one or more bash tool calls to execute
+
+        <boundaries>
+        - MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)
+        - DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)
+        </boundaries>
+
+        <environment>
+        - You have a full Linux shell environment
+        - Always use non-interactive flags (-y, -f) for commands
+        - Avoid interactive tools like vi, nano, or any that require user input
+        - You can use bash commands or invoke any tool that is available in the environment
+        - You can also create new tools or scripts to help you with the task
+        - If a tool isn't available, you can also install it
+        </environment>
+
+        <execution_rules>
+        You are operating in an environment where
+        1. You issue at least one command
+        3. The system executes the command(s) in a subshell
+        4. You see the result(s)
+        5. You write your next command(s)
+        Each response should include:
+        1. **Reasoning text** where you explain your analysis and plan
+        2. At least one tool call with your command
+        **CRITICAL REQUIREMENTS:**
+        - Your response SHOULD include reasoning text explaining what you're doing
+        - Your response MUST include AT LEAST ONE bash tool call. You can make MULTIPLE tool calls in a single response when the commands are independent (e.g., searching multiple files, reading different parts of the codebase).
+        - Directory or environment variable changes are not persistent. Every action is executed in a new subshell.
+        - However, you can prefix any action with `MY_ENV_VAR=MY_VALUE cd /path/to/working/dir && ...` or write/load environment variables from files
+        </execution_rules>
+
+        <workflow>
+        Follow this workflow to solve the problem:
+        1. Analyze the codebase by finding and reading relevant files
+        2. Create a script to reproduce the issue
+        3. Edit the source code to resolve the issue
+        4. Verify your fix works by running your script again
+        5. Test edge cases to ensure your fix is robust
+        </workflow>
+
+        Start by exploring the repository structure to understand the codebase. List the top-level directory structure of /testbed and identify key files related to the issue.
+
+  # ------------------------------------------------------------------
+  # Step 2: Explore and understand the codebase
+  # ------------------------------------------------------------------
+  - step:
+      name: "explore_codebase"
+      instruction: |
+        Continue exploring the codebase. Based on the PR description, identify and read the most relevant source files.
+        Use grep, find, and cat to locate the code areas that need changes.
+        Focus on understanding the current behavior that causes the issue.
+
+  # ------------------------------------------------------------------
+  # Step 3: Reproduce the issue
+  # ------------------------------------------------------------------
+  - step:
+      name: "reproduce_issue"
+      instruction: |
+        Now create a script to reproduce the issue described in the PR description.
+        Save the script to /testbed/reproduce_issue.py (or a similarly named script).
+        Run the script and confirm that the issue is reproduced.
+        Show the error output or incorrect behavior.
+
+  # ------------------------------------------------------------------
+  # Step 4: Identify the root cause
+  # ------------------------------------------------------------------
+  - step:
+      name: "identify_root_cause"
+      instruction: |
+        Based on the reproduction and your codebase exploration, identify the root cause of the issue.
+        Read the specific source files and functions responsible for the bug.
+        Explain your analysis and pinpoint the exact lines/functions that need to be modified.
+
+  # ------------------------------------------------------------------
+  # Step 5: Implement the fix
+  # ------------------------------------------------------------------
+  - step:
+      name: "implement_fix"
+      instruction: |
+        Implement the fix for the issue. Edit the source code files to resolve the bug.
+        Remember:
+        - ONLY modify regular source code files in /testbed
+        - DO NOT modify test files, configuration files (pyproject.toml, setup.cfg, etc.)
+        - Make targeted, minimal changes that fix the issue without breaking other functionality
+        - Ensure your fix is general and consistent with the codebase style
+
+  # ------------------------------------------------------------------
+  # Step 6: Verify the fix
+  # ------------------------------------------------------------------
+  - step:
+      name: "verify_fix"
+      instruction: |
+        Run the reproduction script again to verify that the fix resolves the issue.
+        The script should now produce the expected/correct behavior instead of the error.
+        If the fix does not work, iterate on your changes.
+
+  # ------------------------------------------------------------------
+  # Step 7: Test edge cases
+  # ------------------------------------------------------------------
+  - step:
+      name: "test_edge_cases"
+      instruction: |
+        Test edge cases to ensure the fix is robust:
+        1. Create additional test scenarios in your reproduction script to cover edge cases
+        2. Run the existing test suite if applicable: {{regression_test_cmd}}
+        3. Verify that you haven't introduced any regressions
+
+        If any edge case fails, go back and refine your fix.
+
+  # ------------------------------------------------------------------
+  # Step 8: Create and submit the patch
+  # ------------------------------------------------------------------
+  - step:
+      name: "create_patch"
+      instruction: |
+        Now create the final patch. Follow these steps IN ORDER, with SEPARATE commands:
+
+        Step 1: Create the patch file
+        Run `cd /testbed && git diff -- path/to/file1 path/to/file2 > patch.txt` listing only the source files you modified.
+        Do NOT commit your changes.
+        <IMPORTANT>
+        The patch must only contain changes to the specific source files you modified to fix the issue.
+        Do not submit file creations or changes to any of the following files:
+        - test and reproduction files
+        - helper scripts, tests, or tools that you created
+        - installation, build, packaging, configuration, or setup scripts unless they are directly part of the issue you were fixing (you can assume that the environment is already set up for your client)
+        - binary or compiled files
+        </IMPORTANT>
+
+        Step 2: Verify your patch
+        Inspect patch.txt to confirm it only contains your intended changes and headers show `--- a/` and `+++ b/` paths.
+
+  # ------------------------------------------------------------------
+  # Step 9: Submit the patch
+  # ------------------------------------------------------------------
+  - step:
+      name: "submit_patch"
+      instruction: |
+        Submit your patch using this EXACT command:
+        ```bash
+        echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt
+        ```
+        If the command fails (nonzero exit status), it will not submit.
+        <CRITICAL>
+        - Creating/viewing the patch and submitting it MUST be separate commands (not combined with &&).
+        - If you modify patch.txt after verifying, you SHOULD verify again before submitting.
+        - You CANNOT continue working (reading, editing, testing) in any way on this task after submitting.
+        - Unless you think the task is finished and ready for submission, you MUST contain a tool-call in every response. When you make no tool call, it will be treated as a signal that you have already completed the task and submitted your answer, and the system will stop you from making any further tool calls.
+        </CRITICAL>

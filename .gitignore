@@ -1,1 +1,37 @@
+# --- Lean / Lake ---
+.lake/
+build/
+*.olean
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# --- Secrets / local config (templates are committed as *.example) ---
+.env
+*.env
+!*.env.example
+!example.env
+
+# --- Runtime artifacts ---
+workspace*/
+outputs/
+results/
+reports/
+*.log
+logs/
+
+# --- Datasets (download separately; see docs/reproduce.md) ---
+# **/data/
+
+# --- Editor / OS ---
 .DS_Store
+.idea/
+.vscode/
+.ipynb_checkpoints/
+
+tmp/

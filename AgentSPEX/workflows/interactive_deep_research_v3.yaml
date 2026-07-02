@@ -1,0 +1,397 @@
+name: "interactive_deep_research_v3_comprehensive_report"
+goal: "Interactive deep research with scalable tree-based iterative deepening"
+
+config:
+    model: "o3-mini"
+
+parameters:
+    topic: "large language models for math reasoning"
+    sub_task: "comprehensive_report"
+    initial_breadth: 4
+    max_depth: 2
+    current_depth: 0
+    memory_file: "outputs/interactive_deep_research_v3_comprehensive_report/episodic.json"
+
+workflow:
+    # ==================================================
+    # PHASE 1: Interactive Clarification
+    # ==================================================
+
+    # Step 1
+    - step:
+        name: "generate_feedback_questions"
+        instruction: |
+            Given the following query, ask follow up questions to clarify the research direction.
+
+            Query: {{topic}}
+
+            Return a maximum of 3 questions, but feel free to return less if the original query is clear.
+            Generate questions as a JSON array: ["Question 1?", "Question 2?", "Question 3?"]
+        save_as: "feedback_questions_json"
+
+    # Step 2
+    - discover:
+        name: "feedback_questions"
+        from: "feedback_questions_json"
+        instruction: "Extract questions as clean array"
+
+    # Step 3
+    - set_variable:
+        name: "loop_index"
+        value: 1
+
+    # Step 4: Collect user answers for each question
+    - for_each:
+        variable: "question"
+        in: "feedback_questions"
+        steps:
+            - input:
+                prompt: "{{question}}"
+                save_as: "user_answer"
+
+            # Store each Q&A pair in memory
+            - step:
+                name: "store_feedback_pair"
+                instruction: |
+                    NOTE: All memory operations use memory_file at {{memory_file}}
+
+                    Store this Q&A pair in memory:
+                    Use: memory("store", key="feedback_qa_{{loop_index}}", content="Q: {{question}}\nA: {{user_answer}}", tags="feedback,clarification", memory_file="{{memory_file}}")
+
+                    Return confirmation message.
+            
+            - increment: "loop_index"
+
+    # Step 5: Create combined query with all feedback
+    - step:
+        name: "create_combined_query"
+        instruction: |
+            NOTE: Memory file at {{memory_file}}
+
+            Retrieve all feedback Q&A pairs from memory:
+            memory("search", query="feedback", memory_file="{{memory_file}}")
+            
+            Combine the initial query with all the feedback Q&A pairs into an enhanced research query.
+
+            Initial Query: {{topic}}
+
+            Format the combined query as:
+            ```
+            Initial Query: [initial query]
+
+            Follow-up Questions and Answers:
+            [all Q&A pairs from memory]
+            ```
+            Store the combined_query: memory("store", key="combined_query", content="[combined query]", tags="query,enhanced", memory_file="{{memory_file}}")
+
+            Return ONLY the combined query as final output.
+
+        save_as: "combined_query"
+    
+    # Step 6: Initialize BFS queue
+    - set_variable:
+        name: "queue"
+        value: '["""{{combined_query}}"""]'
+
+    - set_variable:
+        name: "current_breadth"
+        value: "{{initial_breadth}}"
+
+    # ==================================================
+    # PHASE 2: Iterative Deep Research (Scalable)
+    # ==================================================
+
+    - while:
+        condition: "current_depth < max_depth"
+        steps:
+            - set_variable:
+                name: "branch_id"
+                value: 1
+            # Process each combined_user_query
+            - for_each:
+                variable: "user_query"
+                in: "queue"
+                steps:
+                    # Generate SERP quries for this combined query
+                    - step:
+                        name: "generate_serp_queries"
+                        instruction: |
+                            NOTE: Memory file at {{memory_file}}
+
+                            Retrieve previous learnings if any: memory("get", key="all_learnings", memory_file="{{memory_file}}")
+
+                            User Query: {{user_query}}
+
+                            Given the user query, generate {{current_breadth}} SERP queries to research the topic. If available, using the learnings from previous research to generate more specific SERP queries.
+
+                            Make sure each query is unique and not similar to each other.
+
+                            For each query, provide:
+                            1. query: The SERP search query string
+                            2. researchGoal: First talk about the goal of the research that this query is meant to accomplish, then go deeper into how to advance the research once the results are found, mention additional research directions. Be as specific as possible, especially for additional research directions.
+
+                            Return ONLY a JSON array:
+                            [
+                                {"query": "search query 1", "researchGoal": "detailed goal..."},
+                                {"query": "search query 2", "researchGoal": "detailed goal..."}
+                            ]
+                        save_as: "serp_queries_json"
+
+                    # Parse SERP queries into list
+                    - discover:
+                        name: "serp_queries"
+                        from: "serp_queries_json"
+                        instruction: "Extract the array of query objects as a clean list"
+                    
+                    # set loop variable
+                    - set_variable:
+                        name: "loop_index"
+                        value: 1
+                    
+                    # Process each SERP entry
+                    - for_each:
+                        variable: "serp_entry"
+                        in: "serp_queries"
+                        steps:
+                            # Extract query string from entry
+                            - step:
+                                name: "extract_query_string"
+                                instruction: |
+                                    From this SERP entry: {{serp_entry}}
+                                    Extract just the "query" field value.
+                                    Return ONLY the query string.
+                                save_as: "current_query"
+                            
+                            # Extract research goal from entry
+                            - step:
+                                name: "extract_research_goal"
+                                instruction: |
+                                    From this SERP entry: {{serp_entry}}
+                                    Extract just the "researchGoal" field value.
+                                    Return ONLY the research goal text.
+                                save_as: "current_research_goal"
+
+                            # Execute web search using FireCrawl
+                            - step:
+                                name: "web_search"
+                                instruction: |
+                                    Use firecrawl search to search the following query and return the top 5 results:
+
+                                    Query: {{current_query}}
+
+                                    ONLY return the tool call output, no any extra words.
+                                save_as: "search_results"
+                            
+                            - discover:
+                                name: "downloaded_content_path"
+                                from: "prev_output"
+                                instruction: Extract the downloaded file locations to a clean list
+                            
+                            # NOTE: This is the old logic for using Bing / Google Search 
+
+                            # - step:
+                            #     name: "web_search"
+                            #     instruction: |
+                            #         Execute Bing web search for: {{current_query}}
+
+                            #         Use the bing_search tool:
+                            #         bing_search(query="{{current_query}}", count=5)
+
+                            #         Return the search results.
+                            #     save_as: "search_results"
+
+                            # - step:
+                            #     name: "fetch_content"
+                            #     instruction: |
+                            #         Use browser_fetch to fetch the content of all the return url.
+
+                            #         If the url links to arxiv, then please download the pdf of the paper on the arxiv.
+
+                            # - discover:
+                            #     name: "downloaded_content_path"
+                            #     from: "prev_output"
+                            #     instruction: "Extract the downloaded file locations to a clean list"
+                            
+                            - step:
+                                name: "extract_urls"
+                                instruction: |
+                                    NOTE: Memory file at {{memory_file}}
+
+                                    Extract all the urls from the search_results: {{search_results}}.
+                                    
+                                    Then put these extract urls into a list and save into memory:
+                                    memory("store", memory_file="{{memory_file}}", key="sources_depth{{current_depth}}_branch_id{{branch_id}}_query{{loop_index}}", content="[urls1, urls2 ...]", tags="sources, urls")
+
+                            - set_variable:
+                                name: "content_num"
+                                value: 1
+                            
+                            # Generate 1-3 learnings for each fetched content
+                            - for_each:
+                                variable: "path"
+                                in: "downloaded_content_path"
+                                steps:
+                                    - step:
+                                        name: "process_content_learnings"
+                                        instruction: |
+                                            NOTE: Memory file at {{memory_file}}
+
+                                            Given the path of a file includes the content from a SERP search for query: {{current_query}}
+
+                                            Path to content: {{path}}
+
+                                            Thorughly Read the content. Then generate a list of learnings from the contents and these learnings will be used to resaerch the topic further. Return a maximum of 3 learnings, but feel free to return less if the contents are not informative.
+
+                                            Make sure each learning is:
+                                            - Unique and not similar to each other
+                                            - Concise and to the point
+                                            - As detailed and information dense as possible
+                                            - Include any entities like people, places, companies, products, things, etc
+                                            - Include any exact metrics, numbers, or dates
+
+                                            Return as clean array: ["learning 1", "learning 2", "learning 3"]
+
+                                            Then store in memory:
+                                            - memory("store", key="learnings_depth{{current_depth}}_branch_id{{branch_id}}_query{{loop_index}}_content{{content_num}}", content="[learnings JSON]", tags="learnings,depth{{current_depth}}", memory_file="{{memory_file}}")
+                                    
+                                    - increment: "content_num"
+
+                            # Generate follow-up questions for contents return by current SERP query
+                            - step:
+                                name: "generate_followup_questions"
+                                instruction: |
+                                    NOTE: Memory file at {{memory_file}}
+
+                                    Retrieve all the learnings stored in the memory from previous research:
+                                    memory("search", memory_file="{{memory_file}}", query="learning")
+
+                                    Given the user query: {{user_query}};
+                                    
+                                    Given the current SERP query: {{current_query}};
+
+                                    Given the current research goal: {{current_research_goal}};
+
+                                    Generate 3 follow-up questions to research this topic further.
+
+                                    Return ONLY a clean array:
+
+                                    ["follow-up question1", "follow-up question 2", "follow-up question 3"]
+                            
+                            - discover:
+                                name: "current_followup"
+                                from: "prev_output"
+                                instruction: "Extract the follow-up questions as a clean array"
+                            
+                            # Generate next_query
+                            - step:
+                                name: "format_next_query"
+                                instruction: |
+                                    Format next combined search query following this style:
+
+                                    ```
+                                    Previous research goal: {{current_research_goal}}
+                                    Follow-up research directions: {{current_followup}}
+                                    ```
+
+                                    Only return the formated query as a clean string
+
+                                save_as: "next_query"
+                            
+                            # Update Queue
+                            - set_variable:
+                                name: "queue"
+                                value: '{{queue}} + ["""{{next_query}}"""]'
+                            
+                            # Update branch id
+                            - increment: "loop_index"
+
+                    # Pop the first element in the user combined query queue
+                    - set_variable:
+                        name: "queue"
+                        value: '{{queue}}[1:]'
+
+                    - increment: "branch_id"
+
+            # Reduce breadth for next depth
+            - set_variable:
+                name: "current_breadth"
+                value: "max( {{current_breadth}} // 2, 1)"
+
+            # Log progress
+            - step:
+                name: "log_depth_completion"
+                instruction: |
+                    Report: Completed depth {{current_depth}} research.
+                    Next depth will use breadth: {{current_breadth}}
+                    Current Queue: {{queue}}
+
+                    Return status message.
+
+            # Increment current depth
+            - increment: "current_depth"
+
+    # ==================================================
+    # PHASE 3: Final Report Generation
+    # ==================================================
+
+    - synthesize:
+        name: "final_deep_research_report"
+        instruction: |
+            NOTE: Memory file at {{memory_file}}
+
+            Given the user query: {{combined_query}}
+
+            Retrieve all learnings: memory("search", query="learnings", memory_file="{{memory_file}}")
+
+            Write a final report on the topic using all the learnings from research.
+
+            Make it as detailed as possible, aim for 4000 words or more, include ALL the learnings from research.
+
+            Finally, retrieve all sources: memory("search", query="sources", memory_file="{{memory_file}}")
+            List all the sources at the end of the report
+
+            Store the report in memory:
+            memory("store", key="final_report", content="[full report text]", tags="report,final", memory_file="{{memory_file}}")
+        output_file: "deep_research_report.md"
+
+
+# If you find the generated report length is too short, consider use the following logic
+
+    #     name: "final_deep_research_report"
+    #     instruction: |
+    #         NOTE: Memory file at {{memory_file}}
+
+    #         Given the user query as your topic: {{combined_query}}
+
+    #         Retrieve all learnings: memory("search", query="learnings", memory_file="{{memory_file}}")
+
+    #         Write a final report in STRICT MARKDOWN format on the topic using all the learnings from research.
+
+    #         Make it as detailed as possible, aim for 3 or more pages, include ALL the learnings from research.
+
+    #         Store the report in memory:
+    #         memory("store", key="final_report", content="[full report text]", tags="report,final", memory_file="{{memory_file}}")
+    #     output_file: "deep_research_report_enhance.md"
+    
+    # - synthesize:
+    #     name: "final_deep_research_report_enhance"
+    #     instruction: |
+    #         NOTE: Memory file at {{memory_file}}
+
+    #         Read the written report from previous step, count the total number of words, 
+
+    #         If the number of words is not reaching 4000 words, extend the report contents by thorough reasoning with the pervious learings stored in memory.
+
+    #         Finally save the extended report.
+
+    #     output_file: "deep_research_report_enhance.md"
+
+
+    # - step:
+    #     name: "add_sources"
+    #     instruction: |
+    #         Read the written report at "/workspace/output/refine_writting/deep_research_report_enhance.md"
+            
+    #         Finally, retrieve all sources: memory("search", query="sources", memory_file="{{memory_file}}")
+
+    #         List all the sources at the end of the report

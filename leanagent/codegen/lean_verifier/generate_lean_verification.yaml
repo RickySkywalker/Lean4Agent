@@ -1,0 +1,3376 @@
+name: "generate_lean_verification"
+goal: |
+    Given a YAML agent task plan (which may contain arbitrarily-nested submodule calls and loops), you need to generate a complete Lean4 verification code for both YAML structure static verification (Layer 1) and Static Semantic Verification (Layer 2). Such Lean verification aims to model and ensure the static structural and semantic correctness of the agent plan.
+
+config:
+    model: "gpt-5.4"
+    max_tokens_per_step: 163840
+    max_tool_calls_per_step: 30
+    plan_revision_max_steps: 0
+
+parameters:
+    yaml_plan_path: "${YAML_PLAN_PATH}"
+    already_verified_modules: "${ALREADY_VERIFIED_MODULES:-[]}"
+    output_dir: "/workspace/outputs/lean_verifier"
+    staging_dir: "/workspace/_verifier_staging"
+    lean_example_extract_single_citation: |
+        import Lean
+        import Mathlib
+        import AgentVerifier.StaticLayer
+        import AgentVerifier.StaticSemanticLayer.StaticSemanticLayer
+
+        namespace AgenticKernel
+
+        /-
+        ================================================================================
+        STATIC VERIFICATION: extract_single_citation_module
+
+        Source: parsed_task.json
+        Goal: Extract citation information from a single downloaded paper file
+        Parameters: ['url', 'file_path']
+        Total nodes: 7
+        Entry: Node 0
+        Exits: [6]
+
+        Node   0: step             [SPEC] "extract_paper_title"
+                reads:  file_path
+                writes: paper_title
+        Node   1: step             [SPEC] "extract_bibtex_by_tool"
+                reads:  paper_title, url
+                writes: bibtex_citation
+        Node   2: step             [SPEC] "extract_abstract_by_tool"
+                reads:  paper_title, url
+                writes: abstract
+        Node   3: conditional      [DET]  "check_abstract == None"
+                reads:  abstract
+                writes: (none)
+        Node   4: step             [SPEC] "extract_abstract_by_read_file"
+                reads:  file_path
+                writes: abstract
+        Node   5: step             [SPEC] "prepare_return_dict"
+                reads:  abstract, bibtex_citation, file_path, paper_title
+                writes: return_dict
+        Node   6: returnValue      [DET]  "return_result"
+                reads:  return_dict
+                writes: (none)
+
+        Control flow edges:
+            seqEdge     0 → 1
+            seqEdge     1 → 2
+            seqEdge     2 → 3
+            branchEdge  3 → then:4, else:5
+            seqEdge     4 → 5
+            seqEdge     5 → 6
+        ================================================================================
+        -/
+
+
+        /-
+        ========================================================================
+        STEP 1: TRANSLATE YAML INTO WORKFLOW GRAPH
+        ========================================================================
+        -/
+
+        -- Node IDs
+        def writer_nodeId0 : NodeId := ⟨0⟩
+        def writer_nodeId1 : NodeId := ⟨1⟩
+        def writer_nodeId2 : NodeId := ⟨2⟩
+        def writer_nodeId3 : NodeId := ⟨3⟩
+        def writer_nodeId4 : NodeId := ⟨4⟩
+        def writer_nodeId5 : NodeId := ⟨5⟩
+        def writer_nodeId6 : NodeId := ⟨6⟩
+
+        -- Node 0: step "extract_paper_title"
+        def writer_node0 : WorkflowNode := {
+        id       := writer_nodeId0
+        name     := some "extract_paper_title"
+        stepType := .step
+        reads    := [⟨"file_path", .TString⟩]
+        writes   := [⟨"paper_title", .TString⟩]
+        llmInstruction := some "NOTE: Use the EXACT path provided below, DO NOT add any parent directories !!!\n\nRead the first 3000 bytes from the paper file at: {{file_path}}\n\nExtract ONLY the title of the paper. The title is usually:\n- At the top of the first page\n- In a larger or bold font\n- Above the author names\n\nReturn ONLY the extracted title as a single line of text with no extra commentary or formatting.\n"
+        }
+
+        -- Node 1: step "extract_bibtex_by_tool"
+        def writer_node1 : WorkflowNode := {
+        id       := writer_nodeId1
+        name     := some "extract_bibtex_by_tool"
+        stepType := .step
+        reads    := [⟨"paper_title", .TString⟩, ⟨"url", .TString⟩]
+        writes   := [⟨"bibtex_citation", .TString⟩]
+        llmInstruction := some "Use get_bibtex_from_url tool to retrieve the bibtex using the given url: {{url}} and the paper title: {{paper_title}}\n\nONLY return the content of the bibtex with no extra commentary.\n"
+        }
+
+        -- Node 2: step "extract_abstract_by_tool"
+        def writer_node2 : WorkflowNode := {
+        id       := writer_nodeId2
+        name     := some "extract_abstract_by_tool"
+        stepType := .step
+        reads    := [⟨"paper_title", .TString⟩, ⟨"url", .TString⟩]
+        writes   := [⟨"abstract", .TString⟩]
+        llmInstruction := some "Use get_abstract_from_url tool to retrieve the bibtex using the given url: {{url}} and the paper title: {{paper_title}}\n\nONLY return the content of the abstract with no extra commentary, if no abstract retreived, ONLY return None.\n"
+        }
+
+        -- Node 3: conditional "check_abstract == None"
+        def writer_node3 : WorkflowNode := {
+        id       := writer_nodeId3
+        name     := some "check_abstract == None"
+        stepType := .conditional
+        reads    := [⟨"abstract", .TString⟩]
+        writes   := []
+        llmInstruction := none
+        }
+
+        -- Node 4: step "extract_abstract_by_read_file"
+        def writer_node4 : WorkflowNode := {
+        id       := writer_nodeId4
+        name     := some "extract_abstract_by_read_file"
+        stepType := .step
+        reads    := [⟨"file_path", .TString⟩]
+        writes   := [⟨"abstract", .TString⟩]
+        llmInstruction := some "NOTE: Use the EXACT path provided below, DO NOT add any parent directories !!!\n\nRead the first 5000 bytes from the paper file at: {{file_path}}\n\nExtract ONLY the abstract of the paper. The title is usually:\n- At the first page\n- Has a section header of abstract\n- Below the author names\n\nReturn ONLY the extracted abstract as a single line of text with no extra commentary or formatting.\n"
+        }
+
+        -- Node 5: step "prepare_return_dict"
+        def writer_node5 : WorkflowNode := {
+        id       := writer_nodeId5
+        name     := some "prepare_return_dict"
+        stepType := .step
+        reads    := [⟨"abstract", .TString⟩, ⟨"bibtex_citation", .TString⟩, ⟨"file_path", .TString⟩, ⟨"paper_title", .TString⟩]
+        writes   := [⟨"return_dict", .TString⟩]
+        llmInstruction := some "Return as python compatible JSON dict:\n\n{\n    \"bibtex\": \"{{bibtex_citation}}\"\",\n    \"file_path\": \"{{file_path}}\"\n    \"title\": \"{{paper_title}}\"\n    \"abstract\": {{abstract}}\n}\n\nONLY return the python dict with no extra commentary.\n"
+        }
+
+        -- Node 6: returnValue "return_result"
+        def writer_node6 : WorkflowNode := {
+        id       := writer_nodeId6
+        name     := some "return_result"
+        stepType := .returnValue
+        reads    := [⟨"return_dict", .TString⟩]
+        writes   := []
+        llmInstruction := none
+        }
+
+        -- The complete workflow graph
+        def writerGraph : WorkflowGraph := {
+        nodes      := [
+            writer_node0,
+            writer_node1,
+            writer_node2,
+            writer_node3,
+            writer_node4,
+            writer_node5,
+            writer_node6
+        ]
+        edges      := [
+            .seqEdge writer_nodeId0 writer_nodeId1,
+            .seqEdge writer_nodeId1 writer_nodeId2,
+            .seqEdge writer_nodeId2 writer_nodeId3,
+            .branchEdge writer_nodeId3 writer_nodeId4 writer_nodeId5,
+            .seqEdge writer_nodeId4 writer_nodeId5,
+            .seqEdge writer_nodeId5 writer_nodeId6
+        ]
+        entry      := writer_nodeId0
+        exits      := [writer_nodeId6]
+        parameters := [⟨"url", .TString⟩, ⟨"file_path", .TString⟩]
+        }
+
+
+        /-
+        ========================================================================
+        STEP 2: STRUCTURAL CHECKS (computable, via #eval)
+        ========================================================================
+        -/
+
+        -- 2a. Step-type consistency
+        #eval writer_node0.writesConsistent  -- expected: true
+        #eval writer_node1.writesConsistent  -- expected: true
+        #eval writer_node2.writesConsistent  -- expected: true
+        #eval writer_node3.writesConsistent  -- expected: true
+        #eval writer_node4.writesConsistent  -- expected: true
+        #eval writer_node5.writesConsistent  -- expected: true
+        #eval writer_node6.writesConsistent  -- expected: true
+
+        -- 2b. Execution type classification
+        #eval writer_node0.execType  -- expected: unstructured
+        #eval writer_node1.execType  -- expected: unstructured
+        #eval writer_node2.execType  -- expected: unstructured
+        #eval writer_node3.execType  -- expected: deterministic
+        #eval writer_node4.execType  -- expected: unstructured
+        #eval writer_node5.execType  -- expected: unstructured
+        #eval writer_node6.execType  -- expected: deterministic
+
+        -- 2c. Which nodes need semantic specs?
+        #eval writer_node0.needSemanticSpec  -- expected: true
+        #eval writer_node1.needSemanticSpec  -- expected: true
+        #eval writer_node2.needSemanticSpec  -- expected: true
+        #eval writer_node3.needSemanticSpec  -- expected: false
+        #eval writer_node4.needSemanticSpec  -- expected: true
+        #eval writer_node5.needSemanticSpec  -- expected: true
+        #eval writer_node6.needSemanticSpec  -- expected: false
+
+        -- 2d. Type-check the sequential path
+        #eval match typeCheckSequence
+        [writer_node0, writer_node1, writer_node2, writer_node3, writer_node4, writer_node5, writer_node6]
+        [⟨"url", .TString⟩, ⟨"file_path", .TString⟩] with
+        | .ok ctx => s!"✓ Type-checks. Final context has {ctx.length} vars"
+        | .error msg => s!"✗ Type error: {msg}"
+
+
+        /-
+        ========================================================================
+        STEP 3: GRAPH-LEVEL PROPERTIES (computable, via #eval)
+        ========================================================================
+        -/
+
+        #eval writerGraph.allWritesConsistent    -- expected: true
+        #eval writerGraph.allReadResolvable      -- expected: true
+        #eval writerGraph.edgesValid             -- expected: true
+        #eval writerGraph.entryNodeValid         -- expected: true
+        #eval writerGraph.exitNodesValid         -- expected: true
+        #eval writerGraph.allExitsReachable      -- expected: true
+        #eval writerGraph.noOrphanNodes          -- expected: true
+        #eval writerGraph.returnType
+
+
+        /-
+        ========================================================================
+        STEP 4: VERIFICATION SUMMARY
+        ========================================================================
+        -/
+
+        #eval writerGraph.verificationSummary
+        #eval (writerGraph.nodesNeedingSpecs).map (fun n => (n.id, n.name))
+        #eval (writerGraph.deterministicNodes).map (fun n => (n.id, n.name))
+
+
+        /-
+        ========================================================================
+        STEP 5: STRUCTURAL WELL-FORMEDNESS THEOREMS
+        ========================================================================
+        -/
+
+        /-- All writes are consistent with step-type rules -/
+        theorem extract_single_citation_module_writesConsistent :
+            writerGraph.allWritesConsistent = true := by native_decide
+
+        /-- All reads are resolvable from predecessors or parameters -/
+        theorem extract_single_citation_module_readsResolvable :
+            writerGraph.allReadResolvable = true := by native_decide
+
+        /-- All edges reference valid node ids -/
+        theorem extract_single_citation_module_edgesValid :
+            writerGraph.edgesValid = true := by native_decide
+
+        /-- Entry node exists in the graph -/
+        theorem extract_single_citation_module_entryValid :
+            writerGraph.entryNodeValid = true := by native_decide
+
+        /-- Exit nodes exist in the graph -/
+        theorem extract_single_citation_module_exitsValid :
+            writerGraph.exitNodesValid = true := by native_decide
+
+        /-- All exit nodes are reachable from entry -/
+        theorem extract_single_citation_module_exitsReachable :
+            writerGraph.allExitsReachable = true := by native_decide
+
+        /-- No orphan nodes -/
+        theorem extract_single_citation_module_noOrphans :
+            writerGraph.noOrphanNodes = true := by native_decide
+
+        /-- The sequential path type-checks with the given parameters -/
+        theorem extract_single_citation_module_seqPath_typeChecks :
+            ∃ ctx, typeCheckSequence
+            [writer_node0, writer_node1, writer_node2, writer_node3, writer_node4, writer_node5, writer_node6]
+            [⟨"url", .TString⟩, ⟨"file_path", .TString⟩] = .ok ctx := by
+        exact ⟨_, rfl⟩
+
+        /-- 5 out of 7 nodes need semantic specs -/
+        theorem extract_single_citation_module_specCount :
+            writerGraph.nodesNeedingSpecs.length = 5 := by native_decide
+
+
+        /-
+        ========================================================================
+        STEP 6: SEMANTIC VERIFICATION (using new architecture)
+        ========================================================================
+        -/
+
+        /-
+        Semantic Verification Layer:
+        - Define semantic specs for each node that requires them
+        - Verify precondition/postcondition chaining
+        - Prove semantic soundness
+        -/
+
+        -- Define the return dict JSON schema
+        def extractCitationReturnDictSchema : JsonSchema :=
+        .jObject [
+            ("bibtex", .jString),
+            ("file_path", .jString),
+            ("title", .jString),
+            ("abstract", .jString)
+        ]
+
+        -- Parameter node: establishes initial facts about parameters and tools
+        def extractCitation_paramNode : SemanticWorkflowNode := {
+        baseNode := {
+            id := ⟨20041122⟩  -- Special ID for parameter node
+            name := some "parameters"
+            stepType := .setVariable
+            reads := []
+            writes := []
+            llmInstruction := none
+        }
+        precondVariables := []
+        postcondVariables := [
+            varIsValidURL "url",
+            varIsValidFilePath "file_path",
+            varIsValidTool "fs_read",
+            varIsValidTool "get_bibtex_from_url",
+            varIsValidTool "get_abstract_from_url"
+        ]
+        }
+
+        -- Node 0: extract_paper_title
+        def extractCitation_semNode0 : SemanticWorkflowNode := {
+        baseNode := writer_node0
+        precondVariables := [
+            varIsValidFilePath "file_path",
+            varIsValidTool "fs_read"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "paper_title"
+        ]
+        }
+
+        -- Node 1: extract_bibtex_by_tool
+        def extractCitation_semNode1 : SemanticWorkflowNode := {
+        baseNode := writer_node1
+        precondVariables := [
+            varIsValidTool "get_bibtex_from_url",
+            varIsValidURL "url",
+            varIsNonEmptyString "paper_title"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "bibtex_citation",
+            varIsValidBibtex "bibtex_citation"
+        ]
+        }
+
+        -- Node 2: extract_abstract_by_tool
+        def extractCitation_semNode2 : SemanticWorkflowNode := {
+        baseNode := writer_node2
+        precondVariables := [
+            varIsValidTool "get_abstract_from_url",
+            varIsValidURL "url",
+            varIsNonEmptyString "paper_title"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "abstract"
+        ]
+        }
+
+        -- Node 3: check_abstract == None (conditional node with branch-aware postconditions)
+        -- This is an if-else conditional that checks whether abstract is None
+        -- - Then branch (→ Node 4): abstract is None, need to extract from file
+        -- - Else branch (→ Node 5): abstract is valid (non-empty)
+        def extractCitation_condNode3 : SemanticConditionalNode := {
+        baseNode := writer_node3
+        precondVariables := [
+            varNameExists "abstract"
+        ]
+        postcondVariables := [
+            -- Default postcondition (used when target doesn't match either branch)
+            varNameExists "abstract"
+        ]
+        thenTargetId := writer_nodeId4  -- Node 4 is the then branch target
+        elseTargetId := writer_nodeId5  -- Node 5 is the else branch target
+        thenPostcondVariables := [
+            -- When condition is TRUE (abstract == None):
+            -- abstract exists but may be None/empty - use weak predicate
+            varNameExists "abstract"
+        ]
+        elsePostcondVariables := [
+            -- When condition is FALSE (abstract != None):
+            -- abstract is valid and non-empty
+            varIsNonEmptyString "abstract"
+        ]
+        }
+
+        -- Convert to SemanticWorkflowNode for the semanticNodes list
+        def extractCitation_semNode3 : SemanticWorkflowNode := extractCitation_condNode3.toSemanticWorkflowNode
+
+        -- Node 4: extract_abstract_by_read_file (then branch)
+        def extractCitation_semNode4 : SemanticWorkflowNode := {
+        baseNode := writer_node4
+        precondVariables := [
+            varIsValidFilePath "file_path",
+            varIsValidTool "fs_read"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "abstract"
+        ]
+        }
+
+        -- Node 5: prepare_return_dict
+        def extractCitation_semNode5 : SemanticWorkflowNode := {
+        baseNode := writer_node5
+        precondVariables := [
+            varIsValidBibtex "bibtex_citation",
+            varIsValidFilePath "file_path",
+            varIsNonEmptyString "paper_title",
+            varIsNonEmptyString "abstract"
+        ]
+        postcondVariables := [
+            varIsValidJson "return_dict",
+            varIsValidJsonSchema "return_dict" extractCitationReturnDictSchema
+        ]
+        }
+
+        -- Node 6: return_result (returnValue, deterministic)
+        def extractCitation_semNode6 : SemanticWorkflowNode := {
+        baseNode := writer_node6
+        precondVariables := [
+            varIsValidJson "return_dict",
+            varIsValidJsonSchema "return_dict" extractCitationReturnDictSchema
+        ]
+        postcondVariables := []
+        }
+
+        -- Complete Semantic Workflow Graph
+        def extractCitationSemanticGraph : SemanticWorkflowGraph := {
+        baseGraph := writerGraph
+        paramNode := extractCitation_paramNode
+        semanticNodes := [
+            extractCitation_semNode0,
+            extractCitation_semNode1,
+            extractCitation_semNode2,
+            extractCitation_semNode3,
+            extractCitation_semNode4,
+            extractCitation_semNode5,
+            extractCitation_semNode6
+        ]
+        loopNodes := []
+        conditionalNodes := [extractCitation_condNode3]  -- Add conditional node for branch-aware verification
+        specInvariant := by decide
+        }
+
+        /-
+        ========================================================================
+        STEP 7: SEMANTIC VERIFICATION TESTS AND THEOREMS
+        ========================================================================
+        -/
+
+        -- Test: Find predecessors
+        #eval! extractCitationSemanticGraph.findPredecessors writer_nodeId0
+        -- Expected: [] (entry node has no predecessors)
+
+        #eval! extractCitationSemanticGraph.findPredecessors writer_nodeId5
+        -- Expected: [3, 4] (node 5 has two predecessors from branching)
+
+        -- Test: Topological sort
+        #eval! extractCitationSemanticGraph.topologicalSortIgnoringBackEdges
+        -- Expected: Some ordering of [0, 1, 2, 3, 4, 5, 6]
+
+        -- Test: Verify the semantic graph
+        #eval! do
+        let result := extractCitationSemanticGraph.verify
+        IO.println s!"Without registry: {describeGraphVerificationResult result}"
+
+        /-- Semantic soundness theorem for extract_single_citation workflow -/
+        theorem extract_single_citation_semantically_sound :
+            extractCitationSemanticGraph.isSemanticallySoundBool = true := by
+        native_decide
+    lean_example_extract_citations: |
+        import Lean
+        import Mathlib
+        import AgentVerifier.StaticLayer
+        import AgentVerifier.StaticSemanticLayer.StaticSemanticLayer
+        -- Import the verified submodule
+        import TestVerifications.Verification_ai_scientists.writer.modules.Verification_extract_single_citation
+
+        namespace AgenticKernel
+
+        /-
+        ╔══════════════════════════════════════════════════════════════════════════╗
+        ║  COMPLETE VERIFICATION EXAMPLE: search_citations_module                 ║
+        ║                                                                        ║
+        ║  UPDATED TO USE OFFICIAL SUBMODULE + EXTENSIBLE PREDICATE SYSTEM       ║
+        ║  Changes from temp version:                                            ║
+        ║    - Uses official SemanticSubmodule (SubmoduleNode, makeSubmoduleNode, ║
+        ║      makeParallelSubmoduleNode) instead of temp (SubmoduleSpec,         ║
+        ║      mkSubmoduleSpec, mkParallelSubmoduleNode)                          ║
+        ║    - Node 2 (parallel submodule) postcond uses                         ║
+        ║      .ext (DictAllValuesPredicate ...).toPredicateKey                  ║
+        ║    - Node 3 precond uses .ext to match the ext key                     ║
+        ║    - PredicateRegistry maps DictAllValuesPredicate keys to their       ║
+        ║      semantic functions (toProp, impliedKeys)                          ║
+        ║    - Final theorem uses isSemanticallySoundBool with registry           ║
+        ║    - Imports verified submodule from Verification_extract_single_       ║
+        ║      citation.lean                                                     ║
+        ╚══════════════════════════════════════════════════════════════════════════╝
+        -/
+
+
+        /-
+        ========================================================================
+        SECTION A: IMPORT VERIFIED SUBMODULE (extract_single_citation)
+        ========================================================================
+
+        The submodule verification is done in:
+        TestVerifications.ComplexVerification.Verification_extract_single_citation
+
+        We reference its definitions via abbreviations for clarity.
+        -/
+
+        abbrev escGraph         := writerGraph
+        abbrev escSemanticGraph := extractCitationSemanticGraph
+        abbrev escReturnDictSchema := extractCitationReturnDictSchema
+
+        theorem esc_semantically_sound :
+            escSemanticGraph.isSemanticallySoundBool emptyRegistry = true :=
+        extract_single_citation_semantically_sound
+
+        #eval! do
+        let result := escSemanticGraph.verify emptyRegistry
+        IO.println (describeGraphVerificationResult result)
+
+
+        /-
+        ========================================================================
+        SECTION B: CREATE SUBMODULE NODE (official API)
+        ========================================================================
+
+        Uses official `SubmoduleNode` and `makeSubmoduleNode` from
+        AgentVerifier.StaticSemanticLayer.SemanticSubmodule
+        -/
+
+        def extractSingleCitationSpec : SubmoduleNode :=
+        makeSubmoduleNode
+            "extract_single_citation"
+            escSemanticGraph
+            emptyRegistry
+            esc_semantically_sound
+
+        /-
+        Inspect what returnPostconditions the spec exposes.
+        The extract_single_citation submodule's return node (Node 6) has precond:
+        [isValidJson "return_dict", matchesJsonSchema "return_dict" citationResultSchema]
+        makeSubmoduleNode extracts these as returnPostconditions.
+
+        liftSubmoduleReturnsToParallelPostconds then:
+        combinedPred = predicateAnd isValidJson (matchesJsonSchema citationResultSchema)
+        .ext DictAllValuesPredicate key encodes value-level schema
+
+        So sc_semNode2.postcondVariables ≈
+        [{ varName := "all_citations",
+            requiredPredicate :=
+            predicateAnd (matchesJsonSchema (.jObject []))
+                            (.ext ...) }]
+        -/
+
+        #eval! s!"Return postconditions: {extractSingleCitationSpec.returnPostconditions.map
+        (fun r => s!"{r.varName}: {repr r.requiredPredicate}")}"
+
+
+        /-
+        ========================================================================
+        SECTION C: EXTENSIBLE PREDICATE DEFINITIONS FOR PARALLEL STEP
+        ========================================================================
+
+        Problem:
+        sc_semNode2 (makeParallelSubmoduleNode) generates a postcond for
+        "all_citations" that uses .ext with DictAllValuesPredicate.
+
+        The extensible system:
+        1. DictAllValuesPredicate carries the value predicates type-safely
+        2. PredicateSemantics instance gives it toProp, checkProp, impliedKeys
+        3. PredicateRegistry maps the key to runtime semantic functions
+        4. verify uses the registry for compatibleWithRegistry
+
+        Step 1: Extract the predicates from submodule return.
+        -/
+
+        -- The return predicates from extract_single_citation submodule
+        private def sc_returnValuePreds : List PredicateType :=
+        extractSingleCitationSpec.returnPostconditions.map (·.requiredPredicate)
+
+        -- Combined into a single predicate for Dict values
+        private def sc_combinedReturnPred : PredicateType :=
+        buildPredicateAndChain sc_returnValuePreds
+
+        /-
+        Step 2: Define the DictAllValuesPredicate for parallel execution.
+
+        This is the TYPE-SAFE replacement for .custom "dictValuesSchema:...".
+        The predicate family="dictAllValues", name uses the combined predicate repr,
+        and the instance provides proper semantic functions.
+        -/
+
+        def sc_dictAllValuesPredicate : DictAllValuesPredicate := {
+        dictValuePredicates := sc_returnValuePreds
+        dictVarName := "all_citations"
+        }
+
+        -- The corresponding PredicateKey (closed, decidable)
+        def sc_dictValuesPredicateKey : PredicateKey :=
+        sc_dictAllValuesPredicate.toPredicateKey
+
+        -- The PredicateType using .ext constructor
+        def sc_dictValuesPredType : PredicateType :=
+        .ext sc_dictValuesPredicateKey
+
+        #eval! s!"DictAllValuesPredicate key: {repr sc_dictValuesPredicateKey}"
+
+        /-
+        Step 3: Build the PredicateRegistry.
+
+        The registry maps PredicateKey → semantic functions at runtime.
+        This enables verify to check ext predicate compatibility.
+        -/
+
+        def searchCitationsRegistry : PredicateRegistry :=
+        makeDictAllValuesRegistry [sc_dictAllValuesPredicate]
+
+
+        /-
+        ========================================================================
+        SECTION D: LAYER 1 WORKFLOW GRAPH
+        ========================================================================
+        -/
+
+        def sc_nodeId0 : NodeId := ⟨100⟩
+        def sc_nodeId1 : NodeId := ⟨101⟩
+        def sc_nodeId2 : NodeId := ⟨102⟩
+        def sc_nodeId3 : NodeId := ⟨103⟩
+        def sc_nodeId4 : NodeId := ⟨104⟩
+
+        def sc_node0 : WorkflowNode := {
+        id := sc_nodeId0
+        name := some "search_papers"
+        stepType := .step
+        reads := [⟨"query", .TString⟩, ⟨"max_papers", .TInt⟩]
+        writes := [⟨"search_results", .TString⟩]
+        llmInstruction := some
+            "Use firecrawl_search to search for academic papers.\nQuery: {{query}}\nNumber of results: {{max_papers}}"
+        }
+
+        def sc_node1 : WorkflowNode := {
+        id := sc_nodeId1
+        name := some "prepare_extraction_params"
+        stepType := .step
+        reads := [⟨"search_results", .TString⟩]
+        writes := [⟨"extraction_params", .TString⟩]
+        llmInstruction := some
+            "For each url and file path in: {{search_results}}\nCreate a list of parameter dicts for parallel processing."
+        }
+
+        def sc_node2 : WorkflowNode := {
+        id := sc_nodeId2
+        name := some "parallel_extract_citations"
+        stepType := .parallel
+        reads := [⟨"extraction_params", .TString⟩]
+        writes := [⟨"all_citations", .TList .TUnknown⟩]
+        llmInstruction := none
+        }
+
+        def sc_node3 : WorkflowNode := {
+        id := sc_nodeId3
+        name := some "set_formatted_citations"
+        stepType := .setVariable
+        reads := [⟨"all_citations", .TList .TUnknown⟩]
+        writes := [⟨"formatted_citations", .TList .TUnknown⟩]
+        llmInstruction := none
+        }
+
+        def sc_node4 : WorkflowNode := {
+        id := sc_nodeId4
+        name := some "return_result"
+        stepType := .returnValue
+        reads := [⟨"formatted_citations", .TList .TUnknown⟩]
+        writes := []
+        llmInstruction := none
+        }
+
+        def searchCitationsGraph : WorkflowGraph := {
+        nodes := [sc_node0, sc_node1, sc_node2, sc_node3, sc_node4]
+        edges := [
+            .seqEdge sc_nodeId0 sc_nodeId1,
+            .seqEdge sc_nodeId1 sc_nodeId2,
+            .seqEdge sc_nodeId2 sc_nodeId3,
+            .seqEdge sc_nodeId3 sc_nodeId4
+        ]
+        entry := sc_nodeId0
+        exits := [sc_nodeId4]
+        parameters := [⟨"query", .TString⟩, ⟨"max_papers", .TInt⟩]
+        }
+
+        -- Layer 1 structural theorems
+        theorem sc_writesConsistent :
+            searchCitationsGraph.allWritesConsistent = true := by native_decide
+        theorem sc_readsResolvable :
+            searchCitationsGraph.allReadResolvable = true := by native_decide
+        theorem sc_edgesValid :
+            searchCitationsGraph.edgesValid = true := by native_decide
+        theorem sc_entryValid :
+            searchCitationsGraph.entryNodeValid = true := by native_decide
+        theorem sc_exitsValid :
+            searchCitationsGraph.exitNodesValid = true := by native_decide
+        theorem sc_exitsReachable :
+            searchCitationsGraph.allExitsReachable = true := by native_decide
+        theorem sc_noOrphans :
+            searchCitationsGraph.noOrphanNodes = true := by native_decide
+
+
+        /-
+        ========================================================================
+        SECTION E: SEMANTIC NODES (Layer 2)
+        ========================================================================
+        -/
+
+        def extractionParamsSchema : JsonSchema :=
+        .jArray (.jObject [("url", .jString), ("file_path", .jString)])
+
+        def citationResultSchema : JsonSchema :=
+        .jObject [("bibtex", .jString), ("file_path", .jString),
+                    ("title", .jString), ("abstract", .jString)]
+
+        -- Parameter node
+        def sc_paramNode : SemanticWorkflowNode := {
+        baseNode := {
+            id := ⟨20041122⟩
+            name := some "parameters"
+            stepType := .setVariable
+            reads := []
+            writes := []
+            llmInstruction := none }
+        precondVariables := []
+        postcondVariables := [
+            varIsNonEmptyString "query",
+            varIsInt "max_papers",
+            varIsValidTool "firecrawl_search",
+            varIsValidTool "fs_read",
+            varIsValidTool "get_bibtex_from_url",
+            varIsValidTool "get_abstract_from_url",
+            varIsValidModule "extract_single_citation"
+        ]
+        }
+
+        -- Node 0: search_papers
+        def sc_semNode0 : SemanticWorkflowNode := {
+        baseNode := sc_node0
+        precondVariables := [
+            varIsValidTool "firecrawl_search",
+            varIsNonEmptyString "query",
+            varIsInt "max_papers"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "search_results"
+        ]
+        }
+
+        -- Node 1: prepare_extraction_params
+        def sc_semNode1 : SemanticWorkflowNode := {
+        baseNode := sc_node1
+        precondVariables := [
+            varIsNonEmptyString "search_results"
+        ]
+        postcondVariables := [
+            varIsValidJson "extraction_params",
+            varIsValidJsonSchema "extraction_params" extractionParamsSchema
+        ]
+        }
+
+        -- Node 2: parallel extract_single_citation
+        --
+        -- makeParallelSubmoduleNode (official API) auto-generates postcond for "all_citations":
+        --   predicateAnd
+        --     (matchesJsonSchema (.jObject []))     ← Dict container shape (builtin)
+        --     (.ext sc_dictValuesPredicateKey)       ← values satisfy citation schema (ext)
+        --
+        -- verify + searchCitationsRegistry gives the .ext tag its real semantics.
+        def sc_semNode2 : SemanticWorkflowNode :=
+        makeParallelSubmoduleNode
+            extractSingleCitationSpec
+            sc_node2
+            "extraction_params"
+            "all_citations"
+
+        -- Diagnostic: confirm the generated postcond contains the ext predicate
+        #eval! s!"sc_semNode2 postcond: {sc_semNode2.postcondVariables.map
+        (fun r => s!"{r.varName}: {repr r.requiredPredicate}")}"
+
+        -- Node 3: set_variable formatted_citations = list(all_citations.values())
+        --
+        -- KEY: precond uses .ext sc_dictValuesPredicateKey
+        --
+        -- Why this is type-safe:
+        --   DictAllValuesPredicate carries the actual predicate list
+        --   PredicateSemantics instance provides toProp with real semantics
+        --   compatibleWithRegistry checks ext key match from registry
+        --
+        -- Why verify can satisfy this precond:
+        --   sc_semNode2 postcond = predicateAnd (matchesJsonSchema ...) (.ext sc_dictValuesPredicateKey)
+        --   compatibleWithRegistry rule (And-Elim): (p₁ ∧ p₂) → p₂
+        --   Then .ext key equality (DecidableEq on PredicateKey) → true
+        def sc_semNode3 : SemanticWorkflowNode := {
+        baseNode := sc_node3
+        precondVariables := [
+            -- Requires the Dict values predicate (backed by DictAllValuesPredicate semantics)
+            { varName := "all_citations"
+            requiredPredicate := sc_dictValuesPredType }
+        ]
+        postcondVariables := [
+            -- list(dict.values()) preserves element schema
+            varIsValidJsonSchema "formatted_citations" (.jArray citationResultSchema)
+        ]
+        }
+
+        -- Node 4: return formatted_citations
+        def sc_semNode4 : SemanticWorkflowNode := {
+        baseNode := sc_node4
+        precondVariables := [
+            varIsValidJsonSchema "formatted_citations" (.jArray citationResultSchema)
+        ]
+        postcondVariables := []
+        }
+
+
+        /-
+        ========================================================================
+        SECTION F: COMPLETE SEMANTIC GRAPH
+        ========================================================================
+        -/
+
+        def searchCitationsSemanticGraph : SemanticWorkflowGraph := {
+        baseGraph := searchCitationsGraph
+        paramNode := sc_paramNode
+        semanticNodes := [
+            sc_semNode0,
+            sc_semNode1,
+            sc_semNode2,   -- postcond: predicateAnd (...) (.ext sc_dictValuesPredicateKey)
+            sc_semNode3,   -- precond: .ext sc_dictValuesPredicateKey ← needs registry
+            sc_semNode4
+        ]
+        loopNodes := []
+        conditionalNodes := []
+        specInvariant := by decide
+        }
+
+
+        /-
+        ========================================================================
+        SECTION G: VERIFICATION WITH REGISTRY
+        ========================================================================
+        -/
+
+        -- Test: verify should succeed
+        #eval! do
+        let result := searchCitationsSemanticGraph.verify searchCitationsRegistry
+        IO.println (describeGraphVerificationResult result)
+        -- Expected: ✓ Graph verification successful!
+
+        -- Sanity check: empty registry should FAIL because Node 3 precond requires
+        -- .ext sc_dictValuesPredicateKey and empty registry doesn't know ext semantics
+        #eval do
+        let result := searchCitationsSemanticGraph.verify emptyRegistry
+        IO.println s!"Without registry: {describeGraphVerificationResult result}"
+        -- Expected: ✗ failure at set_formatted_citations, missing .ext predicate
+
+        /-- Main theorem: search_citations is semantically sound under searchCitationsRegistry.
+
+            Proof chain:
+            1. native_decide evaluates isSemanticallySoundBool → verify → Bool = true
+            2. The critical step is Node 2 → Node 3:
+                sc_semNode2 postcond: predicateAnd (matchesJsonSchema .jObject [])
+                                                    (.ext sc_dictValuesPredicateKey)
+                sc_semNode3 precond:  .ext sc_dictValuesPredicateKey
+                compatibleWithRegistry: (p₁ ∧ p₂) → p₂ (And-Elim) then key equality → true
+            3. DictAllValuesPredicate.toPropImpl bridges to real Prop:
+                allDictValuesSatisfy (basePredToProp combinedPred) env "all_citations"
+            So the verification is sound end-to-end, not just a Bool coincidence. -/
+        theorem search_citations_semantically_sound :
+            searchCitationsSemanticGraph.isSemanticallySoundBool
+            searchCitationsRegistry = true := by
+        native_decide
+
+        end AgenticKernel
+    lean_example_SWE_bench: |
+        import Lean
+        import Mathlib
+        import AgentVerifier.StaticLayer
+        import AgentVerifier.StaticSemanticLayer.StaticSemanticLayer
+
+        namespace AgenticKernel
+
+        /-
+        ================================================================================
+        STATIC VERIFICATION: loop_swe_agent_bench_lite
+
+        Source: YAML workflow
+        Goal: Given an issue description from a github repo, debug and prepare a
+            final patch.diff that solves the issue.
+        Parameters: ['code_path', 'memory_file', 'operation_rule']
+
+        Workflow Structure:
+        Node   0: step             [SPEC] "read_README"
+                reads:  code_path, memory_file
+                writes: (implicit knowledge)
+        Node   1: step             [SPEC] "analyze_codebase"
+                reads:  code_path, memory_file
+                writes: (implicit knowledge)
+        Node   2: setVariable      [DET]  "set_iter"
+                reads:  (none)
+                writes: iter
+        Node   3: whileLoop        [LOOP] "while_loop"
+                condition: "1 > 0" (infinite loop)
+                reads:  iter
+                writes: (none)
+        Node   4: conditional      [DET]  "check_iter"
+                reads:  iter
+                writes: (none)
+        Node   5: step             [SPEC] "first_iteration_analysis" (then branch)
+                reads:  memory_file, code_path
+                writes: (implicit plan)
+        Node   6: step             [SPEC] "normal_iteration" (else branch)
+                reads:  memory_file, code_path, iter
+                writes: (implicit plan)
+        Node   7: step             [SPEC] "main_step"
+                reads:  memory_file, code_path, operation_rule
+                writes: (implicit result)
+        Node   8: step             [SPEC] "save_analysis"
+                reads:  memory_file, iter
+                writes: (implicit saved progress)
+        Node   9: incrementVariable [DET] "increment_iter"
+                reads:  iter
+                writes: iter
+        Node  10: setVariable      [DET]  "set_prev"
+                reads:  iter
+                writes: prev
+
+        Control flow edges:
+            seqEdge      0 → 1
+            seqEdge      1 → 2
+            seqEdge      2 → 3
+            loopEdge     3 → body:4, exit:3 (infinite loop)
+            branchEdge   4 → then:5, else:6
+            seqEdge      5 → 7
+            seqEdge      6 → 7
+            seqEdge      7 → 8
+            seqEdge      8 → 9
+            seqEdge      9 → 10
+            loopBackEdge 10 → 3
+        ================================================================================
+        -/
+
+
+        /-
+        ========================================================================
+        STEP 1: TRANSLATE YAML INTO WORKFLOW GRAPH (Layer 1)
+        ========================================================================
+        -/
+
+        -- Node IDs
+        def swe_nodeId_readReadme : NodeId := ⟨0⟩
+        def swe_nodeId_analyze : NodeId := ⟨1⟩
+        def swe_nodeId_setIter : NodeId := ⟨2⟩
+        def swe_nodeId_whileHeader : NodeId := ⟨3⟩
+        def swe_nodeId_ifCond : NodeId := ⟨4⟩
+        def swe_nodeId_firstIter : NodeId := ⟨5⟩
+        def swe_nodeId_normalIter : NodeId := ⟨6⟩
+        def swe_nodeId_mainStep : NodeId := ⟨7⟩
+        def swe_nodeId_saveAnalysis : NodeId := ⟨8⟩
+        def swe_nodeId_increment : NodeId := ⟨9⟩
+        def swe_nodeId_setPrev : NodeId := ⟨10⟩
+
+        -- Node 0: step "read_README"
+        def swe_node_readReadme : WorkflowNode := {
+        id := swe_nodeId_readReadme
+        name := some "read_README"
+        stepType := .step
+        reads := [⟨"code_path", .TString⟩, ⟨"memory_file", .TString⟩]
+        writes := []
+        llmInstruction := some "NOTE: Memory file at {{memory_file}}\n\nGiven the codebase located at {{code_path}}\n\nRead the README.md to get familiar with the repo, record the usage of the repo, quick start, how to run tests, etc, save them into the memory with proper key and tags."
+        }
+
+        -- Node 1: step "analyze_codebase"
+        def swe_node_analyze : WorkflowNode := {
+        id := swe_nodeId_analyze
+        name := some "analyze_codebase"
+        stepType := .step
+        reads := [⟨"code_path", .TString⟩, ⟨"memory_file", .TString⟩]
+        writes := []
+        llmInstruction := some "NOTE: Memory file at {{memory_file}}\n\nGiven the codebase located at {{code_path}}\n\nPlease explore and analyze the code base based on the pr_description you received from system prompt.\n\nRecord at least 5 key factors, usage guide, or knowledge that you consider important and necessary to remember, and save them using the memory file with proper key and tags."
+        }
+
+        -- Node 2: setVariable "iter = 1"
+        def swe_node_setIter : WorkflowNode := {
+        id := swe_nodeId_setIter
+        name := some "set_iter"
+        stepType := .setVariable
+        reads := []
+        writes := [⟨"iter", .TInt⟩]
+        llmInstruction := none
+        }
+
+        -- Node 3: whileLoop header "while 1 > 0"
+        def swe_node_whileHeader : WorkflowNode := {
+        id := swe_nodeId_whileHeader
+        name := some "while_loop"
+        stepType := .whileLoop
+        reads := [⟨"iter", .TInt⟩]
+        writes := []
+        llmInstruction := none
+        }
+
+        -- Node 4: conditional "if iter == 1"
+        def swe_node_ifCond : WorkflowNode := {
+        id := swe_nodeId_ifCond
+        name := some "check_iter"
+        stepType := .conditional
+        reads := [⟨"iter", .TInt⟩]
+        writes := []
+        llmInstruction := none
+        }
+
+        -- Node 5: step "first_iteration_analysis" (then branch)
+        def swe_node_firstIter : WorkflowNode := {
+        id := swe_nodeId_firstIter
+        name := some "first_iteration_analysis"
+        stepType := .step
+        reads := [⟨"memory_file", .TString⟩, ⟨"code_path", .TString⟩]
+        writes := []
+        llmInstruction := some "NOTE 1: Memory file at {{memory_file}}\nNOTE 2: Codebase locate at {{code_path}}\n\n## Memory Retrieval and Context Building\nUse memory tool to search for repository knowledge using tag \"sqlfluff\", i.e. memory(\"search\", tags=\"sqlfluff\")\n\n## FIRST ITERATION - Deep Analysis\nPerform comprehensive initial analysis:\n1. Understand the issue thoroughly\n2. Identify likely root causes (rank top 3)\n3. Plan investigation strategy\n4. Output: 400-600 words with detailed reasoning"
+        }
+
+        -- Node 6: step "normal_iteration" (else branch)
+        def swe_node_normalIter : WorkflowNode := {
+        id := swe_nodeId_normalIter
+        name := some "normal_iteration"
+        stepType := .step
+        reads := [⟨"memory_file", .TString⟩, ⟨"code_path", .TString⟩, ⟨"iter", .TInt⟩]
+        writes := []
+        llmInstruction := some "NOTE 1: Memory file at {{memory_file}}\nNOTE 2: Codebase locate at {{code_path}}\n\n## ITERATION {{iter}} - Focused Action\nQuick context: memory(\"search\", tags=\"iter_{{prev}}\")\n\nOutput (100-200 words):\n\nITER {{iter}}:\nLAST: [previous action + result]\nNEXT: [EXPLORE/TEST/MODIFY/VERIFY] - [target]\nWHY: [reasoning]\nCMD: [exact command]\nEXPECT: [outcome]"
+        }
+
+        -- Node 7: step "main_step"
+        def swe_node_mainStep : WorkflowNode := {
+        id := swe_nodeId_mainStep
+        name := some "main_step"
+        stepType := .step
+        reads := [⟨"memory_file", .TString⟩, ⟨"code_path", .TString⟩, ⟨"operation_rule", .TString⟩]
+        writes := []
+        llmInstruction := some "NOTE 1: Memory file at {{memory_file}}\nNOTE 2: Your changes should be in the codebase at: {{code_path}}\nNOTE 3: If you need to interact with the file in the codebase, FOLLOW these operation rule, otherwise use any tool you want: {{operation_rule}}\n\nFollow the previous step's analysis, instructions, and solve the issue step by step using bash command."
+        }
+
+        -- Node 8: step "save_analysis"
+        def swe_node_saveAnalysis : WorkflowNode := {
+        id := swe_nodeId_saveAnalysis
+        name := some "save_analysis"
+        stepType := .step
+        reads := [⟨"memory_file", .TString⟩, ⟨"iter", .TInt⟩]
+        writes := []
+        llmInstruction := some "NOTE: Memory file at {{memory_file}}\n\nUse memory(\"store\") to save your current debugging progress and analysis, using tag iter_{{iter}}.\n\nAfter save, end this step immediately."
+        }
+
+        -- Node 9: incrementVariable "iter"
+        def swe_node_increment : WorkflowNode := {
+        id := swe_nodeId_increment
+        name := some "increment_iter"
+        stepType := .incrementVariable
+        reads := [⟨"iter", .TInt⟩]
+        writes := [⟨"iter", .TInt⟩]
+        llmInstruction := none
+        }
+
+        -- Node 10: setVariable "prev = iter - 1"
+        def swe_node_setPrev : WorkflowNode := {
+        id := swe_nodeId_setPrev
+        name := some "set_prev"
+        stepType := .setVariable
+        reads := [⟨"iter", .TInt⟩]
+        writes := [⟨"prev", .TInt⟩]
+        llmInstruction := none
+        }
+
+        -- The complete workflow graph
+        def sweWorkflowGraph : WorkflowGraph := {
+        nodes := [
+            swe_node_readReadme,
+            swe_node_analyze,
+            swe_node_setIter,
+            swe_node_whileHeader,
+            swe_node_ifCond,
+            swe_node_firstIter,
+            swe_node_normalIter,
+            swe_node_mainStep,
+            swe_node_saveAnalysis,
+            swe_node_increment,
+            swe_node_setPrev
+        ]
+        edges := [
+            .seqEdge swe_nodeId_readReadme swe_nodeId_analyze,
+            .seqEdge swe_nodeId_analyze swe_nodeId_setIter,
+            .seqEdge swe_nodeId_setIter swe_nodeId_whileHeader,
+            -- Loop structure
+            .loopEdge swe_nodeId_whileHeader swe_nodeId_ifCond swe_nodeId_whileHeader,
+            .branchEdge swe_nodeId_ifCond swe_nodeId_firstIter swe_nodeId_normalIter,
+            .seqEdge swe_nodeId_firstIter swe_nodeId_mainStep,
+            .seqEdge swe_nodeId_normalIter swe_nodeId_mainStep,
+            .seqEdge swe_nodeId_mainStep swe_nodeId_saveAnalysis,
+            .seqEdge swe_nodeId_saveAnalysis swe_nodeId_increment,
+            .seqEdge swe_nodeId_increment swe_nodeId_setPrev,
+            .loopBackEdge swe_nodeId_setPrev swe_nodeId_whileHeader
+        ]
+        entry := swe_nodeId_readReadme
+        exits := []  -- Infinite loop, no normal exit
+        parameters := [
+            ⟨"code_path", .TString⟩,
+            ⟨"memory_file", .TString⟩,
+            ⟨"operation_rule", .TString⟩
+        ]
+        }
+
+
+        /-
+        ========================================================================
+        STEP 2: STRUCTURAL CHECKS (computable, via #eval)
+        ========================================================================
+        -/
+
+        -- 2a. Step-type consistency
+        #eval swe_node_readReadme.writesConsistent   -- expected: true
+        #eval swe_node_analyze.writesConsistent      -- expected: true
+        #eval swe_node_setIter.writesConsistent      -- expected: true
+        #eval swe_node_whileHeader.writesConsistent  -- expected: true
+        #eval swe_node_ifCond.writesConsistent       -- expected: true
+        #eval swe_node_firstIter.writesConsistent    -- expected: true
+        #eval swe_node_normalIter.writesConsistent   -- expected: true
+        #eval swe_node_mainStep.writesConsistent     -- expected: true
+        #eval swe_node_saveAnalysis.writesConsistent -- expected: true
+        #eval swe_node_increment.writesConsistent    -- expected: true
+        #eval swe_node_setPrev.writesConsistent      -- expected: true
+
+        -- 2b. Execution type classification
+        #eval swe_node_readReadme.execType   -- expected: unstructured
+        #eval swe_node_analyze.execType      -- expected: unstructured
+        #eval swe_node_setIter.execType      -- expected: deterministic
+        #eval swe_node_whileHeader.execType  -- expected: deterministic
+        #eval swe_node_ifCond.execType       -- expected: deterministic
+        #eval swe_node_firstIter.execType    -- expected: unstructured
+        #eval swe_node_normalIter.execType   -- expected: unstructured
+        #eval swe_node_mainStep.execType     -- expected: unstructured
+        #eval swe_node_saveAnalysis.execType -- expected: unstructured
+        #eval swe_node_increment.execType    -- expected: deterministic
+        #eval swe_node_setPrev.execType      -- expected: deterministic
+
+        -- 2c. Which nodes need semantic specs?
+        #eval swe_node_readReadme.needSemanticSpec   -- expected: true
+        #eval swe_node_analyze.needSemanticSpec      -- expected: true
+        #eval swe_node_setIter.needSemanticSpec      -- expected: false
+        #eval swe_node_whileHeader.needSemanticSpec  -- expected: false
+        #eval swe_node_ifCond.needSemanticSpec       -- expected: false
+        #eval swe_node_firstIter.needSemanticSpec    -- expected: true
+        #eval swe_node_normalIter.needSemanticSpec   -- expected: true
+        #eval swe_node_mainStep.needSemanticSpec     -- expected: true
+        #eval swe_node_saveAnalysis.needSemanticSpec -- expected: true
+        #eval swe_node_increment.needSemanticSpec    -- expected: false
+        #eval swe_node_setPrev.needSemanticSpec      -- expected: false
+
+
+        /-
+        ========================================================================
+        STEP 3: GRAPH-LEVEL PROPERTIES (computable, via #eval)
+        ========================================================================
+        -/
+
+        #eval sweWorkflowGraph.allWritesConsistent    -- expected: true
+        -- NOTE: allReadResolvable uses `reachable` which can cause infinite loops
+        -- in graphs with cycles (like while loops). Skipping this check for loop graphs.
+        -- #eval sweWorkflowGraph.allReadResolvable   -- expected: true (with loop consideration)
+        #eval sweWorkflowGraph.edgesValid             -- expected: true
+        #eval sweWorkflowGraph.entryNodeValid         -- expected: true
+        #eval sweWorkflowGraph.exitNodesValid         -- expected: true (empty exits for infinite loop)
+
+
+        /-
+        ========================================================================
+        STEP 4: VERIFICATION SUMMARY
+        ========================================================================
+        -/
+
+        #eval sweWorkflowGraph.verificationSummary
+        #eval (sweWorkflowGraph.nodesNeedingSpecs).map (fun n => (n.id, n.name))
+        #eval (sweWorkflowGraph.deterministicNodes).map (fun n => (n.id, n.name))
+
+
+        /-
+        ========================================================================
+        STEP 5: STRUCTURAL WELL-FORMEDNESS THEOREMS
+        ========================================================================
+        -/
+
+        /-- All writes are consistent with step-type rules -/
+        theorem swe_bench_writesConsistent :
+            sweWorkflowGraph.allWritesConsistent = true := by native_decide
+
+        /-- All edges reference valid node ids -/
+        theorem swe_bench_edgesValid :
+            sweWorkflowGraph.edgesValid = true := by native_decide
+
+        /-- Entry node exists in the graph -/
+        theorem swe_bench_entryValid :
+            sweWorkflowGraph.entryNodeValid = true := by native_decide
+
+        /-- 6 out of 11 nodes need semantic specs -/
+        theorem swe_bench_specCount :
+            sweWorkflowGraph.nodesNeedingSpecs.length = 6 := by native_decide
+
+
+        /-
+        ========================================================================
+        STEP 6: SEMANTIC VERIFICATION (using new architecture)
+        ========================================================================
+        -/
+
+        /-
+        Semantic Verification Layer:
+        - Define semantic specs for each node that requires them
+        - Define loop invariant for the while loop
+        - Verify precondition/postcondition chaining
+        - Verify loop invariant establishment and preservation
+        -/
+
+        -- Parameter node: establishes initial facts about parameters and tools
+        def swe_paramNode : SemanticWorkflowNode := {
+        baseNode := {
+            id := ⟨20041122⟩  -- Special ID for parameter node
+            name := some "parameters"
+            stepType := .setVariable
+            reads := []
+            writes := []
+            llmInstruction := none
+        }
+        precondVariables := []
+        postcondVariables := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsNonEmptyString "operation_rule",
+            varIsValidTool "term_send",
+            varIsValidTool "term_read",
+            varIsValidTool "memory"
+        ]
+        }
+
+        -- Node 0: read_README
+        def swe_semNode_readReadme : SemanticWorkflowNode := {
+        baseNode := swe_node_readReadme
+        precondVariables := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsValidTool "memory"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "readme_knowledge"
+        ]
+        }
+
+        -- Node 1: analyze_codebase
+        def swe_semNode_analyze : SemanticWorkflowNode := {
+        baseNode := swe_node_analyze
+        precondVariables := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsValidTool "memory"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "codebase_analysis"
+        ]
+        }
+
+        -- Node 2: set_variable iter=1 (deterministic)
+        def swe_semNode_setIter : SemanticWorkflowNode := {
+        baseNode := swe_node_setIter
+        precondVariables := []
+        postcondVariables := [
+            varIsInt "iter"
+        ]
+        }
+
+        -- Node 3: while_loop header - KEY: uses SemanticLoopNode with loopInvariant!
+        def swe_loopNode_while : SemanticLoopNode := {
+        baseNode := swe_node_whileHeader
+        precondVariables := [
+            varIsInt "iter"
+        ]
+        postcondVariables := []
+        -- Loop invariant: what must hold at start of EVERY iteration
+        loopInvariant := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsNonEmptyString "operation_rule",
+            varIsInt "iter",
+            varIsValidTool "term_send",
+            varIsValidTool "term_read",
+            varIsValidTool "memory"
+        ]
+        -- Termination: Agent outputs "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT" in main_step
+        terminationSpec := .llmControlledExit swe_nodeId_mainStep "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
+        -- Exit postconditions: what must hold when loop terminates via sentinel
+        -- Hoare logic: exitFacts = loopInvariant ∧ exitPostconditions
+        exitPostconditions := [
+            varContainsSentinel "final_output" "COMPLETE_TASK_AND_SUBMIT",
+            varTaskCompleted "task_status"
+        ]
+        }
+
+        -- Node 4: check_iter (conditional, deterministic)
+        def swe_semNode_ifCond : SemanticWorkflowNode := {
+        baseNode := swe_node_ifCond
+        precondVariables := [
+            varIsInt "iter"
+        ]
+        postcondVariables := [
+            varIsInt "iter"
+        ]
+        }
+
+        -- Node 5: first_iteration_analysis (then branch)
+        def swe_semNode_firstIter : SemanticWorkflowNode := {
+        baseNode := swe_node_firstIter
+        precondVariables := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsValidTool "memory"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "iteration_plan"
+        ]
+        }
+
+        -- Node 6: normal_iteration (else branch)
+        def swe_semNode_normalIter : SemanticWorkflowNode := {
+        baseNode := swe_node_normalIter
+        precondVariables := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsInt "iter",
+            varIsValidTool "memory"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "iteration_plan"
+        ]
+        }
+
+        -- Node 7: main_step
+        def swe_semNode_mainStep : SemanticWorkflowNode := {
+        baseNode := swe_node_mainStep
+        precondVariables := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsNonEmptyString "operation_rule",
+            varIsValidTool "term_send",
+            varIsValidTool "term_read"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "step_result"
+        ]
+        }
+
+        -- Node 8: save_analysis
+        def swe_semNode_saveAnalysis : SemanticWorkflowNode := {
+        baseNode := swe_node_saveAnalysis
+        precondVariables := [
+            varIsValidFilePath "memory_file",
+            varIsInt "iter",
+            varIsValidTool "memory"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "saved_progress"
+        ]
+        }
+
+        -- Node 9: increment_iter (deterministic)
+        def swe_semNode_increment : SemanticWorkflowNode := {
+        baseNode := swe_node_increment
+        precondVariables := [
+            varIsInt "iter"
+        ]
+        postcondVariables := [
+            varIsInt "iter"  -- iter still exists after increment
+        ]
+        }
+
+        -- Node 10: set_prev
+        -- CRITICAL: postcond must imply loopInvariant for preservation!
+        def swe_semNode_setPrev : SemanticWorkflowNode := {
+        baseNode := swe_node_setPrev
+        precondVariables := [
+            varIsInt "iter"
+        ]
+        postcondVariables := [
+            varIsInt "prev",
+            varIsInt "iter"  -- iter preserved (frame rule keeps the rest)
+        ]
+        }
+
+        -- Complete Semantic Workflow Graph
+        def sweSemanticGraph : SemanticWorkflowGraph := {
+        baseGraph := sweWorkflowGraph
+        paramNode := swe_paramNode
+        semanticNodes := [
+            swe_semNode_readReadme,
+            swe_semNode_analyze,
+            swe_semNode_setIter,
+            swe_semNode_ifCond,
+            swe_semNode_firstIter,
+            swe_semNode_normalIter,
+            swe_semNode_mainStep,
+            swe_semNode_saveAnalysis,
+            swe_semNode_increment,
+            swe_semNode_setPrev
+        ]
+        loopNodes := [swe_loopNode_while]  -- Loop node separately!
+        specInvariant := by decide
+        }
+
+
+        /-
+        ========================================================================
+        STEP 7: SEMANTIC VERIFICATION TESTS
+        ========================================================================
+        -/
+
+        -- Test: Get loop headers
+        #eval! sweSemanticGraph.getLoopHeaders
+        -- Expected: [⟨3⟩]
+
+        -- Test: Topological sort ignoring back edges
+        #eval! sweSemanticGraph.topologicalSortIgnoringBackEdges
+        -- Expected: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        -- Test: Find predecessors ignoring back edge for while header
+        #eval! sweSemanticGraph.findPredecessorsIgnoringBackEdge swe_nodeId_whileHeader
+        -- Expected: [⟨2⟩] (only set_iter, not set_prev via back edge)
+
+        -- Test: Find loop body end
+        #eval! sweSemanticGraph.findLoopBodyEnd swe_nodeId_whileHeader
+        -- Expected: some ⟨10⟩ (set_prev)
+
+        -- Test: Verify the semantic graph
+
+
+        #eval! do
+        let result := sweSemanticGraph.verify
+        IO.println s!"Without registry: {describeGraphVerificationResult result}"
+        -- Expected: ✓ Graph verification successful!
+
+
+        /-
+        ========================================================================
+        STEP 8: SEMANTIC SOUNDNESS THEOREM
+        ========================================================================
+        -/
+
+        /-- Semantic soundness theorem for SWE-bench workflow -/
+        theorem swe_bench_semantically_sound :
+            sweSemanticGraph.isSemanticallySoundBool = true := by
+        native_decide
+
+
+        end AgenticKernel
+    verification_system_use_guide: |
+        # Predicate System Index
+
+        > **Purpose**: Compact lookup table for automated formalization of Agent Plans. Each `PredicateType` maps to a `VariablePredicateRequirement` shorthand (`var*`), used in `precondVariables` / `postcondVariables` of `SemanticWorkflowNode`. For detailed usage with Lean/IR examples, see the linked files.
+
+        ---
+
+        ## Architecture Overview
+
+        ```
+        YAML Agent Plan
+            ↓  (auto-translate)
+        WorkflowGraph          ← Layer 1: Structural verification (reads/writes/edges)
+            ↓  (add semantic annotations)
+        SemanticWorkflowGraph  ← Layer 2: Semantic verification (precond/postcond chaining)
+            ↓
+        Soundness Theorem    ← Proved via native_decide
+        ```
+
+        Each `SemanticWorkflowNode` has:
+
+        - `precondVariables : List VariablePredicateRequirement` — conditions **before** step executes
+        - `postcondVariables : List VariablePredicateRequirement` — conditions guaranteed **after** step executes
+
+        ```lean
+        structure VariablePredicateRequirement where
+        varName : String
+        requiredPredicate : PredicateType
+        ```
+
+        ---
+
+        ## Complete Predicate Mapping Table
+
+        > **Details file column**: Click the link for full Lean examples, IR JSON format, and use case guidance.
+
+        | #  | PredicateType                 | Var Shorthand              | Semantics (brief)                                      | Typical Use Case                    | Details                                            |
+        | -- | ----------------------------- | -------------------------- | ------------------------------------------------------ | ----------------------------------- | -------------------------------------------------- |
+        | 1  | `.nameExists`                 | `varNameExists`            | Variable exists (`∃ v, env.get name = some v`)         | Weakest check; conditional branches | [predicates_basic.md](predicates_basic.md#1)       |
+        | 2  | `.isNonEmptyString`           | `varIsNonEmptyString`    | Non-empty string                                       | LLM text outputs, analysis results  | [predicates_basic.md](predicates_basic.md#2)       |
+        | 3  | `.isNonEmptyList`             | `varIsNonEmptyList`      | Non-empty list                                         | Search results, batch data          | [predicates_basic.md](predicates_basic.md#3)       |
+        | 4  | `.isInt`                      | `varIsInt`               | Integer value                                          | Loop counters (`iter`)              | [predicates_basic.md](predicates_basic.md#4)       |
+        | 5  | `.isValidURL`                 | `varIsValidURL`          | Non-empty string containing `"://"`                  | URL parameters                      | [predicates_path_url.md](predicates_path_url.md#5) |
+        | 6  | `.isValidFilePath`            | `varIsValidFilePath`     | Non-empty string containing `"/"`                    | File path parameters                | [predicates_path_url.md](predicates_path_url.md#6) |
+        | 7  | `.isValidPath`                | `varIsValidPath`         | Non-empty string (generalized)                         | Generic path                        | [predicates_path_url.md](predicates_path_url.md#7) |
+        | 8  | `.isValidBibtex`              | `varIsValidBibtex`       | Non-empty string containing `"@"`                    | BibTeX citations                    | [predicates_content.md](predicates_content.md#8)   |
+        | 9  | `.isValidLatex`               | `varIsValidLatex`        | Non-empty string containing `"\\"`                   | LaTeX content                       | [predicates_content.md](predicates_content.md#9)   |
+        | 10 | `.isValidJson`                | `varIsValidJson`         | JSON value                                             | JSON-format data                    | [predicates_content.md](predicates_content.md#10)  |
+        | 11 | `.isValidList`              | `varIsValidList`         | List value (may be empty)                              | List-type data                      | [predicates_content.md](predicates_content.md#11)  |
+        | 12 | `.toolExists`               | `varIsValidTool`         | Tool name exists (≡ `nameExists`)                    | Declare tool available              | [predicates_tool_module.md](predicates_tool_module.md#12) |
+        | 13 | `.moduleExists`             | `varIsValidModule`       | Module name exists (≡ `nameExists`)                  | Declare submodule available         | [predicates_tool_module.md](predicates_tool_module.md#13) |
+        | 14 | `.matchesJsonSchema schema` | `varIsValidJsonSchema`   | JSON matches schema (recursive)                        | Structured JSON output              | [predicates_json_schema.md](predicates_json_schema.md#14) |
+        | 15 | `.isJsonWithFields fields`  | `varIsValidJsonFields`   | JSON object contains fields                            | Partial structure validation        | [predicates_json_schema.md](predicates_json_schema.md#15) |
+        | 16 | `.containsSubstring s`      | `varContainsSentinel`    | String contains substring                              | Loop termination sentinel           | [predicates_semantic.md](predicates_semantic.md#16) |
+        | 17 | `.fileExistsAtPath`         | `varFileExistsAtPath`    | ≡ `isNonEmptyString` (semantic marker)               | File created marker                 | [predicates_semantic.md](predicates_semantic.md#17) |
+        | 18 | `.taskCompleted`            | `varTaskCompleted`       | ≡ `nameExists` (semantic marker)                     | Task completion marker              | [predicates_semantic.md](predicates_semantic.md#18) |
+        | 19 | `.custom name`              | `varIsValidCustomPredicate` | ≡ `nameExists` (custom fallback)                  | Custom semantic markers             | [predicates_semantic.md](predicates_semantic.md#19) |
+        | 20 | `.ext key`                  | *(direct construction)*  | Semantics via `PredicateRegistry`                    | Dict predicates, extensions         | [predicates_advanced.md](predicates_advanced.md#20) |
+        | 21 | `.predicateAnd p₁ p₂`     | `varPredicateAnd`        | `p₁ ∧ p₂`                                          | Conjunction                         | [predicates_advanced.md](predicates_advanced.md#21) |
+        | 22 | `.predicateOr p₁ p₂`      | `varPredicateOr`         | `p₁ ∨ p₂`                                          | Disjunction                         | [predicates_advanced.md](predicates_advanced.md#22) |
+
+        ---
+
+        ## IR JSON Quick Reference
+
+        > Full IR format details, complex predicate IR, and node IR examples: **[ir_json_format.md](ir_json_format.md)**
+
+        ### Per-Predicate IR Format
+
+        | PredicateType             | IR JSON (`predicate` object)                                            |
+        | ------------------------- | ----------------------------------------------------------------------- |
+        | `nameExists`            | `{"kind": "nameExists"}`                                             |
+        | `isNonEmptyString`      | `{"kind": "isNonEmptyString"}`                                       |
+        | `isNonEmptyList`        | `{"kind": "isNonEmptyList"}`                                         |
+        | `isInt`                 | `{"kind": "isInt"}`                                                  |
+        | `isValidURL`            | `{"kind": "isValidURL"}`                                             |
+        | `isValidFilePath`       | `{"kind": "isValidFilePath"}`                                        |
+        | `isValidPath`           | `{"kind": "isValidPath"}`                                            |
+        | `isValidBibtex`         | `{"kind": "isValidBibtex"}`                                          |
+        | `isValidLatex`          | `{"kind": "isValidLatex"}`                                           |
+        | `isValidJson`           | `{"kind": "isValidJson"}`                                            |
+        | `isValidList`           | `{"kind": "isValidList"}`                                            |
+        | `toolExists`            | `{"kind": "toolExists"}`                                             |
+        | `moduleExists`          | `{"kind": "moduleExists"}`                                           |
+        | `matchesJsonSchema`     | `{"kind": "matchesJsonSchema", "schema": {…}}`                     |
+        | `containsSubstring`     | `{"kind": "containsSubstring", "substring": "..."}`                 |
+        | `fileExistsAtPath`      | `{"kind": "fileExistsAtPath"}`                                       |
+        | `taskCompleted`         | `{"kind": "taskCompleted"}`                                          |
+        | `custom`                | `{"kind": "custom", "custom_name": "..."}`                          |
+        | `ext`                   | `{"kind": "ext", "ext_key": "..."}`                                 |
+        | `predicateAnd`          | `{"kind": "predicateAnd", "left": {…}, "right": {…}}`             |
+        | `predicateOr`           | `{"kind": "predicateOr", "left": {…}, "right": {…}}`              |
+
+        > `isJsonWithFields` is not yet supported in IR — use `matchesJsonSchema` instead.
+
+        ---
+
+        ## Implication Rules
+
+        The verifier has built-in implication rules. If a postcondition provides the left-side predicate, it can automatically satisfy a precondition requiring the right-side predicate.
+
+        ### All Predicates → `nameExists`
+
+        These predicates all automatically imply `nameExists`:
+        `isNonEmptyString`, `isNonEmptyList`, `isValidURL`, `isValidFilePath`, `isValidPath`, `isValidBibtex`, `isValidLatex`, `isValidJson`, `isValidList`, `toolExists`, `moduleExists`, `isInt`
+
+        ### Special Implications
+
+        | Established (postcond)    | Can Satisfy (precond)                                |
+        | ------------------------- | ---------------------------------------------------- |
+        | `isValidURL`            | `isNonEmptyString`                                 |
+        | `isValidFilePath`       | `isNonEmptyString`                                 |
+        | `isValidBibtex`         | `isNonEmptyString`                                 |
+        | `isValidLatex`          | `isNonEmptyString`                                 |
+        | `matchesJsonSchema _`   | `isValidJson`                                      |
+        | `matchesJsonSchema _`   | `nameExists`                                       |
+        | `matchesJsonSchema s₁` | `matchesJsonSchema s₂` (when `s₁.implies s₂`) |
+
+        ### Propositional Logic Rules
+
+        | Rule      | Meaning                                                  |
+        | --------- | -------------------------------------------------------- |
+        | And-Elim  | `(p₁ ∧ p₂) → p₁` and `(p₁ ∧ p₂) → p₂`      |
+        | Or-Intro  | `p₁ → (p₁ ∨ p₂)` and `p₂ → (p₁ ∨ p₂)`      |
+        | And-Intro | `p → (q₁ ∧ q₂)` when `p → q₁` and `p → q₂` |
+        | Or-Elim   | `(p₁ ∨ p₂) → q` when `p₁ → q` and `p₂ → q` |
+
+        ---
+
+        ## Quick Selection Guide
+
+        | Your variable is...            | Recommended Predicate                         |
+        | ------------------------------ | --------------------------------------------- |
+        | LLM-generated text output      | `varIsNonEmptyString`                       |
+        | File path                      | `varIsValidFilePath`                        |
+        | URL                            | `varIsValidURL`                             |
+        | Loop counter                   | `varIsInt`                                  |
+        | Tool name                      | `varIsValidTool`                            |
+        | Submodule name                 | `varIsValidModule`                          |
+        | Structured JSON output         | `varIsValidJson` + `varIsValidJsonSchema` |
+        | BibTeX citation                | `varIsValidBibtex`                          |
+        | Only need variable to exist    | `varNameExists`                             |
+        | Loop termination sentinel      | `varContainsSentinel`                       |
+        | Task completion marker         | `varTaskCompleted`                          |
+        | Parallel submodule Dict result | `.ext` + `PredicateRegistry`              |
+
+        ---
+
+        ## Special Node Types
+
+        > Full details with Lean examples: **[node_types.md](node_types.md)**
+
+        - **Parameter Node** — Declares workflow parameters, available tools, and modules (postcond only, no precond)
+        - **Loop Node** — Has `loopInvariant` + `exitPostconditions` + `terminationSpec`
+        - **Conditional Node** — Has `thenPostcondVariables` + `elsePostcondVariables` for branch-specific guarantees
+
+        ---
+
+        ## File Index
+
+        | File                                                          | Contents                                                    |
+        | ------------------------------------------------------------- | ----------------------------------------------------------- |
+        | [ir_json_format.md](ir_json_format.md)                        | IR JSON contexts, complex predicates, node IR examples      |
+        | [predicates_basic.md](predicates_basic.md)                    | #1-4: nameExists, isNonEmptyString, isNonEmptyList, isInt   |
+        | [predicates_path_url.md](predicates_path_url.md)              | #5-7: isValidURL, isValidFilePath, isValidPath              |
+        | [predicates_content.md](predicates_content.md)                | #8-11: isValidBibtex, isValidLatex, isValidJson, isValidList |
+        | [predicates_tool_module.md](predicates_tool_module.md)        | #12-13: toolExists, moduleExists                            |
+        | [predicates_json_schema.md](predicates_json_schema.md)        | #14-15: matchesJsonSchema, isJsonWithFields                 |
+        | [predicates_semantic.md](predicates_semantic.md)              | #16-19: containsSubstring, fileExistsAtPath, taskCompleted, custom |
+        | [predicates_advanced.md](predicates_advanced.md)              | #20-22: ext, predicateAnd, predicateOr                      |
+        | [node_types.md](node_types.md)                                | Parameter / Loop / Conditional node patterns                |
+    node_json_update_guide: |
+        # Node Predicate Annotation Guide
+
+        > Back to [index](index.md)
+
+        This document describes **how to write predicates for each node type** in the IR JSON so that `TaskPlanToLean.py` can generate correct Lean4 semantic verification code.
+
+        ---
+
+        ## Table of Contents
+
+        1. [Overview: How Predicates Flow Through Nodes](#1-overview)
+        2. [Regular Step Node](#2-regular-step-node)
+        3. [Conditional Node (`conditional`)](#3-conditional-node)
+        4. [While Loop Node (`whileLoop`)](#4-while-loop-node)
+        5. [ForEach Loop Node (`forEachLoop`)](#5-foreach-loop-node)
+        6. [Other Deterministic Nodes](#6-other-deterministic-nodes)
+        7. [SemanticWorkflowGraph Assembly](#7-semanticworkflowgraph-assembly)
+        8. [Common Pitfalls](#8-common-pitfalls)
+
+        ---
+
+        ## 1. Overview
+
+        ### Predicate Placement in IR JSON
+
+        Every `NodeIR` has two categories of predicate locations:
+
+        | Location | Purpose | Lean Destination |
+        | --- | --- | --- |
+        | `reads[i].predicates` | What each read variable must satisfy | `precondVariables` |
+        | `writes[i].predicates` | What each write variable guarantees | `postcondVariables` |
+        | `precond_extra` | Additional preconditions (tools, modules) | `precondVariables` (prepended) |
+        | `postcond_extra` | Additional postconditions | `postcondVariables` (appended) |
+
+        ### How `TaskPlanToLean.py` Collects Predicates
+
+        ```python
+        # From NodeIR.collect_precond():
+        precond = precond_extra + [read.predicates for read in reads]  # deduplicated
+
+        # From NodeIR.collect_postcond():
+        postcond = [write.predicates for write in writes] + postcond_extra  # deduplicated
+        ```
+
+        ### Different Node Types → Different Lean Structures
+
+        | Node `step_type` | Lean Structure | `def` Name Pattern | Goes Into |
+        | --- | --- | --- | --- |
+        | `step`, `task` | `SemanticWorkflowNode` | `prefix_semNode{id}` | `semanticNodes` |
+        | `setVariable` | `SemanticWorkflowNode` | `prefix_semNode{id}` | `semanticNodes` |
+        | `incrementVariable` | `SemanticWorkflowNode` | `prefix_semNode{id}` | `semanticNodes` |
+        | `returnValue` | `SemanticWorkflowNode` | `prefix_semNode{id}` | `semanticNodes` |
+        | `conditional` | `SemanticConditionalNode` | `prefix_condNode{id}` | `conditionalNodes` |
+        | `whileLoop` | `SemanticLoopNode` | `prefix_loopNode{id}` | `loopNodes` |
+        | `forEachLoop` | `SemanticForEachLoopNode` | `prefix_loopNode{id}` | `loopNodes` |
+
+        > **Key insight**: Conditional and Loop nodes each have **two `def`s** — a specialized node (`_condNode` / `_loopNode`) and a conversion to `SemanticWorkflowNode` (`_semNode`) via `.toSemanticWorkflowNode`.
+
+        ---
+
+        ## 2. Regular Step Node
+
+        The simplest node type. Only needs `reads.predicates`, `writes.predicates`, and optionally `precond_extra`.
+
+        ### IR JSON
+
+        ```json
+        {
+        "id": 0,
+        "name": "extract_paper_title",
+        "step_type": "step",
+        "reads": [
+            {
+            "name": "file_path", "base_type": "TString",
+            "predicates": [{"kind": "isValidFilePath"}]
+            }
+        ],
+        "writes": [
+            {
+            "name": "paper_title", "base_type": "TString",
+            "predicates": [{"kind": "isNonEmptyString"}]
+            }
+        ],
+        "instruction": "...",
+        "precond_extra": [
+            { "var_name": "file_path", "predicate": {"kind": "isValidFilePath"} },
+            { "var_name": "fs_read", "predicate": {"kind": "toolExists"} }
+        ]
+        }
+        ```
+
+        ### Generated Lean
+
+        ```lean
+        def prefix_semNode0 : SemanticWorkflowNode := {
+        baseNode := prefix_node0
+        precondVariables := [
+            varIsValidFilePath "file_path",
+            varIsValidTool "fs_read"
+        ]
+        postcondVariables := [
+            varIsNonEmptyString "paper_title"
+        ]
+        }
+        ```
+
+        ### Codegen Logic
+
+        `_gen_semantic_node()` detects `is_conditional == False` and `is_loop == False`, and generates a plain `SemanticWorkflowNode`.
+
+        ---
+
+        ## 3. Conditional Node
+
+        A conditional node (`step_type: "conditional"`) models an `if-else` branch. It needs **branch-specific postconditions** so the verifier knows different facts hold on each branch.
+
+        ### Lean Structure
+
+        ```lean
+        structure SemanticConditionalNode extends SemanticWorkflowNode where
+        thenTargetId : NodeId                                    -- first node of then-branch
+        elseTargetId : NodeId                                    -- first node of else-branch
+        thenPostcondVariables : List VariablePredicateRequirement -- facts when condition = TRUE
+        elsePostcondVariables : List VariablePredicateRequirement -- facts when condition = FALSE
+        ```
+
+        ### Two `def`s Generated
+
+        ```lean
+        -- 1. The specialized conditional node
+        def prefix_condNode3 : SemanticConditionalNode := { ... }
+
+        -- 2. Conversion to SemanticWorkflowNode (for the semanticNodes list)
+        def prefix_semNode3 : SemanticWorkflowNode := prefix_condNode3.toSemanticWorkflowNode
+        ```
+
+        ### IR JSON — Required Fields
+
+        ```json
+        {
+        "id": 3,
+        "name": "check_abstract == None",
+        "step_type": "conditional",
+        "reads": [
+            {
+            "name": "abstract", "base_type": "TString",
+            "predicates": [{"kind": "nameExists"}]
+            }
+        ],
+        "writes": [],
+        "then_target_id": 4,
+        "else_target_id": 5,
+        "then_postcond": [
+            { "var_name": "abstract", "predicate": {"kind": "nameExists"} }
+        ],
+        "else_postcond": [
+            { "var_name": "abstract", "predicate": {"kind": "isNonEmptyString"} }
+        ]
+        }
+        ```
+
+        ### Field Reference
+
+        | IR JSON Field | Type | Required | Lean Field |
+        | --- | --- | --- | --- |
+        | `then_target_id` | `int` | ✅ | `thenTargetId` |
+        | `else_target_id` | `int` | ✅ | `elseTargetId` |
+        | `then_postcond` | `list[VarPredicateIR]` | ✅ | `thenPostcondVariables` |
+        | `else_postcond` | `list[VarPredicateIR]` | ✅ | `elsePostcondVariables` |
+        | `reads[].predicates` | `list[PredicateIR]` | ✅ | `precondVariables` (via `collect_precond`) |
+
+        > `then_target_id` / `else_target_id` must match the `then_entry` / `else_entry` values in the corresponding `branch` edge.
+
+        ### Generated Lean (Complete)
+
+        ```lean
+        -- Semantic Node 3: conditional "check_abstract == None"
+        def prefix_condNode3 : SemanticConditionalNode := {
+        baseNode := prefix_node3
+        precondVariables := [varNameExists "abstract"]
+        postcondVariables := []
+        thenTargetId := prefix_nodeId4
+        elseTargetId := prefix_nodeId5
+        thenPostcondVariables := [varNameExists "abstract"]
+        elsePostcondVariables := [varIsNonEmptyString "abstract"]
+        }
+        def prefix_semNode3 : SemanticWorkflowNode := prefix_condNode3.toSemanticWorkflowNode
+        ```
+
+        ### How to Choose Branch Predicates
+
+        | Pattern | `then_postcond` (condition TRUE) | `else_postcond` (condition FALSE) |
+        | --- | --- | --- |
+        | `check X == None` | `nameExists X` (weak — X may be None) | `isNonEmptyString X` (strong — X is not None) |
+        | `check X == "PASS"` | `containsSubstring X "PASS"` | `nameExists X` |
+        | `check X == true` | `nameExists X` | `nameExists X` |
+        | `check X > 0` | `isInt X` | `isInt X` |
+
+        **Principle**: The else branch is the **negation** of the condition. If the condition checks for a "bad" state (e.g., `== None`), the else branch gives you the stronger guarantee.
+
+        ### Graph Assembly
+
+        The conditional node must appear in **both** `semanticNodes` (via `.toSemanticWorkflowNode`) and `conditionalNodes`:
+
+        ```lean
+        def prefixSemanticGraph : SemanticWorkflowGraph := {
+        ...
+        semanticNodes := [..., prefix_semNode3, ...]   -- uses converted version
+        conditionalNodes := [prefix_condNode3]          -- uses original
+        ...
+        }
+        ```
+
+        ---
+
+        ## 4. While Loop Node
+
+        A while loop (`step_type: "whileLoop"`) requires a **loop invariant**, a **termination specification**, and **exit postconditions**. This follows Hoare logic: when the loop exits, the exit facts equal `loopInvariant ∧ exitPostconditions`.
+
+        ### Lean Structure
+
+        ```lean
+        structure SemanticLoopNode extends SemanticWorkflowNode where
+        loopInvariant : List VariablePredicateRequirement
+        terminationSpec : LoopTerminationSpec
+        exitPostconditions : List VariablePredicateRequirement := []
+        ```
+
+        ### Termination Spec Types
+
+        ```lean
+        inductive LoopTerminationSpec where
+        | finiteCondition (terminationVars : List String)
+        | llmControlledExit (potentialExitNodeId : NodeId) (sentinelPattern : String)
+        | externalTermination (mechanism : String)
+        | allowUnbounded (justification : String)
+        ```
+
+        ### Two `def`s Generated
+
+        ```lean
+        -- 1. The specialized loop node
+        def prefix_loopNode2 : SemanticLoopNode := { ... }
+
+        -- 2. Conversion to SemanticWorkflowNode (for the semanticNodes list)
+        def prefix_semNode2 : SemanticWorkflowNode := prefix_loopNode2.toSemanticWorkflowNode
+        ```
+
+        ### IR JSON — Required Fields
+
+        ```json
+        {
+        "id": 2,
+        "name": "while_iter <= max_iters",
+        "step_type": "whileLoop",
+        "reads": [
+            { "name": "iter", "base_type": "TInt", "predicates": [{"kind": "isInt"}] },
+            { "name": "max_iters", "base_type": "TInt", "predicates": [{"kind": "isInt"}] },
+            { "name": "solved", "base_type": "TBool", "predicates": [{"kind": "nameExists"}] }
+        ],
+        "writes": [],
+        "loop_invariant": [
+            { "var_name": "code_path", "predicate": {"kind": "isValidFilePath"} },
+            { "var_name": "memory_file", "predicate": {"kind": "isValidFilePath"} },
+            { "var_name": "operation_rule", "predicate": {"kind": "isNonEmptyString"} },
+            { "var_name": "iter", "predicate": {"kind": "isInt"} },
+            { "var_name": "term_send", "predicate": {"kind": "toolExists"} },
+            { "var_name": "term_read", "predicate": {"kind": "toolExists"} },
+            { "var_name": "memory", "predicate": {"kind": "toolExists"} }
+        ],
+        "termination_kind": "llmControlledExit",
+        "termination_exit_node": 7,
+        "termination_sentinel": "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+        "exit_postcond": [
+            { "var_name": "final_output", "predicate": {"kind": "containsSubstring", "substring": "COMPLETE_TASK_AND_SUBMIT"} },
+            { "var_name": "task_status", "predicate": {"kind": "taskCompleted"} }
+        ]
+        }
+        ```
+
+        ### Field Reference
+
+        | IR JSON Field | Type | Required | Lean Field |
+        | --- | --- | --- | --- |
+        | `loop_invariant` | `list[VarPredicateIR]` | ✅ | `loopInvariant` |
+        | `termination_kind` | `string` | ✅ | used to build `terminationSpec` |
+        | `termination_vars` | `list[string]` | for `finiteCondition` | `.finiteCondition [vars]` |
+        | `termination_exit_node` | `int` | for `llmControlledExit` | `.llmControlledExit nodeId sentinel` |
+        | `termination_sentinel` | `string` | for `llmControlledExit` | `.llmControlledExit nodeId sentinel` |
+        | `termination_mechanism` | `string` | for `externalTermination` | `.externalTermination mechanism` |
+        | `termination_justification` | `string` | for `allowUnbounded` | `.allowUnbounded justification` |
+        | `exit_postcond` | `list[VarPredicateIR]` | ✅ (can be `[]`) | `exitPostconditions` |
+        | `reads[].predicates` | `list[PredicateIR]` | ✅ | `precondVariables` (via `collect_precond`) |
+
+        ### Termination Kind Mapping
+
+        | `termination_kind` | Additional Required Fields | Generated Lean |
+        | --- | --- | --- |
+        | `"finiteCondition"` | `termination_vars` | `.finiteCondition ["iter", "max_iters"]` |
+        | `"llmControlledExit"` | `termination_exit_node`, `termination_sentinel` | `.llmControlledExit ⟨7⟩ "DONE"` |
+        | `"externalTermination"` | `termination_mechanism` | `.externalTermination "timeout after 30 min"` |
+        | `"allowUnbounded"` | `termination_justification` | `.allowUnbounded "server loop, runs until shutdown"` |
+
+        ### Generated Lean (Complete)
+
+        ```lean
+        -- Semantic Node 2: whileLoop "while_iter <= max_iters"
+        def prefix_loopNode2 : SemanticLoopNode := {
+        baseNode := prefix_node2
+        precondVariables := [varIsInt "iter", varIsInt "max_iters", varNameExists "solved"]
+        postcondVariables := []
+        loopInvariant := [
+            varIsValidFilePath "code_path",
+            varIsValidFilePath "memory_file",
+            varIsNonEmptyString "operation_rule",
+            varIsInt "iter",
+            varIsValidTool "term_send",
+            varIsValidTool "term_read",
+            varIsValidTool "memory"
+        ]
+        terminationSpec := .llmControlledExit prefix_nodeId7 "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
+        exitPostconditions := [
+            varContainsSentinel "final_output" "COMPLETE_TASK_AND_SUBMIT",
+            varTaskCompleted "task_status"
+        ]
+        }
+        def prefix_semNode2 : SemanticWorkflowNode := prefix_loopNode2.toSemanticWorkflowNode
+        ```
+
+        ### How to Design Loop Invariants
+
+        A loop invariant must satisfy TWO constraints simultaneously:
+        1. **Established at entry**: Every predicate in the invariant must be TRUE
+           before the loop starts (from preceding nodes' postconditions or parameters).
+        2. **Preserved by each iteration**: The last node in the loop body's
+           postconditions must re-establish the invariant.
+
+        **What to include in the invariant:**
+        - Variables that exist BEFORE the loop AND are read inside the loop body
+        - Variables that are written AND read across iterations (e.g., loop counter,
+          accumulated notes)
+        - Tools and modules used inside the loop body
+
+        **What NOT to include:**
+        - Variables that are FIRST WRITTEN inside the loop body (e.g., `verification_result`
+          written by a verify step inside the loop). These don't exist before the first
+          iteration, so including them would violate the "established at entry" constraint.
+        - The first node in the loop body reads from the invariant, NOT from variables
+          that will be produced later in the same iteration.
+
+        **How to handle variables first written inside the loop:**
+        If a variable is written by body node A and read by body node B (where A comes
+        before B), this is handled by the sequential postcond → precond chain within
+        the iteration, NOT by the loop invariant.
+
+        ```
+        Entry precond → establishes loopInvariant     ← CONSTRAINT 1
+        ↓
+        Loop body iteration:
+        loopInvariant → body_node_1.precond
+        body_node_1.postcond → body_node_2.precond    ← intra-iteration chain
+        ...
+        body_node_N.postcond → must imply loopInvariant  ← CONSTRAINT 2
+        ↓
+        Loop exit:
+        exitFacts = loopInvariant ∧ exitPostconditions
+        ```
+
+        **Example — SWE-bench fix loop:**
+        The while loop body contains: implement_fix → verify_fix → check → update_status.
+        - `root_cause_analysis` (written BEFORE the loop, read inside) → IN invariant ✓
+        - `fix_attempt` (loop counter, written & read across iterations) → IN invariant ✓
+        - `retry_notes` (accumulated, written & read across iterations) → IN invariant ✓
+        - `verification_result` (FIRST written by verify_fix inside the loop) → NOT in invariant ✗
+        - `fix_description` (FIRST written by implement_fix inside the loop) → NOT in invariant ✗
+          (But if `fix_description` was initialized by a set_variable BEFORE the loop, it IS
+          in the invariant because it exists at entry.)
+
+        ### Graph Assembly
+
+        The loop node must appear in **both** `semanticNodes` (via `.toSemanticWorkflowNode`) and `loopNodes`:
+
+        ```lean
+        def prefixSemanticGraph : SemanticWorkflowGraph := {
+        ...
+        semanticNodes := [..., prefix_semNode2, ...]   -- uses converted version
+        loopNodes := [prefix_loopNode2]                 -- uses original
+        ...
+        }
+        ```
+
+        ---
+
+        ## 5. ForEach Loop Node
+
+        A for-each loop (`step_type: "forEachLoop"`) is a loop that iterates over a list variable. It extends `SemanticLoopNode` with an `iterationVar` field.
+
+        ### Lean Structure
+
+        ```lean
+        structure SemanticForEachLoopNode extends SemanticLoopNode where
+        iterationVar : String   -- the loop variable (e.g., "item" in "for item in list")
+        ```
+
+        ### Two `def`s Generated
+
+        ```lean
+        -- 1. The specialized for-each loop node
+        def prefix_loopNode3 : SemanticForEachLoopNode := { ... }
+
+        -- 2. Conversion to SemanticWorkflowNode
+        def prefix_semNode3 : SemanticWorkflowNode := prefix_loopNode3.toSemanticWorkflowNode
+        ```
+
+        ### IR JSON — Required Fields
+
+        ```json
+        {
+        "id": 3,
+        "name": "foreach_module_info",
+        "step_type": "forEachLoop",
+        "reads": [
+            {
+            "name": "parsed_module_results", "base_type": "TList TJson",
+            "predicates": [{"kind": "isNonEmptyList"}]
+            }
+        ],
+        "writes": [
+            {
+            "name": "module_info", "base_type": "TJson",
+            "predicates": [{"kind": "isValidJson"}]
+            }
+        ],
+        "iteration_var": "module_info",
+        "loop_invariant": [
+            { "var_name": "parsed_module_results", "predicate": {"kind": "isNonEmptyList"} },
+            { "var_name": "staging_dir", "predicate": {"kind": "isValidFilePath"} }
+        ],
+        "termination_kind": "finiteCondition",
+        "termination_vars": ["parsed_module_results"],
+        "exit_postcond": [
+            { "var_name": "parsed_module_results", "predicate": {"kind": "isNonEmptyList"} }
+        ]
+        }
+        ```
+
+        ### Field Reference (extends While Loop fields)
+
+        | IR JSON Field | Type | Required | Lean Field |
+        | --- | --- | --- | --- |
+        | `iteration_var` | `string` | ✅ | `iterationVar` |
+        | All fields from [While Loop](#4-while-loop-node) | — | ✅ | — |
+
+        > **Note**: For a for-each loop, `termination_kind` is almost always `"finiteCondition"` because the loop iterates over a finite list.
+
+        ### Generated Lean (Complete)
+
+        ```lean
+        -- Semantic Node 3: forEachLoop "foreach_module_info"
+        def prefix_loopNode3 : SemanticForEachLoopNode := {
+        baseNode := prefix_node3
+        precondVariables := [varIsNonEmptyList "parsed_module_results"]
+        postcondVariables := [varIsValidJson "module_info"]
+        loopInvariant := [
+            varIsNonEmptyList "parsed_module_results",
+            varIsValidFilePath "staging_dir"
+        ]
+        terminationSpec := .finiteCondition ["parsed_module_results"]
+        exitPostconditions := [
+            varIsNonEmptyList "parsed_module_results"
+        ]
+        iterationVar := "module_info"
+        }
+        def prefix_semNode3 : SemanticWorkflowNode := prefix_loopNode3.toSemanticWorkflowNode
+        ```
+
+        ### Difference from While Loop
+
+        | Aspect | `whileLoop` | `forEachLoop` |
+        | --- | --- | --- |
+        | Lean Structure | `SemanticLoopNode` | `SemanticForEachLoopNode` |
+        | Extra field | — | `iterationVar` |
+        | Typical termination | varies (often `llmControlledExit`) | `finiteCondition` (bounded by list length) |
+        | Loop variable | managed manually (e.g., `iter`) | automatically assigned from list (e.g., `item`) |
+        | `writes` | usually empty | contains the iteration variable |
+
+        ### Graph Assembly
+
+        Same as while loop — appears in **both** `semanticNodes` and `loopNodes`:
+
+        ```lean
+        def prefixSemanticGraph : SemanticWorkflowGraph := {
+        ...
+        semanticNodes := [..., prefix_semNode3, ...]
+        loopNodes := [prefix_loopNode3]      -- ForEachLoopNode coerces to LoopNode
+        ...
+        }
+        ```
+
+        ---
+
+        ## 6. Other Deterministic Nodes
+
+        These node types are deterministic (`needs_spec == False`) but still get semantic annotations.
+
+        ### `setVariable`
+
+        ```json
+        {
+        "id": 1, "name": "set_iter", "step_type": "setVariable",
+        "reads": [], "writes": [{"name": "iter", "base_type": "TInt", "predicates": [{"kind": "isInt"}]}]
+        }
+        ```
+
+        → Generates a plain `SemanticWorkflowNode`:
+        ```lean
+        def prefix_semNode1 : SemanticWorkflowNode := {
+        baseNode := prefix_node1
+        precondVariables := []
+        postcondVariables := [varIsInt "iter"]
+        }
+        ```
+
+        ### `incrementVariable`
+
+        ```json
+        {
+        "id": 8, "name": "increment_iter", "step_type": "incrementVariable",
+        "reads": [{"name": "iter", "base_type": "TInt", "predicates": [{"kind": "isInt"}]}],
+        "writes": [{"name": "iter", "base_type": "TInt", "predicates": [{"kind": "isInt"}]}]
+        }
+        ```
+
+        → Generates:
+        ```lean
+        def prefix_semNode8 : SemanticWorkflowNode := {
+        baseNode := prefix_node8
+        precondVariables := [varIsInt "iter"]
+        postcondVariables := [varIsInt "iter"]
+        }
+        ```
+
+        ### `returnValue`
+
+        ```json
+        {
+        "id": 6, "name": "return_result", "step_type": "returnValue",
+        "reads": [{"name": "return_dict", "base_type": "TString", "predicates": [
+            {"kind": "isValidJson"},
+            {"kind": "matchesJsonSchema", "schema": {"kind": "jObject", "fields": [...]}}
+        ]}],
+        "writes": []
+        }
+        ```
+
+        → Generates:
+        ```lean
+        def prefix_semNode6 : SemanticWorkflowNode := {
+        baseNode := prefix_node6
+        precondVariables := [
+            varIsValidJson "return_dict",
+            varIsValidJsonSchema "return_dict" (.jObject [...])
+        ]
+        postcondVariables := []
+        }
+        ```
+
+        > **Important**: The return node's preconditions are critical for submodule composition — they define what the submodule guarantees to its parent.
+
+        ---
+
+        ## 7. SemanticWorkflowGraph Assembly
+
+        ### The Three Lists
+
+        ```lean
+        structure SemanticWorkflowGraph where
+        baseGraph : WorkflowGraph
+        paramNode : SemanticWorkflowNode
+        semanticNodes : List SemanticWorkflowNode     -- ALL nodes (converted)
+        loopNodes : List SemanticLoopNode := []        -- loop headers only
+        conditionalNodes : List SemanticConditionalNode := [] -- conditional nodes only
+        specInvariant : ...
+        ```
+
+        ### Rules
+
+        1. `semanticNodes` contains **one entry per node** in `baseGraph.nodes`, **in the same order**
+        2. Loop headers use `prefix_loopNode{id}.toSemanticWorkflowNode`
+        3. Conditional nodes use `prefix_condNode{id}.toSemanticWorkflowNode`
+        4. Regular nodes use `prefix_semNode{id}` directly
+        5. `loopNodes` contains the original `SemanticLoopNode` / `SemanticForEachLoopNode` defs
+        6. `conditionalNodes` contains the original `SemanticConditionalNode` defs
+
+        ### Example with All Node Types
+
+        ```lean
+        def prefixSemanticGraph : SemanticWorkflowGraph := {
+        baseGraph := prefixGraph
+        paramNode := prefix_paramNode
+        semanticNodes := [
+            prefix_semNode0,        -- regular step
+            prefix_semNode1,        -- setVariable
+            prefix_semNode2,        -- whileLoop (via .toSemanticWorkflowNode)
+            prefix_semNode3,        -- step inside loop body
+            prefix_semNode4,        -- step inside loop body
+            prefix_semNode5,        -- conditional (via .toSemanticWorkflowNode)
+            prefix_semNode6,        -- step (then branch)
+            prefix_semNode7,        -- step (else branch)
+            prefix_semNode8,        -- incrementVariable
+            prefix_semNode9,        -- returnValue
+        ]
+        loopNodes := [prefix_loopNode2]
+        conditionalNodes := [prefix_condNode5]
+        specInvariant := by decide
+        }
+        ```
+
+        ---
+
+        ## 8. Common Pitfalls
+
+        ### ❌ Forgetting branch target IDs
+
+        Conditional nodes **must** have `then_target_id` and `else_target_id` matching the `branch` edge:
+        ```json
+        // Edge:
+        { "edge_type": "branch", "cond_node": 3, "then_entry": 4, "else_entry": 5 }
+        // Node 3 must have:
+        { "then_target_id": 4, "else_target_id": 5 }
+        ```
+
+        ### ❌ Loop invariant not re-established
+
+        The last node in the loop body's postconditions must imply the loop invariant. If the invariant includes `varIsInt "iter"` but the last body node's postcond doesn't guarantee it, verification will fail.
+
+        ### ❌ Missing tools in loop invariant
+
+        If a node inside the loop body requires `varIsValidTool "fs_read"`, the loop invariant must also include `varIsValidTool "fs_read"` — tools are not automatically propagated through loop iterations.
+
+        ### ❌ Using `"predicate"` (singular) instead of `"predicates"` (plural)
+
+        In `TypedVar` (reads/writes), the field name is **`"predicates"`** (plural, a list):
+        ```json
+        { "name": "url", "base_type": "TString", "predicates": [{"kind": "isValidURL"}] }
+        ```
+
+        In `VarPredicateIR` (precond_extra, postcond_extra, loop_invariant, then_postcond, else_postcond, exit_postcond), the field name is **`"predicate"`** (singular, one object):
+        ```json
+        { "var_name": "url", "predicate": {"kind": "isValidURL"} }
+        ```
+
+        ### ❌ Omitting converted `_semNode` for loops/conditionals
+
+        Every loop/conditional node needs **both** its specialized def and the `.toSemanticWorkflowNode` conversion. The `semanticNodes` list uses the converted version; `loopNodes`/`conditionalNodes` use the original.
+
+        ---
+
+        ## Quick Reference: IR JSON Field Summary
+
+        ### All Node Types
+
+        | Field | Type | Where Used |
+        | --- | --- | --- |
+        | `reads[].predicates` | `list[PredicateIR]` | All nodes |
+        | `writes[].predicates` | `list[PredicateIR]` | All nodes |
+        | `precond_extra` | `list[VarPredicateIR]` | All nodes (optional) |
+        | `postcond_extra` | `list[VarPredicateIR]` | All nodes (optional) |
+
+        ### Conditional-Only Fields
+
+        | Field | Type | Example |
+        | --- | --- | --- |
+        | `then_target_id` | `int` | `4` |
+        | `else_target_id` | `int` | `5` |
+        | `then_postcond` | `list[VarPredicateIR]` | `[{"var_name": "x", "predicate": {"kind": "nameExists"}}]` |
+        | `else_postcond` | `list[VarPredicateIR]` | `[{"var_name": "x", "predicate": {"kind": "isNonEmptyString"}}]` |
+
+        ### Loop-Only Fields (whileLoop + forEachLoop)
+
+        | Field | Type | Example |
+        | --- | --- | --- |
+        | `loop_invariant` | `list[VarPredicateIR]` | `[{"var_name": "iter", "predicate": {"kind": "isInt"}}]` |
+        | `termination_kind` | `string` | `"finiteCondition"` / `"llmControlledExit"` / `"externalTermination"` / `"allowUnbounded"` |
+        | `termination_vars` | `list[string]` | `["iter", "max_iters"]` (for `finiteCondition`) |
+        | `termination_exit_node` | `int` | `7` (for `llmControlledExit`) |
+        | `termination_sentinel` | `string` | `"DONE"` (for `llmControlledExit`) |
+        | `termination_mechanism` | `string` | `"timeout"` (for `externalTermination`) |
+        | `termination_justification` | `string` | `"server loop"` (for `allowUnbounded`) |
+        | `exit_postcond` | `list[VarPredicateIR]` | `[{"var_name": "output", "predicate": {"kind": "taskCompleted"}}]` |
+
+        ### ForEachLoop-Only Field
+
+        | Field | Type | Example |
+        | --- | --- | --- |
+        | `iteration_var` | `string` | `"module_info"` |
+    advanced_predicate_usages: |
+        # Advanced Predicates (#20–22)
+
+        > Back to [index](index.md)
+
+        ---
+
+        <a id="20"></a>
+        ## 20. `.ext key` — Extensible Predicate
+
+        **PredicateType**: `.ext (key : PredicateKey)`
+        **No shorthand function** — requires direct construction of `VariablePredicateRequirement`.
+        **Semantics**: Provided by `PredicateRegistry` at runtime.
+        **Use case**: Advanced scenarios — Dict value predicates for parallel submodules (`DictAllValuesPredicate`), etc.
+
+        ### IR JSON format
+
+        There are **two ways** to reference an ext predicate in node predicates:
+
+        #### Option A: Direct ext_key (specify the generated Lean Key name)
+        ```json
+        {"kind": "ext", "ext_key": "myDictPredKey"}
+        ```
+
+        #### Option B: ext_ref (index into workflow-level ext_predicates list, auto-resolved)
+        ```json
+        {"kind": "ext", "ext_ref": 0}
+        ```
+        `ext_ref` is an integer index into the `ext_predicates` array defined at the workflow level.
+        During code generation, `ext_ref` is automatically resolved to the corresponding `ext_key`
+        (`{lean_def_name}Key`), so you don't need to manually track the generated Lean names.
+
+        ### Workflow-level ext_predicates
+
+        The `DictAllValuesPredicate` definitions are specified in the workflow IR's `ext_predicates` list:
+
+        ```json
+        {
+        "ext_predicates": [
+            {
+            "family": "dictAllValues",
+            "value_predicates": [
+                {"kind": "isValidJson"},
+                {"kind": "matchesJsonSchema", "schema": {"kind": "jObject", "fields": [["bibtex", {"kind": "jString"}]]}}
+            ],
+            "dict_var_name": "all_results",
+            "lean_def_name": "myDictPred"
+            }
+        ]
+        }
+        ```
+
+        Fields:
+        - `family`: Must be `"dictAllValues"` for `DictAllValuesPredicate`
+        - `value_predicates`: List of `PredicateIR` that each dict value must satisfy
+        - `dict_var_name`: The variable name this predicate targets (optional)
+        - `lean_def_name`: Custom Lean definition name (optional; defaults to `{prefix}_dictAllValuesPred_{i}`)
+
+        ### Generated Lean code
+
+        TaskPlanToLean.py generates these definitions from each `ext_predicates` entry:
+
+        ```lean
+        -- DictAllValuesPredicate: all_results
+        def myDictPred : DictAllValuesPredicate := {
+        dictValuePredicates := [.isValidJson, .matchesJsonSchema mySchema]
+        dictVarName := "all_results"
+        }
+        def myDictPredKey : PredicateKey := myDictPred.toPredicateKey
+        def myDictPredPredType : PredicateType := .ext myDictPredKey
+
+        def writerRegistry : PredicateRegistry :=
+        makeDictAllValuesRegistry [myDictPred]
+        ```
+
+        ### Using in node predicates
+
+        Nodes reference the ext predicate via `ext_key` or `ext_ref`:
+
+        ```json
+        {
+        "postcond_extra": [
+            {
+            "var_name": "all_results",
+            "predicate": {
+                "kind": "predicateAnd",
+                "left": {"kind": "matchesJsonSchema", "schema": {"kind": "jObject", "fields": []}},
+                "right": {"kind": "ext", "ext_ref": 0}
+            }
+            }
+        ]
+        }
+        ```
+
+        This generates:
+        ```lean
+        postcondVariables := [
+        ⟨"all_results", .predicateAnd (.matchesJsonSchema (.jObject [])) (.ext myDictPredKey)⟩
+        ]
+        ```
+
+        ### Full Lean example
+
+        ```lean
+        -- Step 1: Define DictAllValuesPredicate
+        def myDictPred : DictAllValuesPredicate := {
+        dictValuePredicates := [.isValidJson, .matchesJsonSchema mySchema]
+        dictVarName := "all_results"
+        }
+
+        -- Step 2: Convert to PredicateKey and PredicateType
+        def myDictPredKey : PredicateKey := myDictPred.toPredicateKey
+        def myDictPredPredType : PredicateType := .ext myDictPredKey
+
+        -- Step 3: Use in precond (direct construction)
+        def semNode3 : SemanticWorkflowNode := {
+        baseNode := ...
+        precondVariables := [
+            { varName := "all_results"
+            requiredPredicate := myDictPredPredType }
+        ]
+        postcondVariables := [ ... ]
+        }
+
+        -- Step 4: Register in the Registry (for verify to use)
+        def myRegistry : PredicateRegistry :=
+        makeDictAllValuesRegistry [myDictPred]
+
+        -- Step 5: Pass registry during verification
+        theorem myGraph_sound :
+            mySemanticGraph.isSemanticallySoundBool myRegistry = true := by
+        native_decide
+        ```
+
+        **Source**: `Verification_extract_citation.lean` — `sc_semNode2`, `sc_semNode3`, `searchCitationsRegistry`
+
+        ---
+
+        <a id="21"></a>
+        ## 21. `varPredicateAnd` — Predicate Conjunction
+
+        **PredicateType**: `.predicateAnd p₁ p₂`
+        **Signature**: `varPredicateAnd (varName : String) (pred₁ pred₂ : PredicateType)`
+        **Semantics**: `p₁.toProp env name ∧ p₂.toProp env name`
+        **Use case**: A single variable must satisfy multiple conditions simultaneously.
+        **IR JSON**: `{"kind": "predicateAnd", "left": {"kind": "isValidJson"}, "right": {"kind": "matchesJsonSchema", "schema": {…}}}`
+
+        ```lean
+        -- Example: Variable must be valid JSON AND match a specific schema
+        def semNode : SemanticWorkflowNode := {
+        baseNode := ...
+        precondVariables := [
+            varPredicateAnd "data" .isValidJson (.matchesJsonSchema mySchema)
+        ]
+        postcondVariables := [ ... ]
+        }
+        ```
+
+        **Note**: In most cases, you can use two separate `VariablePredicateRequirement` entries instead:
+
+        ```lean
+        -- Equivalent (and more common) pattern
+        precondVariables := [
+            varIsValidJson "data",
+            varIsValidJsonSchema "data" mySchema
+        ]
+        ```
+
+        ---
+
+        <a id="22"></a>
+        ## 22. `varPredicateOr` — Predicate Disjunction
+
+        **PredicateType**: `.predicateOr p₁ p₂`
+        **Signature**: `varPredicateOr (varName : String) (pred₁ pred₂ : PredicateType)`
+        **Semantics**: `p₁.toProp env name ∨ p₂.toProp env name`
+        **Use case**: Variable needs to satisfy at least one of two conditions.
+        **IR JSON**: `{"kind": "predicateOr", "left": {"kind": "isValidURL"}, "right": {"kind": "isValidFilePath"}}`
+
+        ```lean
+        -- Example: Source path can be either a URL or a file path
+        def semNode : SemanticWorkflowNode := {
+        baseNode := ...
+        precondVariables := [
+            varPredicateOr "source" .isValidURL .isValidFilePath
+        ]
+        postcondVariables := [ ... ]
+        }
+        ```
+    graph_predicate_catalog: |
+        # Graph-Level Predicate Catalog
+
+        > Requirements should be based on the **inherent nature of the task goal**,
+        > NOT on whether the plan already implements the corresponding structure.
+        > If the task inherently needs retry but the plan lacks a loop, that is a
+        > legitimate finding — the plan is structurally insufficient.
+
+        **CRITICAL: DO NOT include `"exitFactsConfirmed"`** — it is always checked implicitly.
+
+        ## 1. `"pathCoverage"` — ALWAYS required
+        At least one contributing node reaches every exit node.
+        Rule: Include for EVERY sub-goal unconditionally.
+
+        ## 2. `"retryRobustness"` — Required for non-deterministic sub-goals needing EXPLICIT structural retry
+        At least one contributing node is inside a retry loop (while/for_each).
+        Reasoning: Does this sub-goal need a guaranteed, explicit retry mechanism in the workflow structure?
+        - Require if: the sub-goal's failure is expected and the workflow MUST structurally loop back
+          (e.g., iterative search with explicit convergence check, multi-attempt API polling)
+        - Skip if: LLM implicit retry within a single step is sufficient (see `implicitRetryCapability`)
+        - Skip if: deterministic operations that cannot fail
+
+        ## 3. `"implicitRetryCapability"` — Required for non-deterministic sub-goals where LLM can self-correct
+        At least one contributing node supports multi-turn LLM interaction (step, task, call, etc.).
+        This is auto-detected based on step type — non-deterministic nodes get this annotation automatically.
+        Reasoning: Can the LLM retry and self-correct within a single multi-turn step?
+        - Require if: code generation/modification, bug fixing, search, data extraction, any task
+          where the LLM can observe failure and adjust within the same step
+        - Skip if: the sub-goal is deterministic (file read, variable set, counter increment)
+        - Skip if: the sub-goal is a terminal action (final submission, return value)
+
+        ## 4. `"verificationCoverage"` — Required for verifiable artifacts
+        A SEPARATE verification node (different from contributor) exists after the contributing node. A node CANNOT verify itself.
+        Reasoning: Does this sub-goal produce an artifact whose correctness can be independently checked?
+        - Require if: code fix (testable), generated output (validatable), data extraction (cross-checkable), config change (smoke-testable)
+        - Skip if: pure exploration, final submission (terminal), setup/initialization, overhead steps
+
+        ## Retry Strategy Guide
+        `retryRobustness` and `implicitRetryCapability` address different retry needs:
+        - **`implicitRetryCapability`**: LLM can self-correct within a single step (most common for agentic tasks)
+        - **`retryRobustness`**: Workflow structurally loops back (needed when explicit convergence checks are required)
+        For most agentic sub-goals, `implicitRetryCapability` alone is sufficient.
+        Use `retryRobustness` only when the workflow MUST have an explicit retry loop.
+
+        ## Examples
+        | Sub-goal nature | required_graph_predicates |
+        |----------------|--------------------------|
+        | Read and understand a codebase | `["pathCoverage"]` |
+        | Implement a bug fix | `["pathCoverage", "implicitRetryCapability", "verificationCoverage"]` |
+        | Reproduce an issue | `["pathCoverage", "implicitRetryCapability"]` |
+        | Run tests to verify a fix | `["pathCoverage"]` |
+        | Generate and submit a patch | `["pathCoverage"]` |
+        | Write a research paper section | `["pathCoverage", "implicitRetryCapability", "verificationCoverage"]` |
+        | Extract data from a web page | `["pathCoverage", "implicitRetryCapability"]` |
+        | Iterative search with convergence | `["pathCoverage", "retryRobustness"]` |
+        | Parse a deterministic config file | `["pathCoverage"]` |
+
+
+workflow:
+    - task:
+        name: "setup_dirs"
+        instruction: |
+            Execute Python:
+            ```python
+            import os, json
+            os.makedirs("{{output_dir}}/modules", exist_ok=True)
+            with open("{{output_dir}}/verified_registry.json", "w") as f:
+                json.dump(json.loads('''{{already_verified_modules}}'''), f, indent=2)
+            print("Directories created, registry initialized.")
+            ```
+            Say "OK" if no error raised.
+        save_as: "setup_ok"
+    
+
+    - task:
+        name: "analyze_modules"
+        instruction: |
+            Execute the following python code using the shell_run tool to discover the submodules of the provided task plan:
+            ```bash
+            python {{staging_dir}}/explore_submodule.py --yaml_plan_path {{yaml_plan_path}} --home-dir {{staging_dir}} --json
+            ```
+            Read the output of the command, and return a list of dict under the following format:
+            ```json
+            [
+                {
+                    "yaml_path": ..., 
+                    "module_name": ..., 
+                    "is_root": true/false, 
+                    "child_names": [...]
+                }, 
+                ...
+            ]
+            ```
+            You should return the list following the topological order obtained by the python script, and only return the raw list of dicts without any additional text and code blocks.
+        save_as: "raw_module_results"
+    
+    - discover:
+        name: "parsed_module_results"
+        from: "{{raw_module_results}}"
+        instruction: |
+            Extract module information as a Json array of dicts. Each element in the array should be like:
+            ```json
+            {
+                "yaml_path": ..., 
+                "module_name": ..., 
+                "is_root": true/false, 
+                "child_names": [...]
+            }
+            ```
+    
+    - for_each:
+        variable: "module_info"
+        in: "parsed_module_results"
+        steps:
+
+            - step:
+                name: "extract_module_name"
+                instruction: |
+                    Analyze the module name from the following JSON information:
+                    ```json
+                    {{module_info}}
+                    ```
+                    Extract the "module_name" field, and say only the module name without any additional text
+                save_as: "module_name"
+
+            - step:
+                name: "transform_to_json"
+                instruction: |
+                    Execute the following python code using the shell_run tool to parse the yaml task plan into JSON format.
+
+                    The module you should parse is:
+
+                    ```json
+                    {{module_info}}
+                    ```
+
+                    The following are the arguments you need to read from the module info:
+                    - path_of_the_module: the yaml_path field from the module info above.
+                    - output_json_path: Replace the `/workspace/_verifier_staging/` prefix in yaml_path with `{{output_dir}}/`, and change the file name from `xxx.yaml` to `{{module_name}}.json`.
+                      For example:
+                        module_name = "search_citations"
+                        yaml_path = `/workspace/_verifier_staging/demo/ai_scientists/writer/modules/search_citations_plan.yaml`
+                        output_json_path = `{{output_dir}}/demo/ai_scientists/writer/modules/search_citations.json`
+
+                    The python code to execute using shell_run is:
+                    ```bash
+                    python {{staging_dir}}/yaml_parser.py --yaml_path <path_of_the_module> --output <output_json_path>
+                    ```
+
+                    Note: Both arguments are required named flags (--yaml_path and --output). The output directory will be created automatically.
+
+                    After executing the code, say the FULL ABSOLUTE PATH of the generated JSON file, and ONLY the path, without any additional text.
+                save_as: "saved_json_path"
+
+            - step:
+                name: "layer1_transform"
+                instruction: |
+                    Execute the following python code using the shell_run tool to transform the JSON file generated in the previous step into the Layer 1 static structural verification format:
+
+                    The following are the arguments you need to read from the previous steps:
+                    - output_path: Replace the `.json` suffix in {{saved_json_path}} with `_layer1.lean`.
+                    - intermediate_representation_path: Change the name of json file in {{saved_json_path}} from `{{module_name}}.json` to `{{module_name}}_layer1_ir.json`, and keep it in the same directory.
+                    - env_path: The path for the env variable, it should be in the same opsition as the <path_of_the_module> but replace the suffix from `.yaml` to `.env`.
+
+                    ```bash
+                    python {{staging_dir}}/TaskPlanToLean.py --json_path {{saved_json_path}} --prefix {{module_name}} --output <output_path> --save_ir <intermediate_representation_path> --env_file  <env_path>
+                    ```
+
+                    After executing the code, say the FULL ABSOLUTE PATH of the generated Layer 1 IR Json file (i.e., <intermediate_representation_path>), and ONLY the path, without any additional text.
+                save_as: "intermediate_representation_path"
+
+            - step:
+                name: "count_parameters"
+                instruction: |
+                    Extract the number of parameters used in the module from the IR JSON file generated in the previous step. You can use the following command to get the number of parameters:
+
+                    ```bash
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["parameters"]' --get | python3 -c "import json,sys; print(len(json.load(sys.stdin)))"
+                    ```
+
+                    In the final answer, you should only answer the number of parameters without any additional text.
+                save_as: "number_of_parameters"
+
+            - set_variable:
+                name: "i"
+                value: 0
+            
+            # Analyze the parameter's predicates information
+            - while:
+                condition: "i < number_of_parameters"
+                steps:
+                    - task:
+                        name: "obtain_parameter_info"
+                        instruction: |
+                            Extract the information of the parameter with the index `i` from the IR file using the following command:
+
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["parameters", {{i}}]' --get
+                            ```
+
+                            You should read out the extracted json information as a dict without any additional text. 
+
+                        save_as: "parameter_info"
+
+                    - task:
+                        name: "analyze_predicate_for_parameter"
+                        instruction: |
+                            Your task is to analyze predicates for a parameter and EXECUTE the edit command using shell_run.
+
+                            **Predicate reference guide:**
+                            ```md
+                            {{verification_system_use_guide}}
+                            ```
+
+                            **Advanced predicates usage guide:**
+                            ```md
+                            {{advanced_predicate_usages}}
+                            ```
+
+                            **Parameter to analyze:**
+                            ```json
+                            {{parameter_info}}
+                            ```
+
+                            Follow these steps IN ORDER, executing each command via term_call:
+
+                            **Step 1**: Analyze the parameter value and determine which predicate(s) from the guide are satisfied. Pick the strongest applicable predicate(s). Format them as a JSON list like `[{"kind":"isValidURL"}]`.
+
+                            **Step 2**: EXECUTE this command using shell_run to write the predicates into the IR JSON (replace <list_of_dict_predicates> with your actual JSON list from Step 1):
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["parameters", {{i}}, "predicates"]' --set '<list_of_dict_predicates>'
+                            ```
+                            IMPORTANT: You MUST actually run this command using the term_call tool, not just print it.
+
+                            **Step 3**: EXECUTE this verification command to confirm the edit:
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["parameters", {{i}}, "predicates"]' --get
+                            ```
+
+                            **Step 4**: If the verification shows the correct predicates, say "Predicate edit successful". Otherwise retry Steps 2-3 up to 3 times, then say "Predicate edit failed, moving on".
+                    - increment: "i"
+            
+            # Analyze the node information
+            - step:
+                name: "count_nodes"
+                instruction: |
+                    Extract the number of nodes in the workflow graph from the IR JSON file generated in the previous step. You can use the following command to get the number of nodes:
+
+                    ```bash
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["nodes"]' --get | python3 -c "import json,sys; print(len(json.load(sys.stdin)))"
+                    ```
+
+                    In the final answer, you should only answer the number of nodes without any additional text.
+                save_as: "number_of_nodes"
+
+            # ============================================================
+            # GOAL DECOMPOSITION: 3 focused substeps
+            # Must happen BEFORE per-node analysis so the LLM knows
+            # sub-goal names when annotating nodes
+            # ============================================================
+
+            # Substep 1: Analyze workflow structure
+            - step:
+                name: "analyze_workflow_structure"
+                instruction: |
+                    Read the entire IR JSON and produce a structural summary of the workflow.
+
+                    ```bash
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '[]' --get
+                    ```
+
+                    After reading, produce a summary in EXACTLY this format:
+
+                    ```
+                    GOAL: <the workflow goal from the IR>
+                    TOTAL_NODES: <number>
+                    EXIT_NODES: <list of exit node IDs>
+
+                    LOOPS:
+                    - loop_header: <node_id>, body_nodes: [<node_ids inside this loop>]
+                    (or "None" if no loops)
+
+                    BRANCHES:
+                    - condition_node: <node_id>, then_branch: [<node_ids>], else_branch: [<node_ids>]
+                    (or "None" if no branches)
+
+                    KEY_VARIABLES:
+                    - <var_name>: written by node(s) [<ids>], on path(s): <linear|loop|branch_true|branch_false>
+                    ```
+
+                    This summary will be used by subsequent steps to make informed decisions.
+                save_as: "workflow_structure_summary"
+
+            # Substep 2: Identify sub-goals with predicates
+            - step:
+                name: "identify_sub_goals"
+                instruction: |
+                    Based on the workflow structure, decompose the goal into sub-goals.
+
+                    **Workflow structure:**
+                    {{workflow_structure_summary}}
+
+                    For each sub-goal, determine:
+                    1. `name` — short identifier (e.g., "issue_understood", "fix_implemented")
+                    2. `variable_name` — the variable that holds evidence for this sub-goal
+                    3. `description` — human-readable explanation
+                    4. `required_predicate` — what the variable must satisfy
+
+                    **Rules for `required_predicate`** (MUST be from this list):
+                    - `{"kind": "nameExists"}` — variable exists (weakest)
+                    - `{"kind": "isNonEmptyString"}` — non-empty string (most common)
+                    - `{"kind": "isInt"}` — integer value
+                    - `{"kind": "containsSubstring", "substring": "..."}` — contains substring
+                    - `{"kind": "isValidJson"}`, `{"kind": "isValidURL"}`, etc.
+
+                    **DO NOT invent predicates** (e.g., `isExactly`, `isBoolean` do NOT exist).
+
+                    **Predicate strength rule**: The predicate must be satisfiable on ALL exit paths.
+                    - Variable always written with meaningful content → `isNonEmptyString`
+                    - Variable written on all paths but with different values → `nameExists`
+                    - Variable only written on success path → `nameExists`
+
+                    Output the sub-goals as a JSON list in this format:
+                    ```json
+                    [
+                      {"name": "...", "variable_name": "...", "description": "...",
+                       "required_predicate": {"kind": "..."}, "required_graph_predicates": []},
+                      ...
+                    ]
+                    ```
+                    Leave `required_graph_predicates` as `[]` for now — it will be filled in the next step.
+                save_as: "identified_sub_goals"
+
+            # Substep 3: Assign graph-level requirements and write goal_spec
+            - step:
+                name: "assign_graph_requirements"
+                instruction: |
+                    Assign `required_graph_predicates` to each sub-goal based on the
+                    **inherent nature of the task goal**, then write the final goal_spec
+                    to the IR JSON.
+
+                    **Workflow structure (for reference only — do NOT base requirements on plan topology):**
+                    {{workflow_structure_summary}}
+
+                    **Sub-goals identified:**
+                    {{identified_sub_goals}}
+
+                    **Graph-level predicate catalog:**
+                    {{graph_predicate_catalog}}
+
+                    For each sub-goal, reason about whether its nature is non-deterministic
+                    (needs retry) or produces a verifiable artifact (needs verification).
+                    Base your decision on the TASK GOAL, not on what the plan implements.
+                    If the task inherently needs retry but the plan has no loop, that is a
+                    correct finding — assign the predicate anyway.
+
+                    Now fill in `required_graph_predicates` for each sub-goal and write
+                    the complete goal_spec:
+
+                    ```bash
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["goal_spec"]' --set '<complete_goal_spec_json>'
+                    ```
+
+                    Verify by reading back:
+                    ```bash
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["goal_spec"]' --get
+                    ```
+
+                    If correct, say "Goal decomposition complete".
+
+            # Initialize empty lists for per-node graph annotations
+            # (will be appended to during the per-node while loop)
+            - step:
+                name: "init_graph_annotation_lists"
+                instruction: |
+                    Initialize empty lists for graph-level per-node annotations in the IR JSON.
+                    Run these commands using shell_run:
+
+                    ```bash
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["step_tags"]' --set '[]'
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["write_contexts"]' --set '[]'
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["sub_goal_contributions"]' --set '[]'
+                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["sub_goal_verifications"]' --set '[]'
+                    ```
+
+                    Say "Initialization complete".
+
+            - set_variable:
+                name: "i"
+                value: 0
+
+            # Analyze the nodes' semantic predicates one by one
+            # NOTE: goal_spec is already available from the previous step,
+            # so per-node analysis can reference sub-goal names
+            - while:
+                condition: "i < number_of_nodes"
+                steps:
+
+                    # Read the node information
+                    - task:
+                        name: "obtain_node_info"
+                        instruction: |
+                            Extract the information of the node with the index `i` from the IR file using the following command:
+
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["nodes", {{i}}]' --get
+                            ```
+
+                            You should read out the extracted json information as a dict without any additional text.
+                        save_as: "node_info"
+
+                    # Compute execution-time information visibility for this node
+                    - task:
+                        name: "compute_node_visibility"
+                        instruction: |
+                            Run the following command to compute what information this node
+                            can access at execution time:
+
+                            ```bash
+                            python {{staging_dir}}/TaskPlanToLean.py --from_ir {{intermediate_representation_path}} --node_visibility {{i}}
+                            ```
+
+                            Output the JSON result verbatim, without any additional text.
+                        save_as: "node_visibility_context"
+
+                    - task:
+                        name: "analyze_predicate_basic"
+                        instruction: |
+                            Your task is to analyze predicates for the read, write, and additional parameters of a node and execute the edit command using shell_run.
+
+                            **Predicate reference guide:**
+                            ```md
+                            {{verification_system_use_guide}}
+                            ```
+
+                            **Advanced predicate use guide:**
+                            ```md
+                            {{advanced_predicate_usages}}
+                            ```
+
+                            **JSON update guide**
+                            ```md
+                            {{node_json_update_guide}}
+                            ```
+                            
+                            **Node to analyze:**
+                            ```json
+                            {{node_info}}
+                            ```
+
+                            **IMPORTANT:**
+                                1. Json dict usage:
+                                    If in anywhere you would write a `isValidJson` predicate for a variable, you should also look into the instruction to check the potential JSON schema for this variable. If you can infer a JSON schema, you should also add a `matchesJsonSchema` predicate with the inferred schema. For example, if the instruction contains "the output should be a JSON dict with keys 'name' and 'age'", then you can infer the following JSON schema for the variable:
+
+                                    ```json
+                                    {
+                                        "kind": "jObject",
+                                        "fields": {
+                                            "name": {"kind": "jString"},
+                                            "age": {"kind": "jNumber"}
+                                        }
+                                    }
+                                    ```
+
+                                    Then you should add the following predicate for the variable:
+
+                                    ```json
+                                    {
+                                        "kind": "matchesJsonSchema",
+                                        "schema": {
+                                            "kind": "jObject",
+                                            "fields": {
+                                                "name": {"kind": "jString"},
+                                                "age": {"kind": "jNumber"}
+                                            }
+                                        }
+                                    }
+                                    ```
+
+                                    If you are unable to directly identify the json schema in the instruction or you are currently analyze an return variable, use the following command to read entire node information and try to infer the potential JSON schema based on all the information you have about this node:
+
+                                    ```bash
+                                    python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["nodes"]' --get
+                                    ```
+                                2. Empty list handling: When encourting an empty list such as `[]`, you can parse it as a list of string.
+
+                            Following these steps in order to analyze the node we provided above:
+
+                                1. Based on the `instruction` field of the node and predicate guide, analysis what is this node plan to do to have a general understanding of the node's functionality.
+
+                                2. For the `reads` field of the node info, analyze based on the isntruction and predicate guide to determine what are the predicates that the node needs to satisfy for each read variable. Reformat the `reads` fields with predicate information as follows:
+                                    1. Before predicate information:
+                                        ```json
+                                        [
+                                            {
+                                            "name": "paper_title", "base_type": "TString"
+                                            },
+                                            {
+                                            "name": "url", "base_type": "TString"
+                                            }
+                                        ]
+                                        ```
+                                    2. After predicate information:
+                                        ```json
+                                        [
+                                            {
+                                            "name": "paper_title", "base_type": "TString",
+                                            "predicates": [{"kind": "isNonEmptyString"}]
+                                            },
+                                            {
+                                            "name": "url", "base_type": "TString",
+                                            "predicates": [{"kind": "isValidURL"}]
+                                            }
+                                        ]
+                                        ```
+                                Then execute the following command using shell_run to write the predicates into the IR JSON (replace <updated_reads_with_predicates> with your actual JSON list):
+
+                                ```bash
+                                python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["nodes", {{i}}, "reads"]' --set '<updated_reads_with_predicates>'
+                                ```
+
+                                3. For the `writes` field of the node info, add predicates to EACH EXISTING write variable.
+                                **CRITICAL: You must ONLY add predicates to variables that ALREADY exist in the `writes` list. Do NOT invent or add new write variables.** The writes list comes from the original YAML task plan (e.g., `save_as` fields). If `writes` is `[]`, it must stay `[]` — do NOT add variables just because the instruction mentions producing output. Implicit outputs (e.g., files created on disk, terminal output) are NOT write variables.
+                                For each existing write variable, analyze based on the instruction and predicate guide to determine what predicates the variable should satisfy after proper execution. Then reformat the `writes` field with predicate information. Then execute the following command using the shell_run to write predicates into IR JSON (replace <updated_writes_with_predicates> with your actual JSON list):
+
+                                ```bash
+                                python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["nodes", {{i}}, "writes"]' --set '<updated_writes_with_predicates>'
+                                ```
+
+                                4. Additionally, add the potential tool information you can infer from the instruction and formulate a list of dict named <tool_information> of tools predicates such as follows:
+                                ```json
+                                [
+                                    { "var_name": "get_abstract_from_url", "predicate": {"kind": "toolExists"} }
+                                ]
+                                ```
+                                Then execute the following command using shell_run to write the tool predicates into the IR JSON:
+
+                                ```bash
+                                python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["nodes", {{i}}, "precond_extra"]' --set '<tool_information>'
+                                ```
+                            If this is a node with step_type `conditional`, you also need to analyze the predicates for the `then` and `else` branches based on the node information and execute similar commands to write them into the IR JSON.
+
+                            If this is a node with step_type `whileLoop` or `forEachLoop`, you also need to analyze the loop invariant and termination condition based on the node information and execute similar commands to write them into the IR JSON.
+
+                            If this is a node with step_type `returnValue`, you also need to analyze the predicates for the return variable and execute similar commands to write them into the IR JSON.
+
+                            If this is a node with step_type `setVariable` or `incrementVariable`, you also need to analyze the predicates for the variable being set or incremented and execute similar commands to write them into the IR JSON.
+
+                            After you finish your modification, execute the following command to verify the edit:
+
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["nodes", {{i}}]' --get
+                            ```
+
+                            If the edit is successful and the predicates are correctly added, say "Node predicate edit successful". Otherwise retry the edit up to 3 times, then say "Node predicate edit failed, moving on".
+
+                    # ── Graph-level annotations: decomposed into 4 focused steps ──
+
+                    # Step A: Read goal_spec once for reuse by contribution + verification steps
+                    - task:
+                        name: "read_goal_spec_for_node"
+                        instruction: |
+                            Read the goal specification from the IR JSON by running:
+
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["goal_spec"]' --get
+                            ```
+
+                            Output the JSON result verbatim, without any additional text.
+                        save_as: "goal_spec_json"
+
+                    # Step B: Visibility assessment + Step tag + Write context
+                    - task:
+                        name: "annotate_step_tag_and_write_context"
+                        instruction: |
+                            Annotate this node with its step tag and write context.
+
+                            **Node info:**
+                            ```json
+                            {{node_info}}
+                            ```
+
+                            **Execution-time information visibility:**
+                            ```json
+                            {{node_visibility_context}}
+                            ```
+
+                            ---
+
+                            ## 0. Information Visibility Assessment (DO THIS FIRST)
+
+                            Study the `node_visibility_context` above. This tells you EXACTLY what
+                            information this node has access to at execution time. Your annotations
+                            must be grounded in what the node can actually observe — not what its
+                            instruction text claims.
+
+                            Key rules:
+                            - `has_conversation_history: false` → FRESH conversation. Cannot see
+                              prior steps' tool calls, reasoning, or intermediate work. Only
+                              receives `prev_output` (predecessor's final text summary).
+                            - `has_conversation_history: true` → Shares conversation history with
+                              all prior `task`-type steps in `prior_task_steps_in_history`.
+                            - If predecessor `writes_vars` is empty AND `has_conversation_history`
+                              is false → NO explicit data link to predecessor's work.
+
+                            Write a brief "Visibility assessment:" line.
+
+                            ---
+
+                            ## 1. Step Tag
+
+                            Assign a step tag ONLY if this node is a non-deterministic type
+                            (`step`, `task`, `call`, `synthesize`, `discover`, `evaluate`, `validate`).
+                            Skip for deterministic nodes (`setVariable`, `incrementVariable`,
+                            `conditional`, `whileLoop`, `forEachLoop`, `switchBranch`, `returnValue`,
+                            `save`, `input`, `parallel`, `gather`).
+
+                            Available tags:
+                            - `"exploratory"` — reads/explores but produces incomplete picture
+                            - `"comprehensive"` — thorough investigation producing complete understanding
+                            - `"incremental"` — builds on previous work, makes progress
+                            - `"transformative"` — creates new artifact (code change, script, patch, submission)
+                            - `"verificatory"` — checks/validates previous work
+                            - `"overhead"` — pure infrastructure step
+
+                            **Feasibility check for `"verificatory"` tag:**
+                            A node can only be tagged `"verificatory"` if it can actually observe
+                            the outcome of the work it claims to verify:
+                            - Does it read a variable written by the node whose work it verifies? OR
+                            - Does it have `has_conversation_history: true` with the producing node? OR
+                            - Can it reliably discover the outcome through filesystem side effects
+                              with **specific, targeted knowledge** of what to check?
+
+                            **"Targeted knowledge" means knowledge of WHAT CHANGED, not just ability
+                            to run tests.** A generic test command (`regression_test_cmd`, `pytest`)
+                            is NOT targeted knowledge. Running tests without knowing what was modified
+                            is black-box re-testing, not verification.
+
+                            Targeted knowledge requires knowing the SPECIFIC changes made by a
+                            predecessor (which files edited, what logic modified, what artifact produced).
+                            This comes from: (a) an explicit variable, (b) conversation history with
+                            the producing node, or (c) an external memory/knowledge system.
+
+                            Common trap: instruction says "verify your fix" but `has_conversation_history:
+                            false` — the node has NO memory of what "your fix" is. Tag `"incremental"`.
+
+                            If applicable, append to step_tags:
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["step_tags"]' --list_append '{"node_id": {{i}}, "tag": "<chosen_tag>"}'
+                            ```
+
+                            ## 2. Write Context
+
+                            For each variable this node writes, classify the write context:
+                            - `"unconditional"` — always writes (default for linear flow)
+                            - `"onSuccess"` — writes only on the success/true branch
+                            - `"onFailure"` — writes only on the failure/false/else branch
+                            - `"onExhaustion"` — writes INSIDE a loop body when retry limit is hit
+
+                            **onFailure vs onExhaustion:** determined by IMMEDIATE control flow
+                            structure, NOT upstream cause. `"onExhaustion"` is ONLY for writes
+                            INSIDE a loop body that force a variable to exit the loop.
+
+                            If the node has no write variables, skip this section.
+
+                            For each written variable, append:
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["write_contexts"]' --list_append '{"node_id": {{i}}, "var_name": "<var>", "context": "<context>"}'
+                            ```
+
+                            ---
+
+                            **IMPORTANT:** End your response with exactly one line in this format:
+                            ```
+                            STEP_TAG: <tag>
+                            ```
+                            where `<tag>` is the assigned tag (e.g., `verificatory`, `incremental`,
+                            `transformative`) or `none` if this is a deterministic node that was skipped.
+                        save_as: "step_tag_result"
+
+                    # Step C: Sub-goal contribution mapping
+                    - task:
+                        name: "annotate_subgoal_contribution"
+                        instruction: |
+                            Determine which sub-goals this node contributes to.
+
+                            **Node info:**
+                            ```json
+                            {{node_info}}
+                            ```
+
+                            **Execution-time visibility:**
+                            ```json
+                            {{node_visibility_context}}
+                            ```
+
+                            **Goal spec (available sub-goals):**
+                            ```json
+                            {{goal_spec_json}}
+                            ```
+
+                            ---
+
+                            **IMPORTANT: Only non-deterministic nodes contribute to sub-goals.**
+                            Deterministic nodes (`setVariable`, `incrementVariable`, `conditional`,
+                            `whileLoop`, `forEachLoop`, `switchBranch`, `returnValue`, `save`,
+                            `input`, `parallel`, `gather`) do NOT contribute. If this node is
+                            deterministic, say "No contributions (deterministic node)" and stop.
+
+                            **Feasibility check:** A contribution claim means this node produces
+                            evidence for the sub-goal. The node must be able to actually produce
+                            that evidence given its information visibility. For example:
+                            - Contributing to "fix_verified" requires ability to run verification
+                            - Contributing to "fix_implemented" requires access to codebase
+
+                            **CRITICAL — Contribution vs Verification duality:**
+                            A verificatory node typically has TWO roles:
+                            - It **contributes** to its OWN sub-goal (e.g., produces evidence for `fix_verified`)
+                            - It **verifies** a PREVIOUS sub-goal (e.g., checks that `fix_implemented` is correct)
+                            These are DIFFERENT sub-goals. Annotate the contribution here; the
+                            verification will be handled in the next step.
+
+                            For each sub-goal this node contributes to, append:
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["sub_goal_contributions"]' --list_append '{"node_id": {{i}}, "sub_goal_name": "<name>"}'
+                            ```
+
+                            After all edits, say "Contribution annotations complete for node {{i}}".
+
+                    # Step D: Sub-goal verification mapping (dedicated step to ensure full attention)
+                    - task:
+                        name: "annotate_subgoal_verification"
+                        instruction: |
+                            Determine whether this node **verifies** any previous sub-goal's outcome.
+
+                            **Node info:**
+                            ```json
+                            {{node_info}}
+                            ```
+
+                            **Execution-time visibility:**
+                            ```json
+                            {{node_visibility_context}}
+                            ```
+
+                            **Goal spec:**
+                            ```json
+                            {{goal_spec_json}}
+                            ```
+
+                            **Step tag assigned to this node (from previous step):**
+                            ```
+                            {{step_tag_result}}
+                            ```
+
+                            ---
+
+                            ## Applicability Check
+
+                            This section applies when EITHER condition holds:
+                            1. The step tag (above) is `"verificatory"`, OR
+                            2. The node's **name** or **instruction** contains any of these
+                               keywords: verify, test, check, validate, confirm, assert, ensure,
+                               inspect, review, audit.
+
+                            **If NEITHER condition holds, say "Verification annotation skipped
+                            for node {{i}} (not applicable)" and stop.**
+
+                            ---
+
+                            ## Verification Annotation
+
+                            A node CANNOT both contribute to AND verify the SAME sub-goal.
+                            But it SHOULD contribute to one sub-goal (handled in the previous step)
+                            and verify a DIFFERENT, earlier sub-goal.
+
+                            **Feasibility check — verification IS feasible when:**
+
+                            | Condition | Example |
+                            |---|---|
+                            | Node reads a variable written by X's contributing node | `readable_template_vars` includes X's output variable |
+                            | Node has conversation history with X's contributing node | `has_conversation_history: true` AND contributing node is a `task` type in `prior_task_steps_in_history` |
+                            | Node has **targeted knowledge of WHAT CHANGED** and can check mechanically | A variable carries the predecessor's output file path or diff |
+                            | Node can query an external memory/knowledge system | Instruction or tools include memory retrieval for predecessor's actions |
+
+                            **Verification is NOT feasible when:**
+                            - `has_conversation_history: false` AND no explicit variable carrying
+                              what the predecessor produced AND no external memory system
+                            - The node only has a generic test command (`regression_test_cmd`,
+                              `pytest`) but does NOT know what specific code changes were made.
+                              Running tests blind is black-box re-testing, not verification.
+                            - The node would need to independently explore the filesystem to
+                              discover what changed (e.g., `git diff`, browse directories).
+                              This is unbounded exploration, not verification.
+                            - The instruction says "verify your fix" or "run your script again"
+                              but `has_conversation_history: false` — the node does not know what
+                              "your fix" or "your script" refers to.
+                            - The node has general tool access but lacks knowledge of WHAT
+                              SPECIFICALLY was changed. Having tools ≠ having knowledge.
+
+                            If verification is not feasible, do NOT add an entry.
+
+                            For each sub-goal this node verifies (after passing feasibility), append:
+                            ```bash
+                            python {{staging_dir}}/EditJson.py --json_path {{intermediate_representation_path}} --path '["sub_goal_verifications"]' --list_append '{"node_id": {{i}}, "sub_goal_name": "<name>"}'
+                            ```
+
+                            After all edits, say "Graph annotations complete for node {{i}}".
+
+                    - increment: "i"
+
+            # ============================================================
+            # IR VALIDATION: Fix known LLM annotation issues
+            # ============================================================
+            - task:
+                name: "validate_and_fix_ir"
+                instruction: |
+                    Validate the IR JSON file and fix known issues from LLM annotation.
+                    Run the following command using shell_run:
+
+                    ```bash
+                    python {{staging_dir}}/ValidateIR.py --json_path {{intermediate_representation_path}}
+                    ```
+
+                    Report whether any fixes were applied.
+                save_as: "ir_validation_result"
+
+            - step:
+                name: "layer2_lean_writing"
+                instruction: |
+                    Run the following bash command using shell_run to transform the IR Json file into the Layer 2 Lean file for verification. The parameter
+
+                    ```bash
+                    python {{staging_dir}}/TaskPlanToLean.py --from_ir {{intermediate_representation_path}} --prefix {{module_name}} --output <output_path> --env_file <env_path>
+                    ```
+
+                    If the code runs successfully without error, say OK. Otherwise, try to identify the error and fix it based on the error message. If the retry time exceeds 3, say "Lean writing failed, moving on".
+                save_as: "lean_writing_ok"

@@ -1,0 +1,64 @@
+  name: "deep_research_llm_prompt"
+  goal: "Perform deep arxiv research on llm prompt in Coding with iterative paper analysis"
+
+  config:
+    model: "gpt-4o-mini"
+    max_tokens_per_step: 100000
+    max_tool_calls_per_step: 10
+    plan_revision_max_steps: 0
+
+  parameters:
+    topic: "llm prompt in Coding"
+    sub_task: "llm_prompt"
+    target_words: 2000
+    max_papers: 3
+
+  workflow:
+    # Step 1: Search and download arXiv papers
+    - step:
+        name: "arxiv_search_and_download"
+        instruction: "Search arXiv for papers related to '{{topic}}'. Find the top {{max_papers}} most relevant papers. For each paper: 1) Download the PDF to local storage, 2) Rename the downloaded PDF file with the title of the paper 3) Keep track of the local file paths. At the end, return ONLY a list of the downloaded PDF file paths in this exact format: ['/path/to/paper1.pdf', '/path/to/paper2.pdf', '/path/to/paper3.pdf']. Do not include any other text or explanation."
+        # Test the save_as feature
+        save_as: "paper_paths_test"
+
+    # Test the set_variable feature
+    - set_variable:
+        name: "new_breadth"
+        value: 4
+
+    - set_variable:
+        name: "new_breadth"
+        value: "{{new_breadth}} // 2"
+
+    # Step 2: Extract paper paths into a discoverable list
+    - discover:
+        name: "paper_paths"
+        from: "prev_output"
+        instruction: "Extract the PDF file paths from the search and download results. Return only the file paths as a clean array."
+
+    # Step 3: Analyze each paper individually
+    - for_each:
+        variable: "paper_path"
+        in: "paper_paths"
+        limit: "{{max_papers}}"
+        steps:
+          - step:
+              name: "analyze_paper_{{paper_path}}"
+              instruction: "Read and thoroughly analyze the PDF located at '{{paper_path}}'. Focus on the {{sub_task}} aspect. Provide a comprehensive analysis including: 1) Paper title and authors, 2) Main research question and methodology, 3) Key findings and contributions, 4) Relevance to {{topic}}, 5) Strengths and limitations, 6) How it relates to the overall research goal. Write approximately 400-500 words for this analysis."
+
+    # Step 4: Synthesize all paper analyses
+    - synthesize:
+        name: "comprehensive_research_synthesis"
+        instruction: "Based on all the individual paper analyses, create a comprehensive research synthesis on {{topic}}. Include: 1) Overview of the research landscape, 2) Common themes and methodologies, 3) Key findings across papers, 4) Gaps and future research directions, 5) Implications for {{sub_task}}. Target length: {{target_words}} words."
+        output_file: "final_research_report.md"
+
+    # Step 5: Create paper reference list
+    - save:
+        name: "paper_references"
+        content: "# Downloaded Papers for {{topic}} Research\n\nPaper files analyzed in this research:\n{{paper_paths}}\n\nGenerated on: $(date)\nResearch focus: {{sub_task}}"
+        output_file: "paper_references.txt"
+
+    # Step 6: Evaluate research quality
+    - evaluate:
+        name: "research_quality_score"
+        instruction: "Evaluate the quality and comprehensiveness of this research synthesis. Consider: coverage of topic, depth of analysis, coherence of findings, and achievement of the {{target_words}} word target. Rate from 0.0 to 1.0."

@@ -1,0 +1,65 @@
+name: "extract_content_learnings_module"
+goal: "Extract learnings from a single content file for deep research"
+
+config:
+    model: "o3-mini"                 # Use a different model for this submodule
+    max_tokens_per_step: 100000         # Submodule uses smaller token limit
+    max_tool_calls_per_step: 10
+
+# Parameters from parent workflow
+parameters:
+    content_path: "${CONTENT_PATH}"
+    query: "${QUERY}"
+    research_goal: "${RESEARCH_GOAL}"
+    user_query: "${USER_QUERY}"
+    memory_file: "${MEMORY_FILE}"
+
+workflow:
+    # ========================================
+    # Step 1: Extract learnings from content
+    # ========================================
+    - step:
+        name: "extract_learnings"
+        instruction: |
+            Given the content path from a web search result: {{content_path}}
+
+            Search Query: {{query}}
+            Research Goal: {{research_goal}}
+
+            Task: Read the content with MAX 25000 bytes, then thoroughly analyze the content and extract valuable learnings.
+
+            Generate 1-3 learnings (return fewer if content is not informative).
+
+            Each learning should be:
+            - Unique and distinct from others
+            - Concise yet information-dense
+            - Include how the learning is relevant to the user query: {{user_query}}.
+            - Include specific entities (people, places, companies, products, concepts)
+            - Include exact metrics, numbers, dates, or statistics when available
+            - Relevant to the search query and research goal
+            - Actionable or insightful for further research
+
+            Return ONLY a clean JSON array with no extra commentary:
+            ["learning 1 with specific details...", "learning 2 with metrics...", "learning 3 with entities..."]
+
+            If the content is not useful or relevant, return an empty array: []
+        save_as: "learnings"
+
+    # ========================================
+    # Step 2: Return summary with learnings
+    # ========================================
+    - step:
+        name: "create_summary"
+        instruction: |
+            Create a summary of the learning extraction:
+
+            Return as JSON:
+            {
+                "content_path": "{{content_path}}",
+                "learnings": {{learnings}},
+            }
+
+            Return ONLY the JSON object.
+        save_as: "learning_dict"
+    
+    - return: "learning_dict"

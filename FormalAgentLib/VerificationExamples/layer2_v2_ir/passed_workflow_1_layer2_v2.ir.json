@@ -1,0 +1,439 @@
+{
+  "name": "passed_workflow_1_v2",
+  "goal": "Given a GitHub issue, reproduce it and fix it by producing a minimal git patch",
+  "parameters": [
+    {
+      "name": "code_path",
+      "base_type": "TString",
+      "predicates": [
+        {
+          "kind": "isValidFilePath"
+        }
+      ]
+    },
+    {
+      "name": "problem_statement",
+      "base_type": "TString",
+      "predicates": [
+        {
+          "kind": "isNonEmptyString"
+        }
+      ]
+    },
+    {
+      "name": "regression_test_cmd",
+      "base_type": "TString",
+      "predicates": []
+    }
+  ],
+  "nodes": [
+    {
+      "id": 0,
+      "name": "explore_repository",
+      "step_type": "step",
+      "reads": [
+        {
+          "name": "problem_statement",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "instruction": "<pr_description>\nConsider the following PR description:\n{{problem_statement}}\n</pr_description>\n\nYou're a software engineer interacting continuously with a computer by submitting commands.\nYou'll be helping implement necessary changes to meet requirements in the PR description.\nYour task is specifically to make changes to non-test files in the current directory in order to fix the issue described in the PR description in a way that is general and consistent with the codebase.\n<IMPORTANT>This is an interactive process where you will think and issue AT LEAST ONE command for every step, see the result, then think and issue your next command(s).</IMPORTANT>\nFor each response:\n1. Include a THOUGHT section explaining your reasoning and what you're trying to accomplish\n2. Provide one or more bash tool calls to execute\n\n<boundaries>\n- MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)\n- DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)\n</boundaries>\n\nNow begin. Start by exploring the repository structure at /testbed to understand the codebase, focusing on files and directories most relevant to the issue described in the PR description.",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "problem_statement",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "repository_understanding",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "exploratory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "repository_explored"
+        }
+      ],
+      "implicit_retries": [
+        {
+          "sub_goal_name": "repository_explored"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "reproduce_issue",
+      "step_type": "step",
+      "reads": [],
+      "writes": [],
+      "instruction": "Now that you've explored the repository, create a script to reproduce the issue described in the PR description.\n\nSteps:\n1. Based on the PR description and the code you've read, write a small reproduction script (e.g. /testbed/reproduce_issue.py or /testbed/reproduce_issue.sh) that demonstrates the bug or failure.\n2. Run the script and confirm the issue is reproducible. Show the error output.\n3. If the issue is not directly reproducible with a simple script (e.g., it's a behavioral or logic error), explain what you observe and how it differs from expected behavior.\n\nRemember:\n- Work in the /testbed directory\n- Use non-interactive commands only\n- Every response MUST include at least one bash tool call",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "repository_understanding",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "reproduction_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "issue_reproduced"
+        }
+      ],
+      "implicit_retries": [
+        {
+          "sub_goal_name": "issue_reproduced"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "fix_issue",
+      "step_type": "step",
+      "reads": [],
+      "writes": [],
+      "instruction": "Now that you've reproduced the issue, locate the relevant source code and implement a fix.\n\nSteps:\n1. Identify the exact source files and functions that need to be changed\n2. Understand the root cause of the issue by reading the relevant code carefully\n3. Implement a fix that:\n   - Addresses the root cause, not just the symptoms\n   - Is consistent with the existing codebase style and patterns\n   - Is general enough to handle edge cases\n   - Does NOT modify any test files or configuration files (pyproject.toml, setup.cfg, etc.)\n4. Use sed, python scripts, or heredocs to make the edits -- do NOT use interactive editors\n\nRemember:\n- Work in the /testbed directory\n- Every response MUST include at least one bash tool call\n- ONLY modify regular source code files",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "reproduction_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "repository_understanding",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "fix_implementation_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "fix_implemented"
+        }
+      ],
+      "implicit_retries": [
+        {
+          "sub_goal_name": "fix_implemented"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "verify_fix",
+      "step_type": "step",
+      "reads": [
+        {
+          "name": "regression_test_cmd",
+          "base_type": "TString",
+          "predicates": []
+        }
+      ],
+      "writes": [],
+      "instruction": "Now verify that your fix resolves the issue.\n\nSteps:\n1. Re-run the reproduction script you created earlier to confirm the issue is fixed\n2. If there is a regression test command available, run it: {{regression_test_cmd}}\n3. Test edge cases to ensure your fix is robust and doesn't break other functionality\n4. If anything fails, go back and refine your fix\n\nRemember:\n- Work in the /testbed directory\n- Every response MUST include at least one bash tool call",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "regression_test_cmd",
+          "predicate": {
+            "kind": "nameExists"
+          }
+        },
+        {
+          "var_name": "fix_implementation_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        },
+        {
+          "var_name": "reproduction_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "fix_verification_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "verificatory"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "fix_verified"
+        }
+      ],
+      "sub_goal_verifications": [
+        {
+          "sub_goal_name": "fix_implemented"
+        }
+      ],
+      "implicit_retries": [
+        {
+          "sub_goal_name": "fix_verified"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "create_patch",
+      "step_type": "step",
+      "reads": [],
+      "writes": [],
+      "instruction": "Your fix is verified. Now create and submit the final patch.\n\nFollow these steps IN ORDER, with SEPARATE commands:\n\nStep 1: Create the patch file\nRun `cd /testbed && git diff -- path/to/file1 path/to/file2 > patch.txt` listing only the source files you modified.\nDo NOT commit your changes.\n<IMPORTANT>\nThe patch must only contain changes to the specific source files you modified to fix the issue.\nDo not submit file creations or changes to any of the following files:\n- test and reproduction files\n- helper scripts, tests, or tools that you created\n- installation, build, packaging, configuration, or setup scripts\n- binary or compiled files\n</IMPORTANT>\n\nStep 2: Verify your patch\nInspect patch.txt to confirm it only contains your intended changes.\n\nStep 3: Submit (EXACT command required)\nYou MUST use this EXACT command to submit:\n```bash\necho COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt\n```",
+      "precond_extra": [
+        {
+          "var_name": "shell_run",
+          "predicate": {
+            "kind": "toolExists"
+          }
+        },
+        {
+          "var_name": "fix_implementation_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "postcond_extra": [
+        {
+          "var_name": "patch_submission_evidence",
+          "predicate": {
+            "kind": "isNonEmptyString"
+          }
+        }
+      ],
+      "step_tag": {
+        "kind": "transformative"
+      },
+      "sub_goal_contributions": [
+        {
+          "sub_goal_name": "patch_submitted"
+        }
+      ],
+      "implicit_retries": [
+        {
+          "sub_goal_name": "patch_submitted"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "edge_type": "seq",
+      "from_node": 0,
+      "to_node": 1
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 1,
+      "to_node": 2
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 2,
+      "to_node": 3
+    },
+    {
+      "edge_type": "seq",
+      "from_node": 3,
+      "to_node": 4
+    }
+  ],
+  "entry": 0,
+  "exits": [
+    4
+  ],
+  "param_postcond": [
+    {
+      "var_name": "code_path",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "problem_statement",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "regression_test_cmd",
+      "predicate": {
+        "kind": "nameExists"
+      }
+    },
+    {
+      "var_name": "code_path",
+      "predicate": {
+        "kind": "isValidFilePath"
+      }
+    },
+    {
+      "var_name": "problem_statement",
+      "predicate": {
+        "kind": "isNonEmptyString"
+      }
+    },
+    {
+      "var_name": "shell_run",
+      "predicate": {
+        "kind": "toolExists"
+      }
+    }
+  ],
+  "goal_spec": {
+    "original_goal": "Given a GitHub issue, reproduce it and fix it by producing a minimal git patch",
+    "sub_goals": [
+      {
+        "name": "repository_explored",
+        "variable_name": "repository_understanding",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that the repository structure was explored and relevant source files were identified based on the GitHub issue.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          }
+        ]
+      },
+      {
+        "name": "issue_reproduced",
+        "variable_name": "reproduction_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that a reproduction script was created and the bug was reproduced. Context continuity PASSES because task chain provides conversation history.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          }
+        ]
+      },
+      {
+        "name": "fix_implemented",
+        "variable_name": "fix_implementation_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that source code was modified to fix the issue. Context flows via task chain. unifiedLoopBack PASSES due to markImplicitRetry on task nodes.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          },
+          {
+            "kind": "informationSufficiency"
+          },
+          {
+            "kind": "unifiedLoopBack"
+          },
+          {
+            "kind": "verificationCoverage"
+          }
+        ]
+      },
+      {
+        "name": "fix_verified",
+        "variable_name": "fix_verification_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that the fix was verified by rerunning reproduction and regression tests. Context continuity PASSES via task chain.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          }
+        ]
+      },
+      {
+        "name": "patch_submitted",
+        "variable_name": "patch_submission_evidence",
+        "required_predicate": {
+          "kind": "isNonEmptyString"
+        },
+        "description": "Evidence that a git patch was created and submitted. Context flows via task chain but no fail-safe exists.",
+        "required_graph_predicates": [
+          {
+            "kind": "pathCoverage"
+          },
+          {
+            "kind": "contextContinuity"
+          },
+          {
+            "kind": "failSafe"
+          }
+        ]
+      }
+    ]
+  }
+}

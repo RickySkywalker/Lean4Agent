@@ -1,0 +1,20 @@
+name: "quickstart"
+goal: "Write and run a Python script that prints system info, then summarize the results"
+
+config:
+  model: "${MODEL_NAME}"
+  max_tokens_per_step: 4000
+
+workflow:
+  - step:
+      name: "write_script"
+      instruction: |
+        Write a Python script that prints: the current date/time,
+        the OS platform, the Python version, and the current working directory.
+        Use only the standard library (os, sys, platform, datetime).
+        Execute the script using the execute_python_code tool.
+
+  - synthesize:
+      name: "summary"
+      instruction: "Summarize the script output into a short system profile (under 100 words)."
+      output_file: "system_profile.md"

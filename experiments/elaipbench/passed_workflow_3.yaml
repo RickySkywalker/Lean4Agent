@@ -1,0 +1,297 @@
+name: "elaipbench_agent_passed_workflow_3"
+goal: "Answer an academic paper question based on the provided passage"
+system_prompt: |
+  You are an expert academic researcher skilled at reading and understanding scientific papers. You answer questions about academic papers by carefully analyzing the provided passage. Be precise and select only the answer(s) that are supported by the passage.
+config:
+  model: "${MODEL_NAME}"
+  temperature: 1.0
+  max_tokens: 163840
+  enabled_tools: []
+  enable_inline_tool_calls: true
+parameters:
+  question: ""
+  paper_content: ""
+  question_type_instruction: ""
+  question_type: ""
+
+workflow:
+  - task:
+      name: skim_paper
+      instruction: |
+        Read the paper passage and produce a short orientation.
+        Paper:
+        {{paper_content}}
+
+        Identify the paper title and a single-paragraph abstract summary that
+        captures the paper's contribution and scope.
+
+        Return JSON:
+        {
+          "title": "",
+          "abstract_summary": ""
+        }
+      save_as: paper_overview
+
+  - task:
+      name: extract_section_headings
+      instruction: |
+        From the same paper, list the main section headings in the order they
+        appear. Use only headings that are visible in the passage; do not
+        invent any.
+
+        Paper:
+        {{paper_content}}
+
+        Return JSON:
+        {
+          "section_headings": []
+        }
+      save_as: section_headings
+
+  - task:
+      name: extract_keywords
+      instruction: |
+        Read the question stem (without examining the four options) and
+        extract a compact list of keywords or short phrases that should be
+        searched against the paper to find supporting evidence.
+
+        Question:
+        {{question}}
+
+        Use the paper overview as background context only:
+        {{paper_overview}}
+
+        Return JSON:
+        {
+          "keywords": [],
+          "rationale": ""
+        }
+      save_as: question_keywords
+
+  - task:
+      name: classify_question_type
+      instruction: |
+        Classify the question stem along two axes. Look at the stem only; do
+        not yet read the options.
+
+        Question:
+        {{question}}
+        {{question_type_instruction}}
+
+        Determine:
+        1. Whether this is a Single-answer or Multiple-answer question.
+        2. The exact focus of the question (what type of fact is being asked
+           for).
+        3. Whether the stem contains negation words (e.g. "NOT",
+           "incorrect", "false", "wrong"). If so, mark negation_present
+           explicitly and quote the negation phrase.
+
+        Return JSON:
+        {
+          "question_type": "Single-answer or Multiple-answer",
+          "core_claim": "",
+          "question_stem": "",
+          "negation_present": false,
+          "negation_phrase": ""
+        }
+      save_as: question_classification
+
+  - set_variable:
+      name: keyword_evidence_buffer
+      value: "[]"
+
+  - for_each:
+      variable: "keyword"
+      in: "question_keywords.keywords"
+      steps:
+        - task:
+            name: search_paper_for_keyword
+            instruction: |
+              Search the paper for paragraphs that contain or directly
+              discuss the keyword "{{keyword}}".
+
+              Paper:
+              {{paper_content}}
+
+              Return up to 2 paragraphs copied VERBATIM from the paper.
+              Each entry must include the keyword that triggered the match
+              and the full paragraph text. Do not paraphrase.
+
+              Return JSON:
+              [
+                {
+                  "keyword": "{{keyword}}",
+                  "paragraph": ""
+                }
+              ]
+            save_as: keyword_hits
+
+        - set_variable:
+            name: keyword_evidence_buffer
+            value: "{{keyword_evidence_buffer}} + {{keyword_hits}}"
+
+  - task:
+      name: consolidate_evidence
+      instruction: |
+        Consolidate the per-keyword evidence buffer into a single ranked
+        evidence list of at most 5 snippets.
+
+        Per-keyword buffer: {{keyword_evidence_buffer}}
+        Question core claim: {{question_classification.core_claim}}
+
+        Rules:
+        - Deduplicate paragraphs that appear under multiple keywords.
+        - Keep only paragraphs that clearly relate to the core claim.
+        - Each snippet must be a paragraph copied VERBATIM from the paper;
+          do not paraphrase or invent text.
+        - Return at most 5 snippets; fewer is fine if evidence is thin.
+
+        Return JSON:
+        {
+          "evidence_snippets": [
+            {
+              "text": "",
+              "reason": ""
+            }
+          ]
+        }
+      save_as: evidence
+
+  - task:
+      name: verify_evidence_quality
+      instruction: |
+        Sanity-check the consolidated evidence before option evaluation.
+
+        Question classification: {{question_classification}}
+        Evidence: {{evidence}}
+
+        Decide whether the evidence is sufficient to discriminate among
+        the four answer options. If gaps remain, list them so the
+        downstream evaluator is aware.
+
+        Return JSON:
+        {
+          "coverage_ok": true,
+          "missing_aspects": [],
+          "notes": ""
+        }
+      save_as: evidence_quality_note
+
+  - task:
+      name: evaluate_options
+      instruction: |
+        Evaluate each of the four answer options A, B, C, D as an
+        INDEPENDENT judgment. Your verdict on one option must NOT
+        influence your verdict on any other option.
+
+        Question: {{question}}
+        Question classification: {{question_classification}}
+        Evidence: {{evidence}}
+        Evidence quality note: {{evidence_quality_note}}
+
+        For each option determine:
+        1. Whether it is supported, contradicted, or not_established by the
+           evidence.
+        2. A short reason explaining the judgment.
+        3. Which evidence snippet text is most relevant.
+
+        Selection guidance based on classification:
+        - Single-answer: exactly ONE option should be marked supported.
+        - Multiple-answer: typically 2-3 options should be marked supported.
+
+        If negation_present is true in the classification, remember that
+        the correct answers are the options the paper does NOT support.
+
+        Return JSON:
+        {
+          "A": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "B": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "C": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "D": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+          "selected_options": [],
+          "selected_count": 0
+        }
+
+        Rules:
+        - "supported" means the option is justified by the evidence,
+          whether directly stated, paraphrased, or reasonably inferred.
+        - "contradicted" means the evidence directly goes against the
+          option.
+        - "not_established" means the evidence is insufficient to support
+          the option.
+        - Do not guess beyond the evidence.
+      save_as: option_judgment
+
+  - switch:
+      variable: "question_type"
+      cases:
+        "MA-MCQ":
+          - set_variable:
+              name: recheck_count
+              value: 0
+
+          - while:
+              condition: "option_judgment.selected_count < 2 and recheck_count < 3"
+              max_iterations: 3
+              steps:
+                - task:
+                    name: recheck_options
+                    instruction: |
+                      This is a multiple-answer question (typically 2-3
+                      correct), but only {{option_judgment.selected_count}}
+                      option(s) have been selected so far.
+
+                      Question: {{question}}
+                      Current evaluation: {{option_judgment}}
+                      Evidence: {{evidence}}
+
+                      Reconsider every non-selected option with a more
+                      lenient standard. You MUST end with at least 2
+                      options marked "supported".
+
+                      Return JSON in the same shape as the original
+                      evaluation:
+                      {
+                        "A": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+                        "B": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+                        "C": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+                        "D": {"verdict": "supported / contradicted / not_established", "reason": "", "evidence_text": ""},
+                        "selected_options": [],
+                        "selected_count": 0
+                      }
+                    save_as: option_judgment
+
+                - increment: recheck_count
+
+          - task:
+              name: finalize_multi_answer
+              instruction: |
+                Produce the final answer for this multiple-answer question.
+
+                Question: {{question}}
+                Option evaluation: {{option_judgment}}
+                {{question_type_instruction}}
+              save_as: final_response
+
+        "SA-MCQ":
+          - task:
+              name: finalize_single_answer
+              instruction: |
+                Produce the final answer for this single-answer question.
+
+                Option evaluation: {{option_judgment}}
+                Question: {{question}}
+                {{question_type_instruction}}
+              save_as: final_response
+
+      default:
+        - task:
+            name: finalize_default
+            instruction: |
+              The question type was unrecognized. Treat it as a single-
+              answer question and produce the final answer.
+
+              Option evaluation: {{option_judgment}}
+              Question: {{question}}
+              {{question_type_instruction}}
+            save_as: final_response

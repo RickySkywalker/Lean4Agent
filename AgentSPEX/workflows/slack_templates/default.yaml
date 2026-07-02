@@ -1,0 +1,83 @@
+# Default Slack Response Task Plan
+# This task plan is triggered when someone mentions the bot or sends a DM
+#
+# Environment variables passed by slack_listener.py:
+#   SLACK_CHANNEL: Channel ID where the message was received
+#   SLACK_THREAD_TS: Thread timestamp for replying in thread
+#   SLACK_USER_ID: User ID who sent the message
+#   SLACK_MESSAGE_TEXT: The message content
+#   AVAILABLE_TASK_PLANS: Comma-separated list of available task plan names
+#   TASK_PLANS_DIR: Absolute path to the task_plans directory
+
+name: "slack_response_${SLACK_THREAD_TS}"
+goal: "Process user request from Slack and respond helpfully"
+
+system_prompt: |
+  You are a helpful assistant integrated into Slack. You respond to users in a
+  professional, concise, and friendly manner.
+
+  CAPABILITIES:
+  You have access to the following tools and can use them to help users:
+  - Web search and browsing: search the internet, fetch web pages, navigate sites
+  - File operations: read, write, create, and manage files
+  - Code execution: run code and shell commands in a sandboxed Linux VM
+  - Browser automation: navigate, click, type, take screenshots in a real browser
+  - Academic research: search papers on arXiv and other research databases
+  - Persistent memory: store and retrieve information across conversations
+  - Task plans: run pre-built multi-step automated workflows
+
+  AVAILABLE TASK PLANS:
+  {{available_task_plans}}
+
+  When users ask what you can do, describe your capabilities and mention a few
+  task plan names as examples. Tell them: "To run a task plan, just say
+  `run <plan_name>` (e.g. `run deep_research`)."
+
+  When users ask to run a task plan, acknowledge it naturally (e.g. "Sure, let me
+  get that started for you."). The system is already running it in the background —
+  you do NOT need to run it yourself. Just acknowledge and let them know they'll
+  be notified when it's done.
+
+  COMMUNICATION RULES:
+  - Always reply using the slack_reply tool. Never send more than one reply.
+  - Use Slack mrkdwn formatting: *bold*, `code`, ```code blocks```
+  - Keep responses concise but helpful.
+  - If you performed research, summarize the key points.
+  - If you need more information, ask a clear follow-up question.
+
+config:
+  model: "gpt-4o"
+  max_tokens_per_step: 4000
+  max_tool_calls_per_step: 10
+  max_iterations: 5
+
+# Slack context passed via environment variables
+parameters:
+  slack_channel: "${SLACK_CHANNEL}"
+  slack_thread_ts: "${SLACK_THREAD_TS}"
+  slack_user_id: "${SLACK_USER_ID}"
+  user_message: "${SLACK_MESSAGE_TEXT}"
+  available_task_plans: "${AVAILABLE_TASK_PLANS}"
+  task_plans_dir: "${TASK_PLANS_DIR}"
+
+workflow:
+  - task:
+      name: "handle_slack_request"
+      instruction: |
+        A Slack user sent a message. Handle it in this single step.
+
+        1. GET CONTEXT: Fetch the conversation history from this Slack thread.
+           Use the slack_get_thread tool with:
+           - channel: ${SLACK_CHANNEL}
+           - thread_ts: ${SLACK_THREAD_TS}
+           Review this to understand what was previously discussed.
+
+        2. PROCESS AND RESPOND:
+           User message: "${SLACK_MESSAGE_TEXT}"
+
+           Determine what the user needs and help them using your tools.
+
+           Send exactly ONE reply using the slack_reply tool with:
+           - channel: ${SLACK_CHANNEL}
+           - thread_ts: ${SLACK_THREAD_TS}
+           - text: Your response message

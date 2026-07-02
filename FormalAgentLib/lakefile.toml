@@ -1,0 +1,29 @@
+name = "AgentVerifier"
+version = "0.1.0"
+# The framework is consumed as a Lean *library* (oleans) via `lake env lean --run` drivers (see lean_query); the library is the default (and only) build target.
+defaultTargets = ["AgentVerifier"]
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.20.0"
+
+[[lean_lib]]
+name = "AgentVerifier"
+
+[[lean_lib]]
+name = "TestVerifications"
+globs = ["TestVerifications.*"]
+
+[[lean_lib]]
+name = "VerificationExamples"
+globs = ["VerificationExamples.*"]
+
+# Hand-written Layer-2 workflow specs (SWE-Bench + ELAIP-Bench). These are
+# imported by the generated Layer-3 per-step files (e.g. the ELAIP lean_evolve
+# pipeline imports StaticSemanticWorkflowExamples.«ELAIP-Bench».passed_workflow_1), so
+# they must be resolvable as `lake build` targets, not just `lake env lean`
+# single-file checks.
+[[lean_lib]]
+name = "StaticSemanticWorkflowExamples"
+globs = ["StaticSemanticWorkflowExamples.*"]

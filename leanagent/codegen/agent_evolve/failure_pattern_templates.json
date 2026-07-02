@@ -1,0 +1,440 @@
+[
+  {
+    "id": "undefined_identifier_in_patch",
+    "trigger": "The failed attempt introduced or referenced an identifier (variable, parameter, attribute, imported name) inside a method body that is not reachable from the enclosing scope — not in the method's signature parameters, not a `self` attribute, not a module-level import, not a local binding the patch declared.",
+    "symptom_markers": [
+      "NameError",
+      "name '.*' is not defined",
+      "AttributeError: .* has no attribute",
+      "no attribute",
+      "not defined in this scope",
+      "signature has no .* parameter",
+      "referenced a variable .* that was not in"
+    ],
+    "general_rule": "Before writing any code hunk inside a method, enumerate every identifier the new code will reference and verify each resolves to one of: the method's signature parameters, `self` attributes (confirm by grepping the class body for the attribute's initialisation), module-level imports, or local bindings the patch itself declares. If an identifier does not resolve, introduce it explicitly — add a new parameter, add a new `self.attr`, or add a new import — rather than leaving it as a free name on the assumption a similar method has that name in scope."
+  },
+  {
+    "id": "backward_compat_guard_instead_of_unifying_fix",
+    "trigger": "The failed attempt added a conditional guard (e.g. `if isinstance(x, T)`) that produces the legacy output shape for the demo input, instead of unifying behaviour across all sibling inputs. Tests tightened to require the unified shape regress the non-demo inputs the class already handled.",
+    "symptom_markers": [
+      "Tuples differ",
+      "expected .* got .*",
+      "regressed sibling",
+      "demo input passes but",
+      "isinstance guard",
+      "backward compatibility"
+    ],
+    "general_rule": "When the issue description or its linked PR asks for a unifying change across input shapes, implement the full structural fix — a single code path that produces the canonical output for every input shape the class accepts — rather than a conditional shortcut that only handles the demo input. Evaluation suites routinely tighten their assertions to require the unified shape across all inputs a class supports, so a guarded shortcut will regress the sibling cases the class was already handling correctly before your edit."
+  },
+  {
+    "id": "keyword_filter_masked_failing_tests",
+    "trigger": "The failed attempt declared verification complete after running a keyword-filtered subset of tests (e.g. `pytest -k <substring>`) that excluded the very test cases whose assertions pin down the bug. The explicit FAIL_TO_PASS test path was not executed.",
+    "symptom_markers": [
+      "keyword filter",
+      "pytest -k",
+      "substring filter",
+      "filtered subset",
+      "declared complete after",
+      "did not run the exact"
+    ],
+    "general_rule": "Do not use keyword-filter pytest invocations (`pytest -k <substring>`) as your completion check. Run the affected test module by its explicit module path — the same path the evaluation harness will use — and require zero new failures relative to the pre-edit baseline. Keyword filters routinely exclude the very assertion that pins the bug, so their passing signal is unreliable."
+  },
+  {
+    "id": "reproduction_script_diverges_from_upstream_test",
+    "trigger": "The failed attempt's reproduction script appeared to `pass` but the upstream FAIL_TO_PASS test continued to fail. The reproduction is exercising a different code path or different input shape than the upstream test.",
+    "symptom_markers": [
+      "reproduction passes",
+      "repro script ok",
+      "reproduced but upstream",
+      "different code path",
+      "passed locally but failed in harness"
+    ],
+    "general_rule": "A reproduction script that 'passes' without triggering the upstream assertion is insufficient — it is exercising a different code path than the failing test. Before trusting a reproduction, confirm it actually reproduces the upstream assertion on an unmodified checkout (the check should FAIL on main and PASS after your fix). If running your reproduction alone does not show the original error, adjust the reproduction until it does, then proceed."
+  },
+  {
+    "id": "byte_compile_mistaken_for_verification",
+    "trigger": "The failed attempt treated a successful `python -m py_compile` or a successful import as evidence the fix works, without executing the failing test path.",
+    "symptom_markers": [
+      "py_compile",
+      "import succeeded",
+      "compiled cleanly",
+      "no syntax error",
+      "loaded without error"
+    ],
+    "general_rule": "A clean `python -m py_compile` or a clean `import` of the edited module is not verification. Only running the test paths that actually exercise the changed behaviour constitutes verification. After every edit, execute the full module containing the FAIL_TO_PASS test and confirm that test passes."
+  },
+  {
+    "id": "sibling_call_site_bypasses_fix",
+    "trigger": "The fix is correct at one call site but a sibling path — different entry point, different caller, different wrapper — bypasses the changed code and preserves the original bug.",
+    "symptom_markers": [
+      "sibling path",
+      "bypasses the fix",
+      "different entry point",
+      "other caller",
+      "wrapper still produces",
+      "call chain not updated"
+    ],
+    "general_rule": "Before committing to an edit at one call site, grep the repository for every other site that touches the same state — same attribute, same function, same protocol. A correct local fix can still be wrong if a sibling path bypasses it. Identify sibling call sites up front and either apply the same fix there or factor the changed logic into a shared helper both paths call."
+  },
+  {
+    "id": "class_invariant_broken_for_other_methods",
+    "trigger": "The patch changed one method in a class but broke an invariant that other methods in the same class relied on, producing P2P regressions inside the class's own test file.",
+    "symptom_markers": [
+      "P2P regressed",
+      "class invariant",
+      "other methods assume",
+      "same class failed",
+      "sibling test in same module"
+    ],
+    "general_rule": "Before editing any method in a non-trivial class, read the full class body and identify the invariants the class maintains (shape of returned tuples, contract of accessor methods, ordering guarantees, mutability assumptions). Your patch must preserve every invariant the class's existing tests already pin down. If the targeted behaviour conflicts with an existing invariant, the fix is larger than one method and must be scoped accordingly."
+  },
+  {
+    "id": "new_top_level_import_broke_module_load",
+    "trigger": "The failed attempt added a new top-level `import` or a new top-level statement that causes a circular import, import-time side effect, or module-load failure, breaking every test that depends on the module.",
+    "symptom_markers": [
+      "ImportError",
+      "circular import",
+      "cannot import name",
+      "all tests failed",
+      "P2P 0/",
+      "ModuleNotFoundError",
+      "module-level",
+      "top-level import"
+    ],
+    "general_rule": "Avoid adding top-level `import` statements to existing modules unless the imported name is unavoidably required at module load time. Prefer function-local imports to sidestep circular-import and import-time-side-effect pitfalls. After any edit that touches imports, sanity-check the module with `python -c 'import <module_path>'` before running tests — if this fails, every downstream test will fail for reasons unrelated to your bug fix."
+  },
+  {
+    "id": "test_or_config_file_modified",
+    "trigger": "The failed attempt edited test files, `conftest.py`, `pyproject.toml`, `setup.cfg`, or similar configuration to coerce a pass, rather than fixing the source code.",
+    "symptom_markers": [
+      "modified tests/",
+      "touched test_",
+      "pyproject.toml changed",
+      "setup.cfg changed",
+      "conftest.py edited",
+      "test file modified"
+    ],
+    "general_rule": "Never edit files under `tests/`, `test_*.py`, `conftest.py`, `pyproject.toml`, `setup.cfg`, `tox.ini`, or any similar configuration or test-infrastructure file to make a failing test pass. The bug is in source code; the fix belongs in source code. If a test looks wrong, read it carefully — the test is almost always correct and is pinning a real invariant your fix must uphold."
+  },
+  {
+    "id": "assertion_gap_not_analysed",
+    "trigger": "The failed attempt made a speculative edit without computing the precise mismatch between the value the failing assertion expects and the value the current code produces, so the fix closed the wrong gap.",
+    "symptom_markers": [
+      "speculative edit",
+      "gap not stated",
+      "similar but different assertion",
+      "still fails with",
+      "F2P still fails"
+    ],
+    "general_rule": "For each failing assertion, state precisely what value the assertion expects and what value the current code actually produces (if necessary, instrument with prints or pdb to pin down the producing expression). Design the fix to close exactly that gap. Do not make speculative edits without a precise gap statement — they are likely to miss the bug or introduce new ones."
+  },
+  {
+    "id": "unrelated_failure_dismissed_as_flake",
+    "trigger": "After the patch, a previously-passing test started failing and the failed attempt labelled it 'unrelated' or 'pre-existing flake' without reproducing the failure on an unmodified checkout.",
+    "symptom_markers": [
+      "pre-existing flake",
+      "unrelated failure",
+      "not caused by my fix",
+      "was already failing",
+      "ignoring this test"
+    ],
+    "general_rule": "If a test that was green before your edit now fails, treat your edit as the cause until you have reproduced the same failure on an unmodified checkout (`git stash` your changes, rerun the test, confirm it still fails). Only after that reproduction has established independence may you call the failure unrelated or pre-existing. The default assumption is always: your patch caused it."
+  },
+  {
+    "id": "partial_implementation_body_missing",
+    "trigger": "The failed attempt added a method signature, a stub, or a `pass`/`TODO`-bodied function that changes the class surface but never wires the actual logic, so the behaviour the test checks is unchanged.",
+    "symptom_markers": [
+      "pass body",
+      "TODO",
+      "stub implementation",
+      "signature added but body",
+      "NotImplementedError",
+      "no behaviour change"
+    ],
+    "general_rule": "After adding any new method, accessor, or code path, verify it produces the intended end-to-end behaviour by exercising it with a concrete input and observing the resulting value — do not trust a signature change alone. A method whose body is `pass`, `...`, `return None`, or `raise NotImplementedError` changes the surface but not the behaviour any test checks."
+  },
+  {
+    "id": "shared_mutable_state_leak",
+    "trigger": "The failed attempt mutated a shared mutable default (class-level list/dict, module-level singleton, cached object) causing inter-test pollution so unrelated tests fail depending on order of execution.",
+    "symptom_markers": [
+      "shared mutable",
+      "inter-test pollution",
+      "test order-dependent",
+      "cached state",
+      "mutable default",
+      "module-level list"
+    ],
+    "general_rule": "Never mutate a shared mutable object in place — module-level lists/dicts, class-level defaults, cached singletons. Copy-before-modify is the default: `new = list(existing); new.append(x)` rather than `existing.append(x)`. In-place mutation of shared state leaks between tests and produces order-dependent failures that the harness will surface as regressions."
+  },
+  {
+    "id": "incomplete_conditional_or_import_syntax_edit",
+    "trigger": "Applies when a patch introduces or edits conditional logic or import statements but leaves them syntactically incomplete, causing the module to fail to parse during test collection.",
+    "symptom_markers": [
+      "(?i)syntaxerror",
+      "(?i)invalid syntax",
+      "(?i)unexpected EOF",
+      "(?i)EOL while scanning",
+      "(?i)was never closed",
+      "(?i)cannot import name",
+      "(?i)during collection"
+    ],
+    "general_rule": "After editing control flow or imports, re-open the file and verify every statement is syntactically complete (balanced delimiters, complete conditions, and valid import forms). Run a minimal parse/import check for the edited module before running the full suite. Prefer small, incremental edits that keep the file runnable at each step."
+  },
+  {
+    "id": "cache_key_normalization_mismatch",
+    "trigger": "Applies when logically equivalent calls produce different cache keys due to inconsistent default handling or unnormalized key components, leading to stale or duplicated cached results.",
+    "symptom_markers": [
+      "(?i)cache",
+      "(?i)memoiz",
+      "(?i)lru_cache",
+      "(?i)key",
+      "(?i)stale",
+      "(?i)miss",
+      "(?i)hash"
+    ],
+    "general_rule": "Define a single canonicalization step for all inputs that participate in caching, including implicit defaults and optional arguments. Build cache keys only from canonical, stable, and hashable representations. Ensure that semantically identical calls map to the same key and that distinct semantics cannot collide."
+  },
+  {
+    "id": "unhashable_or_unstable_identity_components",
+    "trigger": "Applies when code constructs identity tuples/sets/dicts from values that may be mutable or unhashable (e.g., lists, dicts, sets), causing runtime errors or inconsistent equality behavior.",
+    "symptom_markers": [
+      "(?i)unhashable type",
+      "(?i)TypeError:.*unhashable",
+      "(?i)hash\\(",
+      "(?i)identity",
+      "(?i)cache key",
+      "(?i)set\\(",
+      "(?i)dict key"
+    ],
+    "general_rule": "Before using values in hashing, identity, or dictionary keys, normalize them into immutable, hashable forms (e.g., tuples, frozensets, stable serialized forms). Avoid relying on object identity for semantic equality unless explicitly intended. Add normalization at the boundary where inputs enter the identity/key construction."
+  },
+  {
+    "id": "descriptor_or_property_evaluated_during_introspection",
+    "trigger": "Applies when validation or introspection accidentally evaluates descriptors/properties, triggering side effects or raising because an instance/context is missing.",
+    "symptom_markers": [
+      "(?i)descriptor",
+      "(?i)property",
+      "(?i)__get__",
+      "(?i)getattr\\(",
+      "(?i)hasattr\\(",
+      "(?i)attributeerror",
+      "(?i)requires an instance"
+    ],
+    "general_rule": "When inspecting attributes for validation or discovery, use non-evaluating introspection that does not invoke descriptor access. Prefer querying metadata on the class/object structure rather than calling attribute accessors. If evaluation is unavoidable, guard it and provide a safe fallback path for dynamic or instance-dependent attributes."
+  },
+  {
+    "id": "signature_forwarding_regression_in_wrapper_or_factory",
+    "trigger": "Applies when extending or wrapping constructors/factories changes accepted arguments, causing unexpected keyword/positional argument errors in downstream callers.",
+    "symptom_markers": [
+      "(?i)TypeError:.*unexpected keyword argument",
+      "(?i)got an unexpected keyword argument",
+      "(?i)takes \\d+ positional arguments",
+      "(?i)missing \\d+ required positional arguments",
+      "(?i)\\*\\*kwargs",
+      "(?i)wrapper",
+      "(?i)factory"
+    ],
+    "general_rule": "Preserve the callable interface of wrapped or extended APIs by accepting and forwarding compatible arguments. If the underlying target has version- or backend-dependent signatures, adapt at runtime by filtering or translating arguments. Add tests or checks that exercise both the wrapper and the underlying call path with representative argument combinations."
+  },
+  {
+    "id": "nondeterministic_or_context_dependent_serialization",
+    "trigger": "Applies when serialization/deconstruction/printing depends on runtime context (locale, environment, evaluation timing) or changes the structural shape of the serialized form, causing assertion mismatches.",
+    "symptom_markers": [
+      "(?i)serialize",
+      "(?i)deconstruct",
+      "(?i)repr\\(",
+      "(?i)pretty",
+      "(?i)print",
+      "(?i)locale",
+      "(?i)canonical",
+      "(?i)assert.*string"
+    ],
+    "general_rule": "Make serialization deterministic by using canonical identifiers and stable formatting rules independent of runtime context. Preserve the structural contract of the output (positional vs keyword shape, quoting, container syntax, and node/type structure) unless an explicit API change is intended. When fixing a bug, constrain changes to the minimal portion necessary to restore the documented output contract."
+  },
+  {
+    "id": "type_normalization_required_for_join_or_comparison",
+    "trigger": "Applies when values used for joining, matching, or comparison can appear in multiple equivalent types (e.g., numeric vs string identifiers), leading to missed matches or incorrect grouping.",
+    "symptom_markers": [
+      "(?i)join",
+      "(?i)lookup",
+      "(?i)key",
+      "(?i)id",
+      "(?i)type mismatch",
+      "(?i)expected.*got",
+      "(?i)assert.*equal",
+      "(?i)coerce|cast|convert"
+    ],
+    "general_rule": "Normalize identifiers and comparison keys to a single canonical in-memory type at the boundary where they are produced or consumed. Avoid mixing representations across layers (parsing, storage, caching, joining). Add explicit conversions and document the canonical type so future code paths remain consistent."
+  },
+  {
+    "id": "backend_or_version_specific_fallback_semantics_incorrect",
+    "trigger": "Applies when implementing a fallback for an unsupported backend feature or older dependency version, but the fallback is not logically equivalent or misses edge cases.",
+    "symptom_markers": [
+      "(?i)backend",
+      "(?i)not supported",
+      "(?i)fallback",
+      "(?i)emulat",
+      "(?i)version",
+      "(?i)compat",
+      "(?i)operator",
+      "(?i)equivalent"
+    ],
+    "general_rule": "When adding a fallback implementation, prove semantic equivalence to the primary behavior across operand counts and edge cases. Gate behavior on capability detection rather than assumptions, and keep the fallback narrowly scoped to the unsupported feature. Add targeted tests that compare primary vs fallback results for representative and boundary inputs."
+  },
+  {
+    "id": "query_or_expression_composition_scope_error",
+    "trigger": "Applies when composing nested expressions (queries, compiled expressions, or algebraic trees) and a transformation is applied at the wrong level, changing semantics or producing invalid structure.",
+    "symptom_markers": [
+      "(?i)compile",
+      "(?i)expression",
+      "(?i)nest",
+      "(?i)subquery",
+      "(?i)window",
+      "(?i)aggregate",
+      "(?i)cast",
+      "(?i)join"
+    ],
+    "general_rule": "Identify the correct syntactic/semantic level where a transformation must apply (outer expression vs inner components) before modifying composition logic. Avoid pushing operations (casts, negations, aggregations, rewrites) into subexpressions when the surrounding context changes their meaning. If evaluation order matters, introduce an explicit intermediate layer (e.g., a subexpression boundary) to preserve semantics."
+  },
+  {
+    "id": "missing_edge_case_branch_for_special_input_domain",
+    "trigger": "Applies when an algorithm works for common inputs but fails for a special domain (empty inputs, boolean-like values, composite parameters, control characters, singleton containers), requiring explicit branching.",
+    "symptom_markers": [
+      "(?i)edge case",
+      "(?i)empty",
+      "(?i)boolean",
+      "(?i)singleton",
+      "(?i)control character",
+      "(?i)composite",
+      "(?i)zero",
+      "(?i)special case"
+    ],
+    "general_rule": "Enumerate boundary inputs for the function’s domain and add explicit handling where generic logic breaks. Keep the special-case branch minimal and ensure it preserves documented invariants (ordering, shape, truth semantics, or syntax). Add regression coverage that exercises the boundary condition directly rather than relying on incidental behavior."
+  },
+  {
+    "id": "public_representation_contract_regression",
+    "trigger": "Applies when a change alters the user-visible string form of an object (display, formatting, quoting, or included fields) and tests assert exact textual output. Common during refactors that normalize internal state or wrap/unwrap callables.",
+    "symptom_markers": [
+      "(?i)assert.*repr",
+      "(?i)assert.*str\\(",
+      "(?i)expected.*got",
+      "(?i)string representation",
+      "(?i)quote",
+      "(?i)pretty[- ]print",
+      "(?i)render(ing)?"
+    ],
+    "general_rule": "Treat stringification as a public API: preserve the exact formatting contract unless the task explicitly authorizes a breaking change. When refactoring internals, add targeted tests or golden outputs to confirm unchanged quoting, ordering, and field inclusion. If normalization is required, keep a separate display-layer representation that matches prior behavior."
+  },
+  {
+    "id": "serialization_roundtrip_reference_stability",
+    "trigger": "Applies when objects are serialized/deconstructed for later re-import or reconstruction and the output must be stable across environments. Failures often appear when emitting non-importable references, environment-specific names, or normalized runtime objects instead of the original configuration.",
+    "symptom_markers": [
+      "(?i)deconstruct",
+      "(?i)serialize|serialization",
+      "(?i)round[- ]trip",
+      "(?i)importable",
+      "(?i)cannot import",
+      "(?i)module path",
+      "(?i)state"
+    ],
+    "general_rule": "Emit a stable, importable reference for serialized values and ensure it round-trips without relying on runtime-only objects. Preserve the caller-provided configuration separately from any normalized/instantiated runtime form so reconstruction reproduces intent. Keep output shape and ordering stable unless explicitly versioned."
+  },
+  {
+    "id": "deterministic_ordering_required_in_generated_output",
+    "trigger": "Applies when code generates collections or text blocks whose order must be deterministic (e.g., emitted members, imports, or grouped items). Failures occur when iteration order depends on hashing, filesystem traversal, or mixed key types.",
+    "symptom_markers": [
+      "(?i)order(ing)?",
+      "(?i)sorted",
+      "(?i)non[- ]deterministic|nondeterministic",
+      "(?i)expected.*\\[.*\\].*got.*\\[.*\\]",
+      "(?i)member",
+      "(?i)import block",
+      "(?i)group"
+    ],
+    "general_rule": "Make ordering explicit by sorting with a stable, fully-specified key that matches the required grouping rules. Avoid relying on incidental iteration order from sets, dicts, filesystem walks, or reflection APIs. When multiple forms exist, normalize them before sorting so comparisons are consistent."
+  },
+  {
+    "id": "input_validation_missing_for_disallowed_characters",
+    "trigger": "Applies when inputs must reject a specific forbidden character class (control characters, separators, or invalid tokens) before downstream parsing/normalization. Failures show up as assertions that invalid inputs should raise or be rejected.",
+    "symptom_markers": [
+      "(?i)control character",
+      "(?i)invalid character",
+      "(?i)\\\\x[0-9a-f]{2}",
+      "(?i)must not contain",
+      "(?i)reject",
+      "(?i)validation",
+      "(?i)ValueError|ValidationError"
+    ],
+    "general_rule": "Validate and reject forbidden character classes at the boundary before any parsing, coercion, or normalization occurs. Ensure the validation is applied consistently across all entry points that accept the input. Prefer explicit allow-lists or well-scoped regexes over broad patterns that can misclassify valid data."
+  },
+  {
+    "id": "regex_or_parser_overmatch_misclassifies_input",
+    "trigger": "Applies when a regex/parser intended to recognize a constrained token (like a code, prefix, or tag) accidentally matches broader strings and changes routing/behavior. Failures often involve unexpected classification of ordinary inputs as special cases.",
+    "symptom_markers": [
+      "(?i)regex",
+      "(?i)pattern",
+      "(?i)match(ed)?",
+      "(?i)prefix",
+      "(?i)misclassif",
+      "(?i)unexpected redirect|unexpected path",
+      "(?i)should not match"
+    ],
+    "general_rule": "Constrain token recognition to the exact allowed grammar and anchor patterns to avoid partial or accidental matches. Add negative tests for near-miss inputs that previously were treated as ordinary data. When parsing affects routing or lookup, ensure the fallback path remains reachable for non-matching inputs."
+  },
+  {
+    "id": "redirect_or_url_rewrite_drops_request_components",
+    "trigger": "Applies when generating redirects or rewritten URLs and the implementation accidentally drops or alters components such as query strings, prefixes, fragments, or original path. Failures appear as assertions comparing full URLs/paths.",
+    "symptom_markers": [
+      "(?i)redirect",
+      "(?i)query string|\\?",
+      "(?i)append slash|trailing slash",
+      "(?i)full path",
+      "(?i)script prefix|prefix",
+      "(?i)Location:",
+      "(?i)assert.*http"
+    ],
+    "general_rule": "When rewriting URLs, preserve all original request components unless explicitly instructed otherwise. Construct the new target from the original full path and then apply the minimal transformation (e.g., adding a slash) without re-parsing that loses information. Add tests that include query parameters and prefixes to prevent regressions."
+  },
+  {
+    "id": "backend_capability_requires_alternative_execution_path",
+    "trigger": "Applies when an operation is implemented assuming a capability that is not universally supported (database/engine/backend differences). Failures occur when the unsupported backend requires a different strategy rather than a direct operation.",
+    "symptom_markers": [
+      "(?i)not supported",
+      "(?i)backend",
+      "(?i)capabilit",
+      "(?i)cannot .* alter|cannot .* constraint",
+      "(?i)rebuild",
+      "(?i)migration|schema",
+      "(?i)OperationalError|NotSupportedError"
+    ],
+    "general_rule": "Detect backend capabilities and route unsupported operations through an alternative strategy that preserves semantics. Avoid emitting a direct operation when the backend cannot represent it; instead, use a compatible multi-step approach. Keep behavior consistent across backends by centralizing capability checks and documenting the fallback."
+  },
+  {
+    "id": "schema_diff_includes_non_persistent_metadata",
+    "trigger": "Applies when schema-diff or migration generation treats application-only metadata changes as requiring persistent storage changes. Failures show up as unexpected operations being generated for changes that should not affect the underlying storage.",
+    "symptom_markers": [
+      "(?i)schema",
+      "(?i)migration",
+      "(?i)alter",
+      "(?i)diff",
+      "(?i)metadata",
+      "(?i)should not.*(generate|create)",
+      "(?i)operations"
+    ],
+    "general_rule": "Separate persistent storage-affecting attributes from application-only metadata when computing diffs. Exclude non-persistent changes from generating storage operations, and ensure comparisons use the correct subset of attributes. Add regression tests that change only metadata and assert no storage operation is produced."
+  },
+  {
+    "id": "namespace_or_non_filesystem_module_handling_missing",
+    "trigger": "Applies when code assumes modules/packages always have filesystem-backed attributes and fails on namespace-style or otherwise non-standard modules. Failures often manifest as missing attribute errors or incorrect classification of modules as absent.",
+    "symptom_markers": [
+      "(?i)namespace package",
+      "(?i)__file__",
+      "(?i)has no attribute",
+      "(?i)module.*not found",
+      "(?i)spec",
+      "(?i)importlib",
+      "(?i)pkgutil"
+    ],
+    "general_rule": "Do not assume modules are backed by a single filesystem path; handle namespace-style and loader-provided modules explicitly. Use robust module metadata (spec/loader semantics) to detect presence and type rather than relying on path attributes. Ensure classification logic has a safe fallback when path information is unavailable."
+  }
+]

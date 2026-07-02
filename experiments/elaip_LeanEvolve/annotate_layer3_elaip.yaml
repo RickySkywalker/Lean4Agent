@@ -1,0 +1,393 @@
+name: "annotate_layer3_elaip"
+goal: |
+    Given (a) an ELAIP-Bench agent run's event log, (b) the redacted
+    `question_meta.json` (no `is_correct`/`parsed_answer`/`correct_answer`),
+    and (c) a reference Layer-2 IR JSON for the agent's task plan, produce
+    an annotated Layer-3 IR JSON whose `exec_state` and `llm_injections`
+    fields are filled by per-step LLM analysis. The Lean file is generated
+    OUTSIDE this YAML by the outer driver (elaip_layer3_codegen.py) — this
+    workflow only produces JSON.
+
+    UNLIKE the SWE annotator, ELAIP has no `report.json` / `test_output.txt`
+    and the LLM judge MUST NOT see verification artefacts. The "ground-truth
+    gate" is replaced by a deterministic JSON-shape gate
+    (`tighten_layer3_verdicts.py`) that flips holds=true → holds=false
+    when the trajectory's saved variables visibly violate predicate-decidable
+    rules (verdict enum, bounded list, verbatim, JSON parseability, question-
+    type enum).
+
+system_prompt: |
+    You are annotating an ELAIP-Bench agent trajectory for Layer-3
+    verification. Your judgments must be evidence-driven and grounded in
+    the actual saved-variable values from the agent's event log. NEVER
+    consult or invent the question's correct answer; you do not have it.
+
+config:
+    model: "${MODEL_NAME}"
+    temperature: 0.0
+    max_tokens: 16384
+    max_tokens_per_step: 16384
+    max_tool_calls_per_step: 30
+    enable_inline_tool_calls: true
+    # enabled_tools intentionally unset so the AgentSPEX can dispatch shell_run
+    # via inline_tool_calls; setting it to [] disables the tool entirely and the
+    # agent emits ```bash blocks that never execute (Total tool calls: 0).
+
+parameters:
+    pair_id: "${PAIR_ID}"
+    plan_name: "${PLAN_NAME:-passed_workflow_1}"
+    qid: "${QID}"
+    event_log_path: "${EVENT_LOG_PATH}"
+    question_meta_path: "${QUESTION_META_PATH}"
+    layer2_ir_path: "${LAYER2_IR_PATH}"
+    staging_dir: "${STAGING_DIR}"
+    output_ir_path: "${OUTPUT_IR_PATH}"
+    package_dir: "${PACKAGE_DIR}"
+    failure_patterns_path: "${FAILURE_PATTERNS_PATH:-}"
+    banner_title: "${BANNER_TITLE:-}"
+    banner_subtitle: "${BANNER_SUBTITLE:-}"
+    # `num_steps` is computed by the Python driver and passed via NUM_STEPS env
+    # var BEFORE this YAML is spawned. trace_segmenter.py and
+    # elaip_layer3_ir_init.py have already been called by Stage A.1-A.3 so
+    # `staging_dir/trace_index.json` and `output_ir_path` (the seeded IR) are
+    # both present on disk at this point. The YAML only does LLM-judgement
+    # work — nothing about the deterministic prep is its responsibility.
+    num_steps: "${NUM_STEPS}"
+
+workflow:
+    # =========================================================================
+    # PHASE 1 — deterministic preparation has already been done by the Python
+    # driver (Stage A.1 trace_segmenter + Stage A.3 elaip_layer3_ir_init).
+    # The driver guarantees that the following exist before this YAML runs:
+    #   {{staging_dir}}/trace_index.json
+    #   {{staging_dir}}/step_<sid>_summary.md             (per executed step)
+    #   {{output_ir_path}}                                (seeded layer3_ir.json)
+    #   {{question_meta_path}}                            (redacted run meta)
+    # If any of these is missing the driver aborts before run_yaml_agent.
+    # =========================================================================
+
+    # =========================================================================
+    # PHASE 2 — structural load (LLM only)
+    # =========================================================================
+    - step:
+        name: "load_question_meta"
+        instruction: |
+            Use shell_run to print the redacted question_meta.json. This
+            holds ONLY question_id, question, question_type, paper_id, and
+            status — NOT is_correct, parsed_answer, correct_answer, or
+            response. Those fields are stripped at staging time and you
+            must not infer them.
+
+            ```bash
+            cat {{question_meta_path}}
+            ```
+
+            After printing, reply with exactly the string LOADED.
+        save_as: "question_meta_loaded"
+
+    - step:
+        name: "load_postconds_per_node"
+        instruction: |
+            Use shell_run to print the per-node postcondition predicates
+            from the Layer-3 IR. This tells you which (var_name,
+            predicate_kind) pairs need an LLM injection per step:
+
+            ```bash
+            python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                --path '["postconds_per_node"]' --get
+            ```
+
+            After printing, reply with exactly the string LOADED.
+        save_as: "postconds_loaded"
+
+    - set_variable:
+        name: "i"
+        value: 0
+
+    # =========================================================================
+    # PHASE 3 — per-step annotation loop
+    # Each iteration (a) loads context for trajectory step at IR ordinal
+    # {{i}}, (b) reasons about whether each non-sentinel postcondition
+    # predicate holds given the saved variable's value, (c) persists the
+    # verdict via EditJson.
+    # =========================================================================
+    - while:
+        condition: "i < num_steps"
+        max_iterations: 25
+        steps:
+            - step:
+                name: "annotate_step"
+                instruction: |
+                    You are annotating ONE workflow step (IR node index {{i}})
+                    for Layer-3 verification.
+
+                    Context loaded earlier in this conversation:
+                      - The redacted question_meta.json (no eval signal).
+                      - The per-node postcondition predicates table.
+
+                    Pull this step's specific context with ONE shell_run.
+                    The single command emits four labeled sections so you
+                    don't pay four LLM round-trips per iteration:
+
+                    ```bash
+                    echo "===DYN_NODE==="
+                    python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                        --path '["dyn_nodes", {{i}}]' --get
+                    echo "===POSTCONDS==="
+                    python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                        --path '["postconds_per_node", {{i}}]' --get
+                    echo "===SUMMARY==="
+                    SID=$(python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                          --path '["dyn_nodes", {{i}}, "trajectory_step_id"]' --get 2>/dev/null | tr -d '"')
+                    if [ -n "$SID" ]; then cat {{staging_dir}}/step_${SID}_summary.md ; else echo "(skipped step — no trajectory)"; fi
+                    echo "===VALUE==="
+                    SAVE_AS=$(python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                              --path '["postconds_per_node", {{i}}, "save_as"]' --get 2>/dev/null | tr -d '"')
+                    if [ -n "$SAVE_AS" ] && [ "$SAVE_AS" != "null" ]; then
+                      python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                          --path '["exec_state"]' --get \
+                          | python -c "import json,sys; d=json.load(sys.stdin); v=dict(d).get('${SAVE_AS}',''); print(v[:1500] if isinstance(v,str) else json.dumps(v)[:1500])"
+                    else
+                      echo "(no saved variable for this step)"
+                    fi
+                    ```
+
+                    Now reason about the four sections:
+
+                    A) NON-EXECUTABLE NODES. If `dyn_nodes[i].execution_status
+                       == "skipped"` (set_variable / increment / unreached
+                       branch), reply with exactly the string SKIPPED and
+                       take no other action — there is no LLM injection to
+                       persist for these. DO NOT make any further shell_run
+                       calls in this case.
+
+                    B) EXECUTABLE NODES. For each entry in
+                       `postconds_per_node[i].postconds` whose `kind` is in
+                       {nameExists, isNonEmptyString, isValidJson, isValidList,
+                        ext} where `var_name` is the step's `save_as`,
+                       you must produce ONE llm_injection.
+
+                    DECISION RULES (apply IN ORDER):
+
+                    Rule 1 — JSON-DECIDABLE GATE (the strongest signal).
+                    Inspect the saved variable value you just printed.
+                    For these predicates the trajectory determines the
+                    verdict mechanically (no judgment call):
+
+                      * `nameExists`        — holds=true iff the variable was bound.
+                      * `isValidJson`       — try parsing the printed VALUE
+                        block. If it parses, holds=true; else false.
+                        Confidence 0.99.
+                      * `isNonEmptyString`  — holds=true iff the value's stripped
+                        length > 0. Confidence 0.99.
+                      * `isValidList`       — try parsing as JSON; if the
+                        result is a list, holds=true; else false.
+                        Confidence 0.99.
+                      * ELAIP-EXT predicates (under family `user.elaip`):
+                          - `verdictEnumValid`     — holds=true iff every A/B/C/D
+                            entry in the parsed JSON has `verdict ∈
+                            [supported, contradicted, not_established]`.
+                          - `questionTypeEnum`     — holds=true iff the parsed
+                            question_type is one of [Single-answer,
+                            Multiple-answer, SA-MCQ, MA-MCQ].
+                          - `boundedEvidenceList`  — holds=true iff
+                            evidence_snippets is a list of length ≤ 5.
+                          - `verbatimSubstring`    — holds=true iff every
+                            evidence_snippets[i].text appears verbatim in
+                            paper_content (read paper_content from
+                            exec_state if you need it).
+
+                    Rule 2 — TRAJECTORY-COMPLETENESS GATE (when Rule 1 holds
+                    but you suspect a deeper issue). If the saved value
+                    parses as JSON and respects schema, but the per-step
+                    trajectory summary shows abandonment markers ("I could
+                    not", "skipping", "let me try a different", "give up")
+                    OR the value is empty but valid (e.g.
+                    `{"evidence_snippets": []}` for an extract_evidence
+                    step), set holds=false with confidence 0.7-0.85 and
+                    cite the specific marker in `llm_explanation`.
+
+                    Rule 3 — CONSERVATIVE DEFAULT. If neither rule 1 nor
+                    rule 2 fires AND the trajectory shows the step ran to
+                    completion (step_end event present, saved value
+                    well-formed), set holds=true with confidence 0.6-0.8.
+                    Cite a concrete trajectory anchor — file path,
+                    iteration count, or parsed-key list — never hand-wavy
+                    reasoning like "looks fine".
+
+                    EVIDENCE-CITATION REQUIREMENT (mandatory for every
+                    injection): `llm_explanation` MUST cite at least one
+                    concrete anchor — a parsed key, a length count, an
+                    enum-violation observation, or an abandonment
+                    marker. Hand-wavy reasoning is FORBIDDEN.
+
+                    `confidence` is a float in [0.5, 0.99]. Use ≥0.95 only
+                    when a Rule 1 deterministic check fired.
+
+                    PERSIST every (var_name, predicate_kind) injection for
+                    this step in ONE batch shell_run. Use `--list_extend`
+                    so all injections are appended atomically — this saves
+                    N-1 LLM round-trips per node compared to looping
+                    `--list_append`. The injection schema:
+
+                      {"step_name": <str>, "var_name": <str>,
+                       "predicate_kind": <str>, "holds": <bool>,
+                       "confidence": <float>, "llm_explanation": <str>}
+
+                    Emit exactly this command (the JSON array carries every
+                    injection for this node; replace the inner objects):
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                        --path '["llm_injections"]' --list_extend '[
+                          {"step_name": "<STEP>", "var_name": "<VAR1>", "predicate_kind": "<KIND1>", "holds": <H1>, "confidence": <C1>, "llm_explanation": "<E1>"},
+                          {"step_name": "<STEP>", "var_name": "<VAR2>", "predicate_kind": "<KIND2>", "holds": <H2>, "confidence": <C2>, "llm_explanation": "<E2>"}
+                        ]'
+                    ```
+
+                    Wrap the outer '[...]' literal in single quotes so the
+                    inner double-quotes survive. <H?> is bare true/false,
+                    <C?> is a bare decimal, <KIND?> is the predicate kind
+                    (e.g. "user.elaip:verdictEnumValid"), and string fields
+                    are JSON-quoted with embedded double-quotes escaped as
+                    \". If a step has only ONE predicate, the array still
+                    contains exactly one object — keep using --list_extend
+                    so the YAML executor sees a uniform call shape.
+
+                    DO NOT issue a separate `EditJson --get` to verify the
+                    append count — the deterministic JSON-shape gate in
+                    Phase 4.5 (tighten_layer3_verdicts.py) re-reads the
+                    file anyway, and the per-iteration verify is pure
+                    overhead at the rate of one LLM round-trip per loop.
+
+                    After the single batch list_extend succeeds, reply with
+                    exactly the string APPLIED and nothing else.
+                save_as: "annotate_status"
+
+            - increment: "i"
+
+    # =========================================================================
+    # PHASE 4 — cross-step consistency review
+    # =========================================================================
+    - step:
+        name: "consistency_review"
+        instruction: |
+            Use shell_run to print the current llm_injections side-by-side
+            with the postcondition table:
+
+            ```bash
+            python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                --path '["llm_injections"]' --get
+            ```
+
+            ```bash
+            python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                --path '["postconds_per_node"]' --get
+            ```
+
+            Scan the injections for entries that violate one of these
+            consistency rules:
+
+            1. JSON-GATE DISAGREEMENT (highest priority). If the saved
+               value for `option_judgment` parses as JSON but contains a
+               verdict outside [supported, contradicted, not_established]
+               for any A/B/C/D, every llm_injection with
+               var_name=='option_judgment' AND
+               predicate_kind=='user.elaip:verdictEnumValid' MUST have
+               holds=false. Same logic for questionTypeEnum,
+               boundedEvidenceList, verbatimSubstring. Any holds=true
+               that disagrees with the JSON shape is wrong.
+
+            2. ABANDONMENT-MARKER MISS. The per-step summary contains an
+               abandonment marker ("I could not", "skipping", "let me try
+               a different") but the injection has holds=true.
+
+            3. SCHEMA-VIOLATION. A `var_name` in the injection that is
+               NOT in the corresponding postconds_per_node entry. This
+               is a junk injection and should be flagged.
+
+            4. EXPLANATION-TOO-SHALLOW. The `llm_explanation` does not
+               cite a concrete anchor — replace with a citation-bearing
+               rewrite (do NOT change holds).
+
+            For category 1, the answer is mechanical: JSON shape
+            overrides prose reasoning. Do not second-guess.
+
+            Reply with a single JSON value (no markdown, no prose).
+            Either:
+              - exactly `[]` if no corrections are needed, OR
+              - an array of correction objects:
+                `[{"index": <int>, "field": "holds"|"confidence"|"llm_explanation",
+                   "value": <new value>}]`
+
+            `holds` must be a JSON boolean; `confidence` a JSON number in
+            [0.5, 0.99]; `llm_explanation` a JSON string.
+        save_as: "corrections"
+
+    - step:
+        name: "apply_corrections"
+        instruction: |
+            The previous step emitted this corrections JSON value:
+
+            ```json
+            {{corrections}}
+            ```
+
+            If the value is exactly `[]` (or empty), reply with exactly
+            the string NOOP and take no other action.
+
+            Otherwise, for EACH correction entry, run shell_run with:
+
+            ```bash
+            python {{package_dir}}/EditJson.py --json_path {{output_ir_path}} \
+                --path '["llm_injections", <index>, "<field>"]' --set '<value_as_json_literal>'
+            ```
+
+            where <value_as_json_literal> is a JSON literal (e.g. `false`,
+            `0.92`, `"updated explanation"`).
+
+            After all edits complete, reply with exactly the string
+            APPLIED and nothing else.
+        save_as: "final_apply_status"
+
+    # =========================================================================
+    # PHASE 4.5 — DETERMINISTIC JSON-SHAPE GATE
+    # Belt-and-suspenders: even after the LLM judge + LLM consistency review,
+    # we run a deterministic gate that flips holds=true → holds=false when
+    # the saved variable provably violates a JSON-decidable rule. The shape
+    # checks are the ground truth for ELAIP (no harness available).
+    # =========================================================================
+    - step:
+        name: "json_shape_gate"
+        instruction: |
+            Run the deterministic JSON-shape gate. It reads the IR's
+            exec_state + llm_injections and flips any injection whose
+            holds=true contradicts a programmatically-decidable rule
+            (verdict enum, bounded list, verbatim, JSON parseability,
+            question-type enum). This is the ELAIP analog of SWE's
+            `tighten_layer3_verdicts.py` (which used report.json instead
+            of JSON-shape rules).
+
+            ```bash
+            python {{package_dir}}/tighten_layer3_verdicts.py \
+                --layer3_ir {{output_ir_path}}
+            ```
+
+            On success the script prints `OK:` followed by the (possibly
+            empty) list of flips. Reply with exactly the string GATED.
+        save_as: "json_shape_gate_status"
+
+    # =========================================================================
+    # PHASE 5 — status
+    # =========================================================================
+    - step:
+        name: "report_status"
+        instruction: |
+            Print a one-line status summary using shell_run:
+
+            ```bash
+            python {{package_dir}}/summarize_ir.py --ir {{output_ir_path}}
+            ```
+
+            Then reply with exactly the string DONE and nothing else.
+        save_as: "report_status_out"

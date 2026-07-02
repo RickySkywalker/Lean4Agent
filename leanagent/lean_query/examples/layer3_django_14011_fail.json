@@ -1,0 +1,2632 @@
+{
+  "theorem_results": {
+    "semantically_sound": true,
+    "layer1": {
+      "noOrphanNodes": true,
+      "exitNodesValid": true,
+      "entryNodeValid": true,
+      "edgesValid": true,
+      "allWritesConsistent": true,
+      "allReadResolvable": true,
+      "allExitsReachable": true
+    }
+  },
+  "per_node_results": [
+    {
+      "step_type": "task",
+      "node_name": "explore_repository",
+      "node_id": 0,
+      "layer3": {
+        "trace_summary": "20 LLM iter, 19 tool call(s), tools: [shell_run]",
+        "step_name": "explore_repository",
+        "step_id": 0,
+        "step_composite": {
+          "verdict": "confirmed",
+          "re_roll_suggestion": null,
+          "failed_predicates": []
+        },
+        "precond_held": false,
+        "postcondition_verdicts": [
+          {
+            "var_name": "__step_tag_0",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 1,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__graph_contrib_0_repository_explored",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 2,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__node_cap_0_implicit_retry_repository_explored",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 3,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "repository_understanding",
+            "tool_verdict": {
+              "passed": true,
+              "detail": "no test attribution rule for (explore_repository, repository_understanding) — assumed N/A",
+              "applied": true
+            },
+            "root_cause": null,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "llm_verdict": {
+              "passed": true,
+              "detail": "Exploration evidence is accepted by default: the agent proceeded through all 5 steps and produced a targeted edit localized to django/core/servers/basehttp.py (ThreadedWSGIServer and WSGIRequestHandler.handle_one_request), which matches the module implicated by the issue. report.json shows patch_exists=true and patch_successfully_applied=true, so repository navigation was adequate to locate the relevant files even though the eventual fix was semantically incorrect.",
+              "confidence": 0.8,
+              "applied": true
+            },
+            "lean_verdict": {
+              "passed": true,
+              "detail": "typed-state predicate satisfied",
+              "applied": true
+            },
+            "is_sentinel": false,
+            "index": 4,
+            "composite": "confirmed"
+          }
+        ]
+      },
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "repository_explored"
+        ],
+        "step_tags": [
+          "exploratory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "problem_statement",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_0",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_0_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_0_implicit_retry_repository_explored",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "repository_understanding",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 10
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          1
+        ],
+        "step_type": "task",
+        "reads": [
+          {
+            "var_name": "problem_statement",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [],
+        "output_type_determined": false,
+        "node_name": "explore_repository",
+        "node_id": 0,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "task",
+      "node_name": "reproduce_issue",
+      "node_id": 1,
+      "layer3": {
+        "trace_summary": "2 LLM iter, 1 tool call(s), tools: [shell_run]",
+        "step_name": "reproduce_issue",
+        "step_id": 1,
+        "step_composite": {
+          "verdict": "confirmed",
+          "re_roll_suggestion": null,
+          "failed_predicates": []
+        },
+        "precond_held": false,
+        "postcondition_verdicts": [
+          {
+            "var_name": "__step_tag_1",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 1,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__graph_contrib_1_issue_reproduced",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "issue_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 2,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__node_cap_1_implicit_retry_issue_reproduced",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(issue_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "issue_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 3,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "reproduction_evidence",
+            "tool_verdict": {
+              "passed": true,
+              "detail": "no test attribution rule for (reproduce_issue, reproduction_evidence) — assumed N/A",
+              "applied": true
+            },
+            "root_cause": null,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "llm_verdict": {
+              "passed": true,
+              "detail": "No runtime evidence contradicts reproduction: the step ran and downstream steps (fix_issue, verify_fix, create_patch) all executed, and the agent emitted a concrete patch touching ThreadedWSGIServer — consistent with having observed the LiveServerTestCase / connection-leak symptom described in the issue. Upstream default applies because test_output.txt and report.json do not show evidence of inadequate reproduction output.",
+              "confidence": 0.7,
+              "applied": true
+            },
+            "lean_verdict": {
+              "passed": true,
+              "detail": "typed-state predicate satisfied",
+              "applied": true
+            },
+            "is_sentinel": false,
+            "index": 4,
+            "composite": "confirmed"
+          }
+        ]
+      },
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "issue_reproduced"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "repository_understanding",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_1",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_1_issue_reproduced",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "issue_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_1_implicit_retry_issue_reproduced",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(issue_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "issue_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "reproduction_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 14
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          2
+        ],
+        "step_type": "task",
+        "reads": [],
+        "reachable_from_entry": true,
+        "predecessors": [
+          0
+        ],
+        "output_type_determined": false,
+        "node_name": "reproduce_issue",
+        "node_id": 1,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "task",
+      "node_name": "fix_issue",
+      "node_id": 2,
+      "layer3": {
+        "trace_summary": "17 LLM iter, 16 tool call(s), tools: [shell_run]",
+        "step_name": "fix_issue",
+        "step_id": 2,
+        "step_composite": {
+          "verdict": "falsified",
+          "re_roll_suggestion": "[fix_issue] predicate(s) failed: fix_implementation_evidence. Modify the YAML instruction to: (a) require minimal-scope edit on the touched file, (b) demand running the precise FAIL_TO_PASS test path before declaring success, (c) explicitly preserve the affected class's existing tests.",
+          "failed_predicates": [
+            "fix_implementation_evidence"
+          ]
+        },
+        "precond_held": false,
+        "postcondition_verdicts": [
+          {
+            "var_name": "__step_tag_2",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 1,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__graph_contrib_2_fix_implemented",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 2,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__node_cap_2_implicit_retry_fix_implemented",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 3,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "tool_verdict": {
+              "passed": false,
+              "detail": "this predicate claims fix is established but: FAIL_TO_PASS still failing (17)",
+              "applied": true
+            },
+            "root_cause": "[Tool] this predicate claims fix is established but: FAIL_TO_PASS still failing (17)  ||  [LLM]  The fix is semantically off-target. The agent added `close_db_connections_on_request_end = True` on ThreadedWSGIServer and a `connections.close_all()` finally-block in WSGIRequestHandler, but did NOT extend `ThreadedWSGIServer.__init__` to accept a `connections_override` kwarg. The upstream FAIL_TO_PASS test harness calls `self.server_class(..., connections_override=...)`, so every LiveServer setUpClass errors with `TypeError: __init__() got an unexpected keyword argument 'connections_override'` at django/core/servers/basehttp.py line 71. test_output.txt ends with `FAILED (errors=6)` and report.json lists 17 FAIL_TO_PASS failures including test_view, test_404, test_media_files, test_environ, test_keep_alive_connection_clears_previous_request_data, and test_live_server_url_is_class_property; resolved=false.",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "llm_verdict": {
+              "passed": false,
+              "detail": "The fix is semantically off-target. The agent added `close_db_connections_on_request_end = True` on ThreadedWSGIServer and a `connections.close_all()` finally-block in WSGIRequestHandler, but did NOT extend `ThreadedWSGIServer.__init__` to accept a `connections_override` kwarg. The upstream FAIL_TO_PASS test harness calls `self.server_class(..., connections_override=...)`, so every LiveServer setUpClass errors with `TypeError: __init__() got an unexpected keyword argument 'connections_override'` at django/core/servers/basehttp.py line 71. test_output.txt ends with `FAILED (errors=6)` and report.json lists 17 FAIL_TO_PASS failures including test_view, test_404, test_media_files, test_environ, test_keep_alive_connection_clears_previous_request_data, and test_live_server_url_is_class_property; resolved=false.",
+              "confidence": 0.95,
+              "applied": true
+            },
+            "lean_verdict": {
+              "passed": true,
+              "detail": "typed-state predicate satisfied",
+              "applied": true
+            },
+            "is_sentinel": false,
+            "index": 4,
+            "composite": "falsified"
+          }
+        ]
+      },
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "fix_implemented"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "reproduction_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "repository_understanding",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_2",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_2_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_2_implicit_retry_fix_implemented",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 18
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          3
+        ],
+        "step_type": "task",
+        "reads": [],
+        "reachable_from_entry": true,
+        "predecessors": [
+          1
+        ],
+        "output_type_determined": false,
+        "node_name": "fix_issue",
+        "node_id": 2,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "task",
+      "node_name": "verify_fix",
+      "node_id": 3,
+      "layer3": {
+        "trace_summary": "6 LLM iter, 5 tool call(s), tools: [shell_run]",
+        "step_name": "verify_fix",
+        "step_id": 3,
+        "step_composite": {
+          "verdict": "falsified",
+          "re_roll_suggestion": "[verify_fix] predicate(s) failed: fix_verification_evidence. Modify the YAML instruction to: replace any keyword-filtered pytest with the explicit FAIL_TO_PASS test path; require zero new failures across the affected test class; do not dismiss collection errors as 'unrelated'.",
+          "failed_predicates": [
+            "fix_verification_evidence"
+          ]
+        },
+        "precond_held": false,
+        "postcondition_verdicts": [
+          {
+            "var_name": "__step_tag_3",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "verificatory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 1,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__graph_contrib_3_fix_verified",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 2,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__graph_verify_3_fix_implemented",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalVerification",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 3,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__node_cap_3_implicit_retry_fix_verified",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 4,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "fix_verification_evidence",
+            "tool_verdict": {
+              "passed": false,
+              "detail": "this predicate claims verification is done but 17 test(s) ultimately failed",
+              "applied": true
+            },
+            "root_cause": "[Tool] this predicate claims verification is done but 17 test(s) ultimately failed  ||  [LLM]  The agent's verification did not exercise the actual FAIL_TO_PASS tests. If it had run the LiveServer test classes with the upstream-authored test modifications, it would have immediately hit `TypeError: __init__() got an unexpected keyword argument 'connections_override'` raised from basehttp.py line 71 during setUpClass for LiveServerAddress, LiveServerDatabase, LiveServerPort, LiveServerThreadedTests, LiveServerTestCloseConnectionTest, and LiveServerViews. Instead verification passed and the agent advanced to create_patch, so the failing tests were never meaningfully exercised — 17 FAIL_TO_PASS tests fail at evaluation time.",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "llm_verdict": {
+              "passed": false,
+              "detail": "The agent's verification did not exercise the actual FAIL_TO_PASS tests. If it had run the LiveServer test classes with the upstream-authored test modifications, it would have immediately hit `TypeError: __init__() got an unexpected keyword argument 'connections_override'` raised from basehttp.py line 71 during setUpClass for LiveServerAddress, LiveServerDatabase, LiveServerPort, LiveServerThreadedTests, LiveServerTestCloseConnectionTest, and LiveServerViews. Instead verification passed and the agent advanced to create_patch, so the failing tests were never meaningfully exercised — 17 FAIL_TO_PASS tests fail at evaluation time.",
+              "confidence": 0.85,
+              "applied": true
+            },
+            "lean_verdict": {
+              "passed": true,
+              "detail": "typed-state predicate satisfied",
+              "applied": true
+            },
+            "is_sentinel": false,
+            "index": 5,
+            "composite": "falsified"
+          }
+        ]
+      },
+      "layer2": {
+        "sub_goal_verifications": [
+          "fix_implemented"
+        ],
+        "sub_goal_contributions": [
+          "fix_verified"
+        ],
+        "step_tags": [
+          "verificatory"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "regression_test_cmd",
+            "satisfied": true,
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "reproduction_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_3",
+            "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "verificatory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_3_fix_verified",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_verify_3_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalVerification",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_3_implicit_retry_fix_verified",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_verification_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 23
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [
+          4
+        ],
+        "step_type": "task",
+        "reads": [
+          {
+            "var_name": "regression_test_cmd",
+            "type_compatible": true,
+            "type": "TString",
+            "source": "parameter",
+            "resolved": true
+          }
+        ],
+        "reachable_from_entry": true,
+        "predecessors": [
+          2
+        ],
+        "output_type_determined": false,
+        "node_name": "verify_fix",
+        "node_id": 3,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    },
+    {
+      "step_type": "task",
+      "node_name": "create_patch",
+      "node_id": 4,
+      "layer3": {
+        "trace_summary": "3 LLM iter, 3 tool call(s), tools: [shell_run]",
+        "step_name": "create_patch",
+        "step_id": 4,
+        "step_composite": {
+          "verdict": "confirmed",
+          "re_roll_suggestion": null,
+          "failed_predicates": []
+        },
+        "precond_held": false,
+        "postcondition_verdicts": [
+          {
+            "var_name": "__step_tag_4",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 1,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__graph_contrib_4_patch_submitted",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 2,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "__node_cap_4_implicit_retry_patch_submitted",
+            "tool_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "root_cause": null,
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "llm_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "lean_verdict": {
+              "passed": null,
+              "detail": "N/A",
+              "confidence": null,
+              "applied": false
+            },
+            "is_sentinel": true,
+            "index": 3,
+            "composite": "sentinel"
+          },
+          {
+            "var_name": "patch_submission_evidence",
+            "tool_verdict": {
+              "passed": true,
+              "detail": "patch_exists ∧ patch_successfully_applied ✓",
+              "applied": true
+            },
+            "root_cause": null,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "llm_verdict": {
+              "passed": true,
+              "detail": "Patch creation succeeded as a mechanical artifact. report.json records `patch_is_None: false, patch_exists: true, patch_successfully_applied: true`. The saved .diff is a well-formed 45-line unified diff against django/core/servers/basehttp.py that applies cleanly in the evaluation harness (test_output.txt shows `Applied patch django/test/testcases.py cleanly.` and the agent's own diff is cleanly committed before tests run). Correctness of the patch content is judged by fix_issue, not here.",
+              "confidence": 0.98,
+              "applied": true
+            },
+            "lean_verdict": {
+              "passed": true,
+              "detail": "typed-state predicate satisfied",
+              "applied": true
+            },
+            "is_sentinel": false,
+            "index": 4,
+            "composite": "confirmed"
+          }
+        ]
+      },
+      "layer2": {
+        "sub_goal_verifications": [],
+        "sub_goal_contributions": [
+          "patch_submitted"
+        ],
+        "step_tags": [
+          "transformative"
+        ],
+        "preconditions": [
+          {
+            "var_name": "shell_run",
+            "satisfied": true,
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "failure_detail": null
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "satisfied": true,
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "failure_detail": null
+          }
+        ],
+        "postconditions": [
+          {
+            "var_name": "__step_tag_4",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_4_patch_submitted",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_4_implicit_retry_patch_submitted",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "patch_submission_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ],
+        "errors": [],
+        "cumulative_state_after": {
+          "predicate_count": 27
+        }
+      },
+      "layer1": {
+        "writes_consistent": true,
+        "writes": [],
+        "successors": [],
+        "step_type": "task",
+        "reads": [],
+        "reachable_from_entry": true,
+        "predecessors": [
+          3
+        ],
+        "output_type_determined": false,
+        "node_name": "create_patch",
+        "node_id": 4,
+        "needs_semantic_spec": true,
+        "llm_instruction_present": true
+      }
+    }
+  ],
+  "layer": 3,
+  "graph_level_results": {
+    "layer3": {
+      "per_step_summary": {
+        "steps_unknown": 0,
+        "steps_total": 5,
+        "steps_falsified": 2,
+        "steps_confirmed": 3,
+        "failed_predicates": [
+          "step 2 'fix_issue' / fix_implementation_evidence",
+          "step 3 'verify_fix' / fix_verification_evidence"
+        ]
+      },
+      "layer2_contract_reference": {
+        "hoare_chain": "chain SOUND, 27 exit fact(s) established",
+        "goal_coverage_level": "All Sub-Goals Fully Covered"
+      },
+      "formatted_text": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n  LAYER 2 VERIFICATION RESULT  (the contract Layer 3 must discharge)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n  Hoare chain: chain SOUND, 27 exit fact(s) established\n  Goal coverage: All Sub-Goals Fully Covered\n  Sub-goals:\n  • repository_explored  ←  contributors: 1, verifiers: 0, required graph predicates: [pathCoverage]\n  • issue_reproduced  ←  contributors: 1, verifiers: 0, required graph predicates: [pathCoverage, contextContinuity]\n  • fix_implemented  ←  contributors: 1, verifiers: 1, required graph predicates: [pathCoverage, contextContinuity, informationSufficiency, unifiedLoopBack, verificationCoverage]\n  • fix_verified  ←  contributors: 1, verifiers: 0, required graph predicates: [pathCoverage, contextContinuity]\n  • patch_submitted  ←  contributors: 1, verifiers: 0, required graph predicates: [pathCoverage, contextContinuity, failSafe]\n\n═══════════════════════════════════════════════════════════════════════\n  PER-STEP PER-PREDICATE LAYER 3 DISCHARGE\n  steps total: 5  |  ✓ confirmed: 3  |  ✗ falsified: 2\n  failed predicates (overall):  step 2 'fix_issue' / fix_implementation_evidence  •  step 3 'verify_fix' / fix_verification_evidence\n═══════════════════════════════════════════════════════════════════════\n\n───────────────────────────────────────────────────────────────────────\nStep 0  (explore_repository)\n  precondition at entry: ✗ not held (or pending external)\n  trace: 20 LLM iter, 19 tool call(s), tools: [shell_run]\n\n  Layer 2 postcondition contract: 4 predicate(s) (1 runtime + 3 sentinel(s))\n\n    [1] __step_tag_0 : ext(PredicateKey(step_tag, exploratory, []))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [2] __graph_contrib_0_repository_explored : ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [3] __node_cap_0_implicit_retry_repository_explored : ext(PredicateKey(node_capability, implicitRetry, [str(repository_explored)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [4] repository_understanding : isNonEmptyString\n      [Lean]  ✓  typed-state predicate satisfied\n      [Tool]  ✓  no test attribution rule for (explore_repository, repository_understanding) — assumed N/A\n      [LLM ]  ✓  Exploration evidence is accepted by default: the agent proceeded through all 5 steps and produced a targeted edit localized to django/core/servers/basehttp.py (ThreadedWSGIServer and WSGIRequestHandler.handle_one_request), which matches the module implicated by the issue. report.json shows patch_exists=true and patch_successfully_applied=true, so repository navigation was adequate to locate the relevant files even though the eventual fix was semantically incorrect.\n      ⇒ ✓ CONFIRMED\n\n  ⇒ STEP COMPOSITE: ✓ CONFIRMED  (every postcond predicate verified)\n\n───────────────────────────────────────────────────────────────────────\nStep 1  (reproduce_issue)\n  precondition at entry: ✗ not held (or pending external)\n  trace: 2 LLM iter, 1 tool call(s), tools: [shell_run]\n\n  Layer 2 postcondition contract: 4 predicate(s) (1 runtime + 3 sentinel(s))\n\n    [1] __step_tag_1 : ext(PredicateKey(step_tag, transformative, []))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [2] __graph_contrib_1_issue_reproduced : ext(PredicateKey(graph_level, subGoalContribution, [str(issue_reproduced)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [3] __node_cap_1_implicit_retry_issue_reproduced : ext(PredicateKey(node_capability, implicitRetry, [str(issue_reproduced)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [4] reproduction_evidence : isNonEmptyString\n      [Lean]  ✓  typed-state predicate satisfied\n      [Tool]  ✓  no test attribution rule for (reproduce_issue, reproduction_evidence) — assumed N/A\n      [LLM ]  ✓  No runtime evidence contradicts reproduction: the step ran and downstream steps (fix_issue, verify_fix, create_patch) all executed, and the agent emitted a concrete patch touching ThreadedWSGIServer — consistent with having observed the LiveServerTestCase / connection-leak symptom described in the issue. Upstream default applies because test_output.txt and report.json do not show evidence of inadequate reproduction output.\n      ⇒ ✓ CONFIRMED\n\n  ⇒ STEP COMPOSITE: ✓ CONFIRMED  (every postcond predicate verified)\n\n───────────────────────────────────────────────────────────────────────\nStep 2  (fix_issue)\n  precondition at entry: ✗ not held (or pending external)\n  trace: 17 LLM iter, 16 tool call(s), tools: [shell_run]\n\n  Layer 2 postcondition contract: 4 predicate(s) (1 runtime + 3 sentinel(s))\n\n    [1] __step_tag_2 : ext(PredicateKey(step_tag, transformative, []))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [2] __graph_contrib_2_fix_implemented : ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [3] __node_cap_2_implicit_retry_fix_implemented : ext(PredicateKey(node_capability, implicitRetry, [str(fix_implemented)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [4] fix_implementation_evidence : isNonEmptyString\n      [Lean]  ✓  typed-state predicate satisfied\n      [Tool]  ✗  this predicate claims fix is established but: FAIL_TO_PASS still failing (17)\n      [LLM ]  ✗  The fix is semantically off-target. The agent added `close_db_connections_on_request_end = True` on ThreadedWSGIServer and a `connections.close_all()` finally-block in WSGIRequestHandler, but did NOT extend `ThreadedWSGIServer.__init__` to accept a `connections_override` kwarg. The upstream FAIL_TO_PASS test harness calls `self.server_class(..., connections_override=...)`, so every LiveServer setUpClass errors with `TypeError: __init__() got an unexpected keyword argument 'connections_override'` at django/core/servers/basehttp.py line 71. test_output.txt ends with `FAILED (errors=6)` and report.json lists 17 FAIL_TO_PASS failures including test_view, test_404, test_media_files, test_environ, test_keep_alive_connection_clears_previous_request_data, and test_live_server_url_is_class_property; resolved=false.\n      ⇒ ✗ FALSIFIED — [Tool] this predicate claims fix is established but: FAIL_TO_PASS still failing (17)  ||  [LLM]  The fix is semantically off-target. The agent added `close_db_connections_on_request_end = True` on ThreadedWSGIServer and a `connections.close_all()` finally-block in WSGIRequestHandler, but did NOT extend `ThreadedWSGIServer.__init__` to accept a `connections_override` kwarg. The upstream FAIL_TO_PASS test harness calls `self.server_class(..., connections_override=...)`, so every LiveServer setUpClass errors with `TypeError: __init__() got an unexpected keyword argument 'connections_override'` at django/core/servers/basehttp.py line 71. test_output.txt ends with `FAILED (errors=6)` and report.json lists 17 FAIL_TO_PASS failures including test_view, test_404, test_media_files, test_environ, test_keep_alive_connection_clears_previous_request_data, and test_live_server_url_is_class_property; resolved=false.\n\n  ⇒ STEP COMPOSITE: ✗ FALSIFIED on predicate(s): fix_implementation_evidence\n  RE-ROLL: [fix_issue] predicate(s) failed: fix_implementation_evidence. Modify the YAML instruction to: (a) require minimal-scope edit on the touched file, (b) demand running the precise FAIL_TO_PASS test path before declaring success, (c) explicitly preserve the affected class's existing tests.\n\n───────────────────────────────────────────────────────────────────────\nStep 3  (verify_fix)\n  precondition at entry: ✗ not held (or pending external)\n  trace: 6 LLM iter, 5 tool call(s), tools: [shell_run]\n\n  Layer 2 postcondition contract: 5 predicate(s) (1 runtime + 4 sentinel(s))\n\n    [1] __step_tag_3 : ext(PredicateKey(step_tag, verificatory, []))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [2] __graph_contrib_3_fix_verified : ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [3] __graph_verify_3_fix_implemented : ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [4] __node_cap_3_implicit_retry_fix_verified : ext(PredicateKey(node_capability, implicitRetry, [str(fix_verified)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [5] fix_verification_evidence : isNonEmptyString\n      [Lean]  ✓  typed-state predicate satisfied\n      [Tool]  ✗  this predicate claims verification is done but 17 test(s) ultimately failed\n      [LLM ]  ✗  The agent's verification did not exercise the actual FAIL_TO_PASS tests. If it had run the LiveServer test classes with the upstream-authored test modifications, it would have immediately hit `TypeError: __init__() got an unexpected keyword argument 'connections_override'` raised from basehttp.py line 71 during setUpClass for LiveServerAddress, LiveServerDatabase, LiveServerPort, LiveServerThreadedTests, LiveServerTestCloseConnectionTest, and LiveServerViews. Instead verification passed and the agent advanced to create_patch, so the failing tests were never meaningfully exercised — 17 FAIL_TO_PASS tests fail at evaluation time.\n      ⇒ ✗ FALSIFIED — [Tool] this predicate claims verification is done but 17 test(s) ultimately failed  ||  [LLM]  The agent's verification did not exercise the actual FAIL_TO_PASS tests. If it had run the LiveServer test classes with the upstream-authored test modifications, it would have immediately hit `TypeError: __init__() got an unexpected keyword argument 'connections_override'` raised from basehttp.py line 71 during setUpClass for LiveServerAddress, LiveServerDatabase, LiveServerPort, LiveServerThreadedTests, LiveServerTestCloseConnectionTest, and LiveServerViews. Instead verification passed and the agent advanced to create_patch, so the failing tests were never meaningfully exercised — 17 FAIL_TO_PASS tests fail at evaluation time.\n\n  ⇒ STEP COMPOSITE: ✗ FALSIFIED on predicate(s): fix_verification_evidence\n  RE-ROLL: [verify_fix] predicate(s) failed: fix_verification_evidence. Modify the YAML instruction to: replace any keyword-filtered pytest with the explicit FAIL_TO_PASS test path; require zero new failures across the affected test class; do not dismiss collection errors as 'unrelated'.\n\n───────────────────────────────────────────────────────────────────────\nStep 4  (create_patch)\n  precondition at entry: ✗ not held (or pending external)\n  trace: 3 LLM iter, 3 tool call(s), tools: [shell_run]\n\n  Layer 2 postcondition contract: 4 predicate(s) (1 runtime + 3 sentinel(s))\n\n    [1] __step_tag_4 : ext(PredicateKey(step_tag, transformative, []))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [2] __graph_contrib_4_patch_submitted : ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [3] __node_cap_4_implicit_retry_patch_submitted : ext(PredicateKey(node_capability, implicitRetry, [str(patch_submitted)]))\n      (sentinel — Layer 2 metadata marker; runtime verification not applicable)\n\n    [4] patch_submission_evidence : isNonEmptyString\n      [Lean]  ✓  typed-state predicate satisfied\n      [Tool]  ✓  patch_exists ∧ patch_successfully_applied ✓\n      [LLM ]  ✓  Patch creation succeeded as a mechanical artifact. report.json records `patch_is_None: false, patch_exists: true, patch_successfully_applied: true`. The saved .diff is a well-formed 45-line unified diff against django/core/servers/basehttp.py that applies cleanly in the evaluation harness (test_output.txt shows `Applied patch django/test/testcases.py cleanly.` and the agent's own diff is cleanly committed before tests run). Correctness of the patch content is judged by fix_issue, not here.\n      ⇒ ✓ CONFIRMED\n\n  ⇒ STEP COMPOSITE: ✓ CONFIRMED  (every postcond predicate verified)\n\n═══════════════════════════════════════════════════════════════════════\n  EXIT-FACT DISCHARGE  (Layer 2 said these hold at workflow exit)\n═══════════════════════════════════════════════════════════════════════\n\n  Total exit facts (Layer 2): 27\n  Sentinel/metadata facts (Layer 2 markers, no runtime check): 16\n  Runtime-checkable facts: 11  →  Lean ✓ 9  /  Lean ✗ 2\n  Failing exit facts:\n    ✗ code_path : isValidFilePath\n    ✗ shell_run : toolExists\n═══════════════════════════════════════════════════════════════════════",
+      "exit_facts_discharge": {
+        "total_exit_facts": 27,
+        "sentinel_facts": 16,
+        "runtime_checkable": 11,
+        "lean_passed": 9,
+        "lean_failed": 2,
+        "failing_facts": [
+          {
+            "var_name": "code_path",
+            "predicate_type": "isValidFilePath",
+            "predicate_json": {
+              "kind": "isValidFilePath"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "shell_run",
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "is_sentinel": false
+          }
+        ]
+      }
+    },
+    "layer2": {
+      "semantic_verification_formatted": "✓ Graph verification successful!\n  Exit facts (27 variables):\n    code_path: nameExists\n    problem_statement: nameExists\n    regression_test_cmd: nameExists\n    code_path: isValidFilePath\n    problem_statement: isNonEmptyString\n    shell_run: toolExists\n    __step_tag_0: ext(PredicateKey(step_tag, exploratory, []))\n    __graph_contrib_0_repository_explored: ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))\n    __node_cap_0_implicit_retry_repository_explored: ext(PredicateKey(node_capability, implicitRetry, [str(repository_explored)]))\n    repository_understanding: isNonEmptyString\n    __step_tag_1: ext(PredicateKey(step_tag, transformative, []))\n    __graph_contrib_1_issue_reproduced: ext(PredicateKey(graph_level, subGoalContribution, [str(issue_reproduced)]))\n    __node_cap_1_implicit_retry_issue_reproduced: ext(PredicateKey(node_capability, implicitRetry, [str(issue_reproduced)]))\n    reproduction_evidence: isNonEmptyString\n    __step_tag_2: ext(PredicateKey(step_tag, transformative, []))\n    __graph_contrib_2_fix_implemented: ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))\n    __node_cap_2_implicit_retry_fix_implemented: ext(PredicateKey(node_capability, implicitRetry, [str(fix_implemented)]))\n    fix_implementation_evidence: isNonEmptyString\n    __step_tag_3: ext(PredicateKey(step_tag, verificatory, []))\n    __graph_contrib_3_fix_verified: ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))\n    __graph_verify_3_fix_implemented: ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))\n    __node_cap_3_implicit_retry_fix_verified: ext(PredicateKey(node_capability, implicitRetry, [str(fix_verified)]))\n    fix_verification_evidence: isNonEmptyString\n    __step_tag_4: ext(PredicateKey(step_tag, transformative, []))\n    __graph_contrib_4_patch_submitted: ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))\n    __node_cap_4_implicit_retry_patch_submitted: ext(PredicateKey(node_capability, implicitRetry, [str(patch_submitted)]))\n    patch_submission_evidence: isNonEmptyString",
+      "semantic_verification": {
+        "status": "success",
+        "is_sound": true,
+        "failure_info": null,
+        "exit_facts_count": 27,
+        "exit_facts": [
+          {
+            "var_name": "code_path",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "problem_statement",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "regression_test_cmd",
+            "predicate_type": "nameExists",
+            "predicate_json": {
+              "kind": "nameExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "code_path",
+            "predicate_type": "isValidFilePath",
+            "predicate_json": {
+              "kind": "isValidFilePath"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "problem_statement",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "shell_run",
+            "predicate_type": "toolExists",
+            "predicate_json": {
+              "kind": "toolExists"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_0",
+            "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "exploratory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_0_repository_explored",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_0_implicit_retry_repository_explored",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(repository_explored)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "repository_explored",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "repository_understanding",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_1",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_1_issue_reproduced",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "issue_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_1_implicit_retry_issue_reproduced",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(issue_reproduced)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "issue_reproduced",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "reproduction_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_2",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_2_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_2_implicit_retry_fix_implemented",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_implementation_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_3",
+            "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "verificatory",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_3_fix_verified",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_verify_3_fix_implemented",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalVerification",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "fix_implemented",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_3_implicit_retry_fix_verified",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_verified)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "fix_verified",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "fix_verification_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          },
+          {
+            "var_name": "__step_tag_4",
+            "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "transformative",
+                "family": "step_tag",
+                "args": []
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__graph_contrib_4_patch_submitted",
+            "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "subGoalContribution",
+                "family": "graph_level",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "__node_cap_4_implicit_retry_patch_submitted",
+            "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(patch_submitted)]))",
+            "predicate_json": {
+              "kind": "ext",
+              "key": {
+                "name": "implicitRetry",
+                "family": "node_capability",
+                "args": [
+                  {
+                    "value": "patch_submitted",
+                    "kind": "argStr"
+                  }
+                ]
+              }
+            },
+            "is_sentinel": true
+          },
+          {
+            "var_name": "patch_submission_evidence",
+            "predicate_type": "isNonEmptyString",
+            "predicate_json": {
+              "kind": "isNonEmptyString"
+            },
+            "is_sentinel": false
+          }
+        ]
+      },
+      "layer1": {
+        "verification_summary": {
+          "unstructured_nodes": 5,
+          "total_nodes": 5,
+          "structured_nodes": 0,
+          "deterministic_nodes": 0,
+          "composition_nodes": 0
+        },
+        "parameters": [
+          {
+            "var_name": "code_path",
+            "type": "TString"
+          },
+          {
+            "var_name": "problem_statement",
+            "type": "TString"
+          },
+          {
+            "var_name": "regression_test_cmd",
+            "type": "TString"
+          }
+        ],
+        "parallel_scoped_nodes": [],
+        "node_count": 5,
+        "exit_node_ids": [
+          4
+        ],
+        "entry_node_id": 0,
+        "edge_types": {
+          "switch": 0,
+          "sequential": 4,
+          "loop_back": 0,
+          "loop": 0,
+          "join": 0,
+          "fork": 0,
+          "branch": 0
+        },
+        "edge_count": 4
+      },
+      "goal_coverage": {
+        "sub_goals": [
+          {
+            "verification_nodes": [],
+            "variable_name": "repository_understanding",
+            "required_predicate": {
+              "kind": "isNonEmptyString"
+            },
+            "present_in_exit_facts": true,
+            "predicate_results": [
+              {
+                "short_label": "path",
+                "required": true,
+                "predicate_key": "pathCoverage",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "verify",
+                "required": false,
+                "predicate_key": "verificationCoverage",
+                "passed": false,
+                "informational": false
+              },
+              {
+                "short_label": "ctx_cont",
+                "required": false,
+                "predicate_key": "contextContinuity",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "info_suff",
+                "required": false,
+                "predicate_key": "informationSufficiency",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "loop_back",
+                "required": false,
+                "predicate_key": "unifiedLoopBack",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "failsafe",
+                "required": false,
+                "predicate_key": "failSafe",
+                "passed": false,
+                "informational": true
+              },
+              {
+                "short_label": "exit_facts",
+                "required": true,
+                "predicate_key": "exitFactsConfirmed",
+                "passed": true,
+                "informational": false
+              }
+            ],
+            "name": "repository_explored",
+            "description": "Evidence that the repository structure was explored and relevant source files were identified based on the GitHub issue.",
+            "coverage_level": "FULL",
+            "contributing_nodes": [
+              0
+            ]
+          },
+          {
+            "verification_nodes": [],
+            "variable_name": "reproduction_evidence",
+            "required_predicate": {
+              "kind": "isNonEmptyString"
+            },
+            "present_in_exit_facts": true,
+            "predicate_results": [
+              {
+                "short_label": "path",
+                "required": true,
+                "predicate_key": "pathCoverage",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "verify",
+                "required": false,
+                "predicate_key": "verificationCoverage",
+                "passed": false,
+                "informational": false
+              },
+              {
+                "short_label": "ctx_cont",
+                "required": true,
+                "predicate_key": "contextContinuity",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "info_suff",
+                "required": false,
+                "predicate_key": "informationSufficiency",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "loop_back",
+                "required": false,
+                "predicate_key": "unifiedLoopBack",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "failsafe",
+                "required": false,
+                "predicate_key": "failSafe",
+                "passed": false,
+                "informational": true
+              },
+              {
+                "short_label": "exit_facts",
+                "required": true,
+                "predicate_key": "exitFactsConfirmed",
+                "passed": true,
+                "informational": false
+              }
+            ],
+            "name": "issue_reproduced",
+            "description": "Evidence that a reproduction script was created and the bug was reproduced. Context continuity PASSES because task chain provides conversation history.",
+            "coverage_level": "FULL",
+            "contributing_nodes": [
+              1
+            ]
+          },
+          {
+            "verification_nodes": [
+              3
+            ],
+            "variable_name": "fix_implementation_evidence",
+            "required_predicate": {
+              "kind": "isNonEmptyString"
+            },
+            "present_in_exit_facts": true,
+            "predicate_results": [
+              {
+                "short_label": "path",
+                "required": true,
+                "predicate_key": "pathCoverage",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "verify",
+                "required": true,
+                "predicate_key": "verificationCoverage",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "ctx_cont",
+                "required": true,
+                "predicate_key": "contextContinuity",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "info_suff",
+                "required": true,
+                "predicate_key": "informationSufficiency",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "loop_back",
+                "required": true,
+                "predicate_key": "unifiedLoopBack",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "failsafe",
+                "required": false,
+                "predicate_key": "failSafe",
+                "passed": false,
+                "informational": true
+              },
+              {
+                "short_label": "exit_facts",
+                "required": true,
+                "predicate_key": "exitFactsConfirmed",
+                "passed": true,
+                "informational": false
+              }
+            ],
+            "name": "fix_implemented",
+            "description": "Evidence that source code was modified to fix the issue. Context flows via task chain. unifiedLoopBack PASSES due to markImplicitRetry on task nodes.",
+            "coverage_level": "FULL",
+            "contributing_nodes": [
+              2
+            ]
+          },
+          {
+            "verification_nodes": [],
+            "variable_name": "fix_verification_evidence",
+            "required_predicate": {
+              "kind": "isNonEmptyString"
+            },
+            "present_in_exit_facts": true,
+            "predicate_results": [
+              {
+                "short_label": "path",
+                "required": true,
+                "predicate_key": "pathCoverage",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "verify",
+                "required": false,
+                "predicate_key": "verificationCoverage",
+                "passed": false,
+                "informational": false
+              },
+              {
+                "short_label": "ctx_cont",
+                "required": true,
+                "predicate_key": "contextContinuity",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "info_suff",
+                "required": false,
+                "predicate_key": "informationSufficiency",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "loop_back",
+                "required": false,
+                "predicate_key": "unifiedLoopBack",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "failsafe",
+                "required": false,
+                "predicate_key": "failSafe",
+                "passed": false,
+                "informational": true
+              },
+              {
+                "short_label": "exit_facts",
+                "required": true,
+                "predicate_key": "exitFactsConfirmed",
+                "passed": true,
+                "informational": false
+              }
+            ],
+            "name": "fix_verified",
+            "description": "Evidence that the fix was verified by rerunning reproduction and regression tests. Context continuity PASSES via task chain.",
+            "coverage_level": "FULL",
+            "contributing_nodes": [
+              3
+            ]
+          },
+          {
+            "verification_nodes": [],
+            "variable_name": "patch_submission_evidence",
+            "required_predicate": {
+              "kind": "isNonEmptyString"
+            },
+            "present_in_exit_facts": true,
+            "predicate_results": [
+              {
+                "short_label": "path",
+                "required": true,
+                "predicate_key": "pathCoverage",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "verify",
+                "required": false,
+                "predicate_key": "verificationCoverage",
+                "passed": false,
+                "informational": false
+              },
+              {
+                "short_label": "ctx_cont",
+                "required": true,
+                "predicate_key": "contextContinuity",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "info_suff",
+                "required": false,
+                "predicate_key": "informationSufficiency",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "loop_back",
+                "required": false,
+                "predicate_key": "unifiedLoopBack",
+                "passed": true,
+                "informational": false
+              },
+              {
+                "short_label": "failsafe",
+                "required": false,
+                "predicate_key": "failSafe",
+                "passed": false,
+                "informational": true
+              },
+              {
+                "short_label": "exit_facts",
+                "required": true,
+                "predicate_key": "exitFactsConfirmed",
+                "passed": true,
+                "informational": false
+              }
+            ],
+            "name": "patch_submitted",
+            "description": "Evidence that a git patch was created and submitted. Context flows via task chain but no fail-safe exists.",
+            "coverage_level": "FULL",
+            "contributing_nodes": [
+              4
+            ]
+          }
+        ],
+        "semantic_soundness": {
+          "status": "success",
+          "is_sound": true,
+          "failure_info": null,
+          "exit_facts_count": 27,
+          "exit_facts": [
+            {
+              "var_name": "code_path",
+              "predicate_type": "nameExists",
+              "predicate_json": {
+                "kind": "nameExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "problem_statement",
+              "predicate_type": "nameExists",
+              "predicate_json": {
+                "kind": "nameExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "regression_test_cmd",
+              "predicate_type": "nameExists",
+              "predicate_json": {
+                "kind": "nameExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "code_path",
+              "predicate_type": "isValidFilePath",
+              "predicate_json": {
+                "kind": "isValidFilePath"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "problem_statement",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "shell_run",
+              "predicate_type": "toolExists",
+              "predicate_json": {
+                "kind": "toolExists"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "__step_tag_0",
+              "predicate_type": "ext(PredicateKey(step_tag, exploratory, []))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "exploratory",
+                  "family": "step_tag",
+                  "args": []
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__graph_contrib_0_repository_explored",
+              "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(repository_explored)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "subGoalContribution",
+                  "family": "graph_level",
+                  "args": [
+                    {
+                      "value": "repository_explored",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__node_cap_0_implicit_retry_repository_explored",
+              "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(repository_explored)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "implicitRetry",
+                  "family": "node_capability",
+                  "args": [
+                    {
+                      "value": "repository_explored",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "repository_understanding",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "__step_tag_1",
+              "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "transformative",
+                  "family": "step_tag",
+                  "args": []
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__graph_contrib_1_issue_reproduced",
+              "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(issue_reproduced)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "subGoalContribution",
+                  "family": "graph_level",
+                  "args": [
+                    {
+                      "value": "issue_reproduced",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__node_cap_1_implicit_retry_issue_reproduced",
+              "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(issue_reproduced)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "implicitRetry",
+                  "family": "node_capability",
+                  "args": [
+                    {
+                      "value": "issue_reproduced",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "reproduction_evidence",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "__step_tag_2",
+              "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "transformative",
+                  "family": "step_tag",
+                  "args": []
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__graph_contrib_2_fix_implemented",
+              "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_implemented)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "subGoalContribution",
+                  "family": "graph_level",
+                  "args": [
+                    {
+                      "value": "fix_implemented",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__node_cap_2_implicit_retry_fix_implemented",
+              "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_implemented)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "implicitRetry",
+                  "family": "node_capability",
+                  "args": [
+                    {
+                      "value": "fix_implemented",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "fix_implementation_evidence",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "__step_tag_3",
+              "predicate_type": "ext(PredicateKey(step_tag, verificatory, []))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "verificatory",
+                  "family": "step_tag",
+                  "args": []
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__graph_contrib_3_fix_verified",
+              "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(fix_verified)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "subGoalContribution",
+                  "family": "graph_level",
+                  "args": [
+                    {
+                      "value": "fix_verified",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__graph_verify_3_fix_implemented",
+              "predicate_type": "ext(PredicateKey(graph_level, subGoalVerification, [str(fix_implemented)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "subGoalVerification",
+                  "family": "graph_level",
+                  "args": [
+                    {
+                      "value": "fix_implemented",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__node_cap_3_implicit_retry_fix_verified",
+              "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(fix_verified)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "implicitRetry",
+                  "family": "node_capability",
+                  "args": [
+                    {
+                      "value": "fix_verified",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "fix_verification_evidence",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            },
+            {
+              "var_name": "__step_tag_4",
+              "predicate_type": "ext(PredicateKey(step_tag, transformative, []))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "transformative",
+                  "family": "step_tag",
+                  "args": []
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__graph_contrib_4_patch_submitted",
+              "predicate_type": "ext(PredicateKey(graph_level, subGoalContribution, [str(patch_submitted)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "subGoalContribution",
+                  "family": "graph_level",
+                  "args": [
+                    {
+                      "value": "patch_submitted",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "__node_cap_4_implicit_retry_patch_submitted",
+              "predicate_type": "ext(PredicateKey(node_capability, implicitRetry, [str(patch_submitted)]))",
+              "predicate_json": {
+                "kind": "ext",
+                "key": {
+                  "name": "implicitRetry",
+                  "family": "node_capability",
+                  "args": [
+                    {
+                      "value": "patch_submitted",
+                      "kind": "argStr"
+                    }
+                  ]
+                }
+              },
+              "is_sentinel": true
+            },
+            {
+              "var_name": "patch_submission_evidence",
+              "predicate_type": "isNonEmptyString",
+              "predicate_json": {
+                "kind": "isNonEmptyString"
+              },
+              "is_sentinel": false
+            }
+          ]
+        },
+        "overall_coverage_level": "All Sub-Goals Fully Covered",
+        "node_level_quality": "Excellent",
+        "issues": [],
+        "formatted_text": "\n═══════════════════════════════════════════════════\nGOAL COVERAGE REPORT (Graph-Level Analysis v2)\n═══════════════════════════════════════════════════\n\nGoal: Given a GitHub issue, reproduce it and fix it by producing a minimal git patch\nSemantic Soundness: Semantically Sound\nNode-Level Quality: Excellent\n\nLegend: [+X]=required & pass  [-X]=required & FAIL  [~X]=optional/info & pass  [!X]=info & FAIL (not counted)\n\nSub-Goal Coverage (5/5 fully covered):\n  repository_explored: FULL\n    Satisfied: [+path] [~ctx_cont] [~info_suff] [~loop_back] [+exit_facts]\n    Failed:    [!failsafe]\n  issue_reproduced: FULL\n    Satisfied: [+path] [+ctx_cont] [~info_suff] [~loop_back] [+exit_facts]\n    Failed:    [!failsafe]\n  fix_implemented: FULL\n    Satisfied: [+path] [+verify] [+ctx_cont] [+info_suff] [+loop_back] [+exit_facts]\n    Failed:    [!failsafe]\n  fix_verified: FULL\n    Satisfied: [+path] [+ctx_cont] [~info_suff] [~loop_back] [+exit_facts]\n    Failed:    [!failsafe]\n  patch_submitted: FULL\n    Satisfied: [+path] [+ctx_cont] [~info_suff] [~loop_back] [+exit_facts]\n    Failed:    [!failsafe]\n\nCoverage Summary:\n  - Fully covered:    5\n  - Partially covered: 0\n  - Uncovered:         0\n  - Overall: All Sub-Goals Fully Covered\n\nGraph-Level Issues:\n  None\n═══════════════════════════════════════════════════"
+      }
+    },
+    "layer1": {
+      "verification_summary": {
+        "unstructured_nodes": 5,
+        "total_nodes": 5,
+        "structured_nodes": 0,
+        "deterministic_nodes": 0,
+        "composition_nodes": 0
+      },
+      "parameters": [
+        {
+          "var_name": "code_path",
+          "type": "TString"
+        },
+        {
+          "var_name": "problem_statement",
+          "type": "TString"
+        },
+        {
+          "var_name": "regression_test_cmd",
+          "type": "TString"
+        }
+      ],
+      "parallel_scoped_nodes": [],
+      "node_count": 5,
+      "exit_node_ids": [
+        4
+      ],
+      "entry_node_id": 0,
+      "edge_types": {
+        "switch": 0,
+        "sequential": 4,
+        "loop_back": 0,
+        "loop": 0,
+        "join": 0,
+        "fork": 0,
+        "branch": 0
+      },
+      "edge_count": 4
+    }
+  }
+}

@@ -1,0 +1,64 @@
+name: "deep_research_flow_matching"
+goal: "Perform deep research on flow matching in biology and produce a comprehensive 2000-word analysis report"
+
+config:
+  model: "gpt-4o-mini"
+  max_tokens_per_step: 100000
+  max_tool_calls_per_step: 5
+  plan_revision_max_steps: 0
+
+parameters:
+  topic: "flow matching in biology"
+  sub_task: "flow_matching"
+  target_words: 2000
+
+workflow:
+  # Step 1: Bing search
+  - step:
+      name: "bing_search_top_results"
+      instruction: "Perform a Bing search for the topic '{{topic}}' and gather the top 10 results with URLs and descriptions"
+      
+  # Step 2: Fetch and extract web content
+  - step:
+      name: "fetch_and_extract_content"
+      instruction: "Visit the selected URLs from step 1 and fetch them to local disk. Extract text and summary to directory text_out. Concatenate the summary results with source URLs"
+      
+  # Step 3: Academic paper search
+  - step:
+      name: "academic_papers_search"
+      instruction: "Search for academic papers on Semantic Scholar related to '{{topic}}' and save the top 5 results with titles, URLs, and descriptions"
+      
+  # Step 4: Reddit discussion search
+  - step:
+      name: "reddit_discussions_search"
+      instruction: "Search for discussions on Reddit about '{{topic}}' and save the top 5 discussions with titles, URLs, and descriptions. Aggregate with step 3 output"
+      
+  # Step 5: Stack Overflow search
+  - step:
+      name: "stackoverflow_search"
+      instruction: "Search for questions and answers on Stack Overflow related to '{{topic}}' and save the top 5 results with titles, URLs, and descriptions. Aggregate with step 4 output"
+      
+  # Step 6: Extract key insights
+  - step:
+      name: "extract_key_insights"
+      instruction: "Load step-2's output and combine with step-5's output to extract key insights and summaries from the text. Create a summary of insights and key points with information sources"
+      
+  # Step 7: Comprehensive report
+  - synthesize:
+      name: "comprehensive_report"
+      instruction: |
+        Look at all findings from previous steps and your internal knowledge to create a comprehensive report on '{{topic}}'.
+        
+        The report should include:
+        1. Executive Summary
+        2. Background and Context
+        3. Key Findings from Web Research
+        4. Academic Perspectives (from papers)
+        5. Community Discussions and Practical Insights
+        6. Technical Q&A and Common Issues
+        7. Analysis and Synthesis
+        8. Conclusions and Recommendations
+        
+        Target length: {{target_words}} words minimum.
+        Include proper citations and source references.
+      output_file: "deep_research_{{topic}}_report.md"

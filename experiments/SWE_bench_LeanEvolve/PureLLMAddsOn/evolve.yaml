@@ -1,0 +1,599 @@
+name: "evolve_plan"
+goal: |
+    Given (a) the original SWE-bench YAML task plan, (b) the agent's execution
+    trajectory from a prior run of that plan, and (c) the SWE-bench evaluation
+    results (report.json + test_output.txt), produce an evolved YAML plan where
+    each step whose instruction demonstrably led the agent to fail is rewritten
+    in place with specific, trajectory-informed guidance welded seamlessly into
+    the prose. Steps that performed their role correctly stay byte-identical.
+    Phase 5 runs a structural validator and aborts the instance cleanly if any
+    check fails.
+
+config:
+    model: "${MODEL_NAME}"
+    temperature: 0.0
+    max_tokens_per_step: 32768
+    max_tool_calls_per_step: 20
+    plan_revision_max_steps: 0
+    enable_inline_tool_calls: true
+
+parameters:
+    instance_id: "${INSTANCE_ID}"
+    plan_name: "${PLAN_NAME:-passed_workflow_1}"
+    # Container-view paths (under /workspace/...) used by shell_run.
+    original_plan_yaml: "${ORIGINAL_PLAN_YAML}"
+    working_plan_yaml: "${WORKING_PLAN_YAML}"
+    event_log_path: "${EVENT_LOG_PATH}"
+    report_path: "${REPORT_PATH}"
+    test_output_path: "${TEST_OUTPUT_PATH}"
+    staging_dir: "${STAGING_DIR}"
+    instance_output_dir: "${INSTANCE_OUTPUT_DIR}"
+    package_dir: "${PACKAGE_DIR}"
+
+workflow:
+    # =========================================================================
+    # PHASE 1 - deterministic preparation (shell only, no LLM judgement needed)
+    # =========================================================================
+    - step:
+        name: "copy_original_to_working"
+        instruction: |
+            Use shell_run to make the working copy of the original plan that we
+            will mutate in place. If this copy already exists from a prior run,
+            overwriting it with the fresh original is the correct behaviour
+            (Phase 3 edits will re-apply).
+
+            ```bash
+            cp {{original_plan_yaml}} {{working_plan_yaml}}
+            ```
+
+            After the command succeeds, reply with exactly the string OK and
+            nothing else.
+        save_as: "copy_status"
+
+    - step:
+        name: "segment_trace"
+        instruction: |
+            Use shell_run to split the agent's event log into per-step
+            summaries that subsequent phases can cite:
+
+            ```bash
+            python {{package_dir}}/trace_segmenter.py \
+                --event_log {{event_log_path}} \
+                --staging_dir {{staging_dir}} \
+                --instance_id {{instance_id}}
+            ```
+
+            After the command succeeds, reply with exactly the string OK and
+            nothing else.
+        save_as: "segment_status"
+
+    - step:
+        name: "extract_eval_evidence"
+        instruction: |
+            Use shell_run to extract compact evaluation evidence (failing test
+            names + short excerpts + summary tail):
+
+            ```bash
+            python {{package_dir}}/eval_forensics.py \
+                --report {{report_path}} \
+                --test_output {{test_output_path}} \
+                --staging_dir {{staging_dir}} \
+                --instance_id {{instance_id}}
+            ```
+
+            After the command succeeds, reply with exactly the string OK and
+            nothing else.
+        save_as: "forensics_status"
+
+    - step:
+        name: "seed_amendments_digest"
+        instruction: |
+            Use shell_run to seed the amendments digest with one entry per
+            workflow step, all initially marked `confirmed`. Phase 3 rewrites
+            flip individual entries to `amended` as they edit.
+
+            ```bash
+            python {{package_dir}}/seed_digest.py \
+                --yaml {{original_plan_yaml}} \
+                --out {{staging_dir}}/amendments_digest.json
+            ```
+
+            After the command succeeds, reply with exactly the string OK and
+            nothing else.
+        save_as: "seed_status"
+
+    # =========================================================================
+    # PHASE 2 - structural load
+    # =========================================================================
+    - step:
+        name: "count_steps"
+        instruction: |
+            Use shell_run to determine how many workflow steps the trace
+            contains. This is ALSO the number of entries in the amendments
+            digest we just seeded.
+
+            ```bash
+            python -c "import json; print(len(json.load(open('{{staging_dir}}/trace_index.json'))['steps']))"
+            ```
+
+            Reply with ONLY the integer count - no prose, no quotes, no
+            additional text.
+        save_as: "num_steps"
+
+    - step:
+        name: "load_eval_evidence_into_context"
+        instruction: |
+            Use shell_run to print the eval evidence so later phases can cite
+            concrete failing tests:
+
+            ```bash
+            cat {{staging_dir}}/eval_evidence.json
+            ```
+
+            After printing, reply with exactly the string LOADED and nothing
+            else.
+        save_as: "eval_evidence_loaded"
+
+    - set_variable:
+        name: "i"
+        value: 0
+
+    # =========================================================================
+    # PHASE 3 - per-step rewrite loop
+    # Each iteration (a) pulls the per-step trajectory summary, (b) pulls the
+    # current instruction text, (c) decides whether the trajectory shows that
+    # step's instruction led the agent astray, and (d) if so rewrites the
+    # instruction in prose under strict style rules. The LLM is responsible
+    # for the adequate/inadequate judgement on each step.
+    # =========================================================================
+    - while:
+        condition: "i < num_steps"
+        max_iterations: 25
+        steps:
+            - step:
+                name: "rewrite_step_if_needed"
+                instruction: |
+                    You are evaluating workflow step {{i}} of the evolved YAML
+                    task plan (working copy at `{{working_plan_yaml}}`). The
+                    step may be a top-level task/step OR nested inside a
+                    for_each / while / if / switch / parallel block - addressing
+                    by `name:` handles all of them.
+
+                    Start by pulling the trace index entry for this step to get
+                    its canonical step_name and its step_id:
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{staging_dir}}/trace_index.json --path '["steps", {{i}}]' --get
+                    ```
+
+                    Extract the `step_name` and `step_id` fields from the output
+                    (call them STEP_NAME and SID below). Then pull the full
+                    per-step trajectory summary (what the agent did, which tools
+                    it invoked, which files it touched, what it concluded):
+
+                    ```bash
+                    cat {{staging_dir}}/step_SID_summary.md
+                    ```
+
+                    (Replace SID with the numeric step_id you just read.) Then
+                    pull the current instruction for that step from the working
+                    plan:
+
+                    ```bash
+                    python {{package_dir}}/EditYaml.py --yaml_path {{working_plan_yaml}} --get-by-name STEP_NAME
+                    ```
+
+                    (Replace STEP_NAME with the name you just read.)
+
+                    Now DECIDE whether this step's instruction was adequate.
+                    Cross-reference the per-step trajectory summary and the
+                    eval_evidence.json you loaded earlier.
+
+                    Signals the instruction WAS adequate (reply SKIPPED):
+                      - The step's stated artefact is present in the trajectory
+                        (right files identified, reproduction script written,
+                        fix applied, regression tests executed, patch
+                        generated, etc.), AND
+                      - No failing test name in `failure_excerpts` maps to this
+                        step's scope, AND
+                      - The final LLM response for the step contains no
+                        abandonment markers ("I could not", "unable to",
+                        "skipping", "let me try a different"), AND
+                      - Tool-call return codes in the trajectory are all 0 or
+                        the expected non-zero for that tool (e.g. `patch`
+                        reporting applied hunks).
+
+                    Signals the instruction was NOT adequate - match against
+                    these NAMED FAILURE PATTERNS; each pairs a concrete
+                    trajectory/eval observation with the corresponding rewrite
+                    recipe you should weld into the new instruction:
+
+                    (P1) TEST-FILTER MISS. Trajectory runs pytest with a
+                    narrowing `-k`, path filter, or partial module invocation;
+                    one or more test names in `eval_evidence.failure_excerpts`
+                    were NOT covered by that filter. Recipe: require the full
+                    FAIL_TO_PASS suite to run first with NO `-k` filter; name
+                    the suspect test file in full; only narrow AFTER initial
+                    failures are confirmed.
+
+                    (P2) WRONG-SYMBOL PATCH. Trajectory shows an edit to some
+                    file/function X, but the failing FAIL_TO_PASS test names
+                    in `eval_evidence` point to a different file or call path.
+                    Recipe: require the agent to trace the failing test from
+                    its import path to the call site and confirm the symbol
+                    to be patched lies on that call path BEFORE editing;
+                    print the exact symbol (via grep) for the record.
+
+                    (P3) UNDERSPECIFIED REPRODUCTION. `reproduce_issue`
+                    trajectory exits 0 or reports "issue reproduced", yet the
+                    eval shows the bug persists post-fix (FAIL_TO_PASS still
+                    failing) - the script missed the true edge case. Recipe:
+                    the reproduction script must raise (or exit non-zero) on
+                    the buggy code; if it exits cleanly on the current state,
+                    flag the reproduction as wrong and redo; name the specific
+                    edge case (argument value, call order, boundary
+                    condition) the repro must hit.
+
+                    (P4) PARTIAL / RETRY CONFUSION. Trajectory shows the same
+                    tool called 3+ times with different arguments in one
+                    step, or exception-then-ad-hoc-recovery markers. Recipe:
+                    before any edit or test invocation, require the agent to
+                    print the exact target (function name, file path, test
+                    command) and confirm via grep; forbid blind retries - on
+                    error, restate the plan and re-check the target.
+
+                    (P5) P2P REGRESSION. `eval_evidence.tests.f2p_pass` is
+                    non-empty (the fix "works") but `p2p_fail` is also
+                    non-empty (previously-passing tests broke). Recipe: after
+                    the fix, require the agent to run AT MINIMUM the full
+                    test module containing the patched symbol; abort / redo
+                    if any previously-passing test now fails; state that a
+                    fix adding K passing tests while breaking M previously
+                    passing ones is worse than no fix when M >= K.
+
+                    (P6) STEP-GOAL ABANDONMENT. The step's stated goal was
+                    not achieved and the step's final LLM response contains
+                    abandonment markers. Recipe: add a concrete gate -
+                    completion of the step requires a named artefact
+                    (file, patch, command output) to exist; if not, loop
+                    back and try again rather than declare done.
+
+                    READ-OK BUCKET (what the evidence is FOR). You MAY read
+                    failing test names, file:line refs, verbatim
+                    assertion/error text, method signatures, and test-runner
+                    invocations from `eval_evidence.failure_excerpts`, from
+                    `test_output_path`, and from the trajectory summary. They
+                    exist to help you identify the failure CLASS and its root
+                    cause. They are NOT content to paste.
+
+                    CASE A - adequate: Reply with exactly the string SKIPPED
+                    and take no other action. The step's digest entry stays
+                    `confirmed`.
+
+                    CASE B - inadequate: Rewrite the instruction under these
+                    HARD RULES without exception:
+
+                      1. Seamless prose. The result must read as if authored
+                         from scratch in the same voice, length-feel, and
+                         structural style as the original. No headers, no
+                         delimiters, no "PLAN EVOLUTION" label, no "EVIDENCE:"
+                         block, no meta-commentary about prior runs.
+                      2. No audit-trail leakage. The rewritten text MUST NOT
+                         contain any of these substrings (case-insensitive):
+                         "PLAN EVOLUTION", "previously failed", "based on
+                         prior run", "from the failed trajectory", "concrete
+                         evidence from", nor "---" used as a section divider.
+                      3. Preserve every `{{template}}` reference present in the
+                         original (e.g. `{{problem_statement}}`,
+                         `{{regression_test_cmd}}`). Same placement, same
+                         wording.
+                      4. Preserve every structural tag (`<IMPORTANT>`,
+                         `<boundaries>`, `<execution_rules>`,
+                         `<format_example>`, `<pr_description>`,
+                         `<environment_info>`, `<CRITICAL>`, etc.) - same
+                         placement, same wording unless directly superseded by
+                         a defensive instruction.
+                      5. Additions, not deletions. Every original requirement
+                         that isn't directly replaced by a defensive behavior
+                         must remain.
+                      6. Length within plus/minus 30% of the original character
+                         count.
+                      7. WRITE-FORBIDDEN BUCKET. The rewritten instruction MUST
+                         NOT contain ANY of the following — these are
+                         per-instance specifics that belong in diagnosis notes,
+                         not in a generalized plan template:
+                           (a) pytest IDs in the forms `*.py::test_X`,
+                               `::test_X`, or any bracket-parametrized variant
+                               `::test_X[...]`.
+                           (b) `file.py:LINE` references (e.g.
+                               `backend_agg.py:230`).
+                           (c) verbatim `AssertionError:`, `TypeError:`,
+                               `NameError:`, or `ImportError:` followed by a
+                               message body.
+                           (d) repo-pinned test-runner invocations such as
+                               `python ./tests/runtests.py <app> ...`,
+                               `pytest lib/<repo>/tests/...`, or
+                               `pytest tests/<repo>/...`.
+                           (e) literal failing-test counts like
+                               `FAIL_TO_PASS still failing (N)` or
+                               `PASS_TO_PASS regressed (N)`.
+                           (f) specific method signatures
+                               (e.g. `get_text_width_height_descent(self, s, prop, ismath)`)
+                               unless the SAME signature already appears in
+                               the original instruction.
+                           (g) specific framework / module file paths
+                               (e.g. `django/db/models/query_utils.py`) that
+                               the ORIGINAL instruction does not already name.
+                           (h) specific class / method names from the failing
+                               test subject (e.g. `Q.deconstruct()`,
+                               `RendererAgg.draw_text`).
+                      8. AFFIRMATIVE REFORMULATION. After drafting, re-read
+                         your own output and DELETE any sentence whose
+                         removal would not weaken the generalized imperative.
+                         If a sentence survives only because it names a
+                         specific test / file / class / assertion text, it is
+                         cheat-sheet drift — rewrite it in failure-CLASS
+                         terms or drop it.
+                      9. TRANSLATE SIGNATURE -> CLASS. Convert any concrete
+                         failure signature you read in READ-OK into a
+                         failure-class imperative that is agnostic to the
+                         domain object. Examples:
+                           * "`test_boolean_expression_combined_with_empty_Q`
+                             fails with AssertionError" -> DO write "guard the
+                             combinator against an identity-element operand";
+                             DO NOT write "handle the empty-operand edge case
+                             for Q expressions" (still leaks the Django-Q
+                             object).
+                           * "`test_bool_autolevel` expects one contour level
+                             at 0.5" -> DO write "handle the boolean-input
+                             path for the automatic-level selector so it
+                             selects a single interior level"; DO NOT write
+                             "when input dtype is bool, emit a level at 0.5".
+                           * `TypeError: __init__() got unexpected keyword
+                             argument 'connections_override'` -> DO write
+                             "preserve backward compatibility of the
+                             constructor signature; never break existing
+                             keyword-argument callers"; DO NOT write
+                             "remove the `connections_override` parameter".
+
+                    After composing the rewritten instruction, persist it with
+                    shell_run using EditYaml.py. `<NEW>` is a single
+                    JSON-encoded string (escape newlines as `\n`,
+                    double-quotes as `\"`). Wrap the outer argument in single
+                    quotes so the JSON survives the shell:
+
+                    ```bash
+                    python {{package_dir}}/EditYaml.py --yaml_path {{working_plan_yaml}} \
+                        --set-by-name STEP_NAME '<NEW>'
+                    ```
+
+                    Then flip the corresponding digest entry to `amended`:
+
+                    ```bash
+                    python {{package_dir}}/EditJson.py --json_path {{staging_dir}}/amendments_digest.json \
+                        --path '[{{i}}, "verdict"]' --set '"amended"'
+                    ```
+
+                    (Replace STEP_NAME with the step_name you read earlier.)
+                    After both commands print their OK line, reply with exactly
+                    the string REWRITTEN and nothing else.
+                save_as: "rewrite_status"
+
+            - increment: "i"
+
+    # =========================================================================
+    # PHASE 4 - whole-plan consistency review
+    # =========================================================================
+    - step:
+        name: "consistency_review"
+        instruction: |
+            Use shell_run to print the full evolved plan, the amendments
+            digest, and the eval evidence side-by-side so you can scan for
+            cross-step contradictions introduced by the per-step rewrites:
+
+            ```bash
+            cat {{working_plan_yaml}}
+            ```
+
+            ```bash
+            cat {{staging_dir}}/amendments_digest.json
+            ```
+
+            ```bash
+            cat {{staging_dir}}/eval_evidence.json
+            ```
+
+            Scan for cross-step contradictions. Flag these specific
+            cascades (matched to the Phase-3 named failure patterns):
+
+              - REPRO-FIX cascade: if `reproduce_issue` was rewritten to
+                tolerate unreproducible bugs (P3), `fix_issue` and
+                `verify_fix` must NOT still say "re-run the reproduction
+                script to confirm" or assume a clean reproduction is
+                available. Those downstream steps need to frame their check
+                around test outcomes, not repro exit codes.
+              - FIX-VERIFY cascade: if `fix_issue` was rewritten to trace
+                call paths before editing (P2), `verify_fix` must not
+                assume the fix site is known a priori; it should run the
+                module-level test suite, not a keyword-filtered slice.
+              - FILTER cascade: if any step was rewritten to forbid
+                keyword-filtered pytest (P1), no downstream step may
+                re-introduce a `-k` filter, a path-narrowed invocation, or
+                a single-test-by-name run as the PRIMARY verification.
+              - REGRESSION cascade: if `verify_fix` or `create_patch` was
+                rewritten to gate on P2P non-regression (P5), earlier
+                steps must not narrow test scope in a way that hides those
+                regressions.
+              - SCOPE BUDGET: Phase-4 corrections may only NARROW scope.
+                Reject any rewrite that adds new REQUIRED commands beyond
+                the Phase-3 recipes; additions must be at most 1-2
+                sentences of defensive framing per step.
+              - AUDIT LEAKAGE: any amended step's instruction contains
+                forbidden phrasing such as "PLAN EVOLUTION", "previously
+                failed", "based on prior run", "from the failed
+                trajectory", "concrete evidence from", or "---" used as
+                a section divider. Strip these.
+              - TEMPLATE DRIFT: a `{{template}}` reference present in the
+                original is absent in the rewrite. Restore every one.
+
+            CONSTRAINT: Phase 4 corrections may only NARROW scope - no new
+            required commands, no new templates, deletions allowed to remove
+            contradictions but additions must be minor (one or two sentences
+            of defensive framing).
+
+            Reply with a single JSON value (no markdown, no prose). Either:
+              - exactly `[]` if no corrections are needed, OR
+              - a JSON array of correction objects of the form
+                `[{"step_index": <int>, "step_name": "<name>", "new_instruction": "<full replacement text>"}]`
+
+            The `new_instruction` field must be the COMPLETE replacement block
+            (not a diff, not a patch). It must itself satisfy all hard rules
+            from the per-step prompt. Limit corrections to at most 3 entries;
+            if more than 3 contradictions exist, pick the 3 most severe (audit
+            leakage > template drift > logical contradiction > style).
+        save_as: "corrections"
+
+    - step:
+        name: "apply_corrections"
+        instruction: |
+            The previous step emitted this corrections JSON value:
+
+            ```json
+            {{corrections}}
+            ```
+
+            If the value is exactly `[]` (or an empty array), reply with
+            exactly the string NOOP and take no other action.
+
+            Otherwise, for EACH correction entry, invoke shell_run with:
+
+            ```bash
+            python {{package_dir}}/EditYaml.py --yaml_path {{working_plan_yaml}} \
+                --set-by-name <step_name> '<new_instruction_as_json_string>'
+            ```
+
+            `<step_name>` is the step's canonical name. `<new_instruction_as_json_string>`
+            is the replacement instruction, JSON-encoded as a single string
+            with embedded `\n` and escaped double-quotes. Wrap the outer
+            argument in single quotes so the JSON survives the shell.
+
+            If a step being corrected was previously marked `confirmed` in the
+            digest, also flip its digest verdict to `amended` so the validator
+            expects the change:
+
+            ```bash
+            python {{package_dir}}/EditJson.py --json_path {{staging_dir}}/amendments_digest.json \
+                --path '[<step_index>, "verdict"]' --set '"amended"'
+            ```
+
+            After all edits complete, reply with exactly the string APPLIED
+            and nothing else.
+        save_as: "correction_apply_status"
+
+    # =========================================================================
+    # PHASE 5 - final validation and output finalization
+    # =========================================================================
+    - step:
+        name: "validate_plan"
+        instruction: |
+            Use shell_run to run the structural validator on the evolved YAML
+            plan:
+
+            MANDATORY TOOL INVOCATION. You MUST invoke shell_run NOW to
+            run the validator. Do NOT emit any summary, narrative, or
+            reflection about prior steps. The required first action is a
+            shell_run tool-call with the exact command below — any prose
+            output without that tool call is a FAILURE of this step.
+
+            ```bash
+            python {{package_dir}}/plan_validator.py \
+                --original {{original_plan_yaml}} \
+                --evolved {{working_plan_yaml}} \
+                --digest {{staging_dir}}/amendments_digest.json \
+                --report {{instance_output_dir}}/validation_report.json
+            ```
+
+            If the validator exits 0 (prints `OK:`), reply with exactly the
+            string VALIDATED and nothing else.
+
+            If the validator exits non-zero (prints `FAIL:`), inspect the
+            report:
+
+            ```bash
+            cat {{instance_output_dir}}/validation_report.json
+            ```
+
+            REPAIR ATTEMPT #1. Identify the failing check(s). If the failure
+            is a curable issue (forbidden substring slipped through, missing
+            template, or a step marked `amended` whose rewrite was identical
+            to the original), issue one `EditYaml.py --set-by-name` call to
+            fix the specific step and re-run the validator. If it passes,
+            reply with VALIDATED.
+
+            REPAIR ATTEMPT #2 — NO-AMEND FALLBACK. If repair attempt #1 also
+            fails, identify from the report every step name that still has
+            any failing per-step check whose name starts with
+            `no_cheat_sheet_leakage[`, `no_audit_leakage[`, or
+            `templates_preserved[`. For each such step, REVERT its
+            instruction to byte-identical with the original via:
+
+            ```bash
+            ORIG_INSTR_JSON=$(python {{package_dir}}/EditYaml.py \
+                --yaml_path {{original_plan_yaml}} \
+                --get-by-name <step_name> \
+                | python -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+            python {{package_dir}}/EditYaml.py \
+                --yaml_path {{working_plan_yaml}} \
+                --set-by-name <step_name> "$ORIG_INSTR_JSON"
+            ```
+
+            And flip its digest verdict back to `confirmed`:
+
+            ```bash
+            python {{package_dir}}/EditJson.py \
+                --json_path {{staging_dir}}/amendments_digest.json \
+                --path '[<step_index>, "verdict"]' --set '"confirmed"'
+            ```
+
+            Then re-run the validator. If it passes, reply with the string
+            VALIDATED_NO_AMEND (this means at least one step was reverted to
+            original because its rewrite could not pass the cheat-sheet /
+            audit / template checks — the evolved plan is still valid but
+            less aggressive than intended). If the validator STILL fails,
+            the failure is structural (step count / step names / block
+            scalar) and cannot be fixed by reverting instructions — reply
+            with exactly the string VALIDATION_FAILED and nothing else.
+        save_as: "validation_status"
+
+    - step:
+        name: "finalize_output"
+        instruction: |
+            MANDATORY TOOL INVOCATION. You MUST invoke shell_run NOW with
+            the command below. Do NOT write any summary, explanation,
+            reflection, narrative, or prose. Do NOT describe what the
+            previous steps did. The only correct behavior is: invoke
+            shell_run with the exact command, wait for its output, then
+            reply with the literal string DONE and nothing else. Any
+            response that is not a shell_run tool-call followed by the
+            string DONE is a FAILURE of this step.
+
+            ```bash
+            cp {{working_plan_yaml}} {{instance_output_dir}}/evolved_plan.yaml && \
+                test -f {{instance_output_dir}}/evolved_plan.yaml && echo FINALIZE_OK
+            ```
+
+            After the command prints FINALIZE_OK, reply with exactly the
+            string DONE and nothing else.
+        save_as: "finalize_status"
+
+    - step:
+        name: "report_status"
+        instruction: |
+            Use shell_run to print a one-line summary of the validation
+            report:
+
+            ```bash
+            python -c "import json; r=json.load(open('{{instance_output_dir}}/validation_report.json')); s=r['summary']; print(f'pass={s[\"pass\"]} amended={s[\"falsified_rewritten\"]} confirmed={s[\"confirmed_preserved\"]} failing_checks={s[\"failing_checks\"]}')"
+            ```
+
+            Then reply with exactly the string DONE and nothing else.

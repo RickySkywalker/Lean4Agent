@@ -1,0 +1,459 @@
+# decomposed_SWE_bench.yaml
+name: "swe_agent_decomposed"
+goal: "Given a GitHub issue, reproduce the bug, locate the root cause, implement a fix, verify it, and submit a patch."
+
+system_prompt: |
+    You are a skilled software engineer interacting with a Linux shell to solve programming tasks.
+
+    STRICT FORMAT RULES:
+    - Your response must contain AT MOST one code block.
+    - If you include more than one code block, your response will be REJECTED.
+    - The code block must contain ONE command (or commands connected with && or ||).
+    - The code block must be either a bash block (raw shell command) or a subagent block (subagent name as the fence language).
+    - If you have nothing to execute, respond with plain text and NO code block.
+
+    Include a THOUGHT section before your command where you explain your reasoning process.
+    Format your response as shown in <format_example>.
+
+    <format_example>
+    THOUGHT: You should first consider the task goal, your current state, and plan for your future actions. Then tell the user whether you want to run a bash command or call a subagent to help with a task and explain in depth why or why not.
+
+    ```bash or subagent
+    your_command_here
+    ```
+    </format_example>
+
+    <IMPORTANT>
+    1. Unless you think the current step's objective is fully accomplished, you MUST include a tool-call in every response. When you make no tool-call, it will be treated as a signal that you have completed the current step, and the system will move on.
+    2. The tool-call is performed through using the shell_run tool; placing a code block alone will not trigger execution.
+    3. Directory or environment variable changes are not persistent across tool calls. Prefix commands with `cd /path && ...` as needed.
+    4. Use non-interactive flags (-y, -f) and avoid interactive editors (vi, nano).
+    </IMPORTANT>
+
+
+config:
+  model: ${MODEL_NAME}
+  temperature: 1.0
+  model_kwargs:
+    reasoning_effort: "high"
+  max_tool_calls_per_step: 20
+  expose_submodules_as_tools: false
+  enable_inline_tool_calls: true
+
+parameters:
+    code_path: "${CODE_PATH:-/workspace/tmp/repo}"
+    problem_statement: "${PROBLEM_STATEMENT}"
+    regression_test_cmd: ""
+    fix_attempt: 0
+    max_fix_attempts: 3
+
+workflow:
+  # ================================================================
+  # PHASE 1: Understand the Issue and Explore the Codebase
+  # ================================================================
+
+  - task:
+      name: "explore_codebase"
+      instruction: |
+        <pr_description>
+        {{problem_statement}}
+        </pr_description>
+
+        ## Objective
+        Understand the codebase and the issue described above.
+
+        ## What to do
+        1. Read the PR/issue description carefully. Identify the key symptoms, error messages, and expected vs actual behavior.
+        2. Explore the repository structure at /testbed:
+           - `ls -la /testbed` to see the top-level layout
+           - Look at README, setup.py/pyproject.toml to understand the project
+           - `find /testbed -type f -name "*.py" | head -40` to see the Python file structure
+        3. Based on the issue description, identify which modules, classes, or functions are likely involved.
+        4. Read through the relevant source files to understand the current implementation.
+
+        ## Output format
+        When done, summarize your findings as:
+        ```
+        PROJECT: <project name and brief description>
+        ISSUE SUMMARY: <1-2 sentence summary of the bug>
+        KEY SYMPTOMS: <error messages, unexpected behavior>
+        RELEVANT FILES: <list of source files likely involved, one per line>
+        ROOT CAUSE HYPOTHESIS: <your best guess at what's wrong>
+        ```
+      save_as: "codebase_analysis"
+
+  # ================================================================
+  # PHASE 2: Reproduce the Bug
+  # ================================================================
+
+  - task:
+      name: "reproduce_issue"
+      instruction: |
+        ## Context
+        Here is what we know about the codebase and issue:
+        {{codebase_analysis}}
+
+        ## Objective
+        Create and run a script that reproduces the bug described in the issue.
+
+        ## What to do
+        1. Based on the issue description and codebase analysis, write a small Python script (or shell command) that demonstrates the bug.
+        2. Save it to `/testbed/reproduce_issue.py`.
+        3. Run it with `cd /testbed && python reproduce_issue.py`.
+        4. Confirm you see the reported error or incorrect behavior.
+        5. If the first attempt doesn't reproduce, adjust and retry (check imports, paths, versions).
+
+        ## Important
+        - The working directory for all commands is /testbed.
+        - If there is a specific test command in the issue, try that too.
+        - Make sure the reproduction is reliable and minimal.
+
+        ## Output format
+        When done, report:
+        ```
+        REPRODUCTION STATUS: <SUCCESS or FAILURE>
+        REPRODUCTION SCRIPT: /testbed/reproduce_issue.py
+        OBSERVED ERROR: <the error message or incorrect output you saw>
+        EXPECTED BEHAVIOR: <what the correct output should be>
+        ```
+      save_as: "reproduction_result"
+
+  # ================================================================
+  # PHASE 3: Localize the Root Cause
+  # ================================================================
+
+  - task:
+      name: "localize_root_cause"
+      instruction: |
+        ## Context
+        Codebase analysis:
+        {{codebase_analysis}}
+
+        Reproduction result:
+        {{reproduction_result}}
+
+        ## Objective
+        Pinpoint the exact source file(s) and code region(s) causing the bug.
+
+        ## What to do
+        1. Use the error traceback (if any) to identify the call chain.
+        2. Read the relevant source files carefully:
+           - Use `cat` or `sed -n 'START,ENDp'` to read specific sections
+           - Use `grep -rn "keyword" /testbed/src/` to find related code
+        3. Trace the logic from the entry point to where the bug manifests.
+        4. Identify the specific function(s) and line(s) that need to change.
+        5. Understand WHY the current code is wrong — don't just find WHERE.
+
+        ## Important boundaries
+        - ONLY look at non-test source files.
+        - DO NOT modify any code yet — this step is analysis only.
+
+        ## Output format
+        When done, report:
+        ```
+        ROOT CAUSE: <precise explanation of the bug>
+        FILES TO MODIFY: <list of files that need changes>
+        SPECIFIC LOCATIONS: <function names and line numbers>
+        PLANNED FIX: <description of what changes to make>
+        ```
+      save_as: "root_cause_analysis"
+
+  # ================================================================
+  # PHASE 4 & 5: Fix and Verify (iterative loop)
+  # ================================================================
+  # Key design principles:
+  # - root_cause_analysis is saved ONCE and never overwritten, so the
+  #   core fix goal is never lost across retry iterations.
+  # - On retry, only the INCREMENTAL changes are reverted (the specific
+  #   files from that attempt), not the entire repo.
+  # - Verification focuses on the ORIGINAL issue (reproduction script
+  #   + targeted tests for modified files), NOT the full test suite.
+  # ================================================================
+
+  - set_variable:
+      name: "fix_attempt"
+      value: 0
+
+  - set_variable:
+      name: "fix_verified"
+      value: "false"
+
+  - set_variable:
+      name: "retry_notes"
+      value: "No previous attempts."
+
+  - while:
+      condition: "fix_attempt < max_fix_attempts"
+      max_iterations: 4
+      steps:
+        # ---- Sub-phase 4a: Implement the fix ----
+        - task:
+            name: "implement_fix"
+            instruction: |
+              ## Context
+              Codebase analysis:
+              {{codebase_analysis}}
+
+              Reproduction result:
+              {{reproduction_result}}
+
+              Root cause analysis (ORIGINAL — this is the primary bug to fix):
+              {{root_cause_analysis}}
+
+              Notes from previous attempts:
+              {{retry_notes}}
+
+              Fix attempt: {{fix_attempt}} of {{max_fix_attempts}}
+
+              ## Objective
+              Edit the source code to fix the bug described in the root cause analysis.
+
+              <CRITICAL>
+              Your PRIMARY goal is to fix the bug described in the ORIGINAL root cause
+              analysis above. If previous attempts failed, the retry_notes explain what
+              went wrong — use that info to adjust your approach, but do NOT lose sight
+              of the original bug. Every fix attempt MUST address the original issue.
+              </CRITICAL>
+
+              ## What to do
+              1. Navigate to the file(s) identified in the root cause analysis.
+              2. Read the current code at the specific location to confirm state
+                 (the file may have been reverted from a previous attempt).
+              3. Apply the necessary code changes using `sed`, `cat` with heredoc, or `python -c` to patch.
+              4. Verify the edit looks correct by reading the modified file.
+              5. Record exactly which files you modified (you'll need this for selective revert).
+
+              ## Important boundaries
+              - MODIFY ONLY regular source code files in /testbed.
+              - DO NOT modify tests, configuration files (pyproject.toml, setup.cfg, etc.).
+              - Make the MINIMAL change needed to fix the issue.
+              - Ensure your fix is general and handles edge cases.
+
+              ## Output format
+              When done, report:
+              ```
+              MODIFIED FILES: <list of files changed, one per line>
+              CHANGES MADE: <brief description of each change>
+              ```
+            save_as: "fix_description"
+
+        # ---- Sub-phase 4b: Verify the fix ----
+        - task:
+            name: "verify_fix"
+            instruction: |
+              ## Context
+              Fix description:
+              {{fix_description}}
+
+              Reproduction script was saved at: /testbed/reproduce_issue.py
+
+              ## Objective
+              Verify that the fix resolves the ORIGINAL issue.
+
+              ## What to do — IN THIS ORDER
+              1. **Re-run the reproduction script** (MOST IMPORTANT):
+                 `cd /testbed && python reproduce_issue.py`
+                 This MUST show the bug is fixed. If the reproduction script still
+                 shows the original problem, the fix has FAILED — stop and report FAIL.
+
+              2. **Run TARGETED tests** for the modified area only:
+                 Identify the test file(s) most closely related to the files you modified.
+                 For example, if you modified `foo/bar/baz.py`, run:
+                 `cd /testbed && python -m pytest foo/bar/tests/ -x -q` (or similar)
+                 Do NOT run the full test suite (`pytest -rA` on the entire repo) — it
+                 is too slow and may have pre-existing failures unrelated to your fix.
+
+              3. **Test a few edge cases** relevant to your specific change.
+
+              ## How to judge PASS vs FAIL
+              - PASS: The reproduction script shows the bug is fixed AND targeted tests pass.
+              - FAIL: The reproduction script still shows the bug, OR your change broke
+                targeted tests that were passing before.
+
+              <CRITICAL>
+              Do NOT mark as FAIL because of:
+              - Pre-existing test failures in UNRELATED modules
+              - Full test suite collection errors (e.g., NumPy version incompatibilities
+                in other subpackages)
+              - Edge cases in code you did NOT modify
+              These are OUT OF SCOPE. Focus ONLY on whether YOUR fix works for the
+              reported issue.
+              </CRITICAL>
+
+              ## Output format
+              When done, report:
+              ```
+              VERIFICATION STATUS: <PASS or FAIL>
+              REPRODUCTION RESULT: <output of the reproduction script — is the bug fixed?>
+              TARGETED TESTS: <which test files you ran and their results>
+              ISSUES FOUND: <any problems WITH YOUR FIX, or "None">
+              ```
+
+              Set your final line to exactly: VERIFIED=true or VERIFIED=false
+            save_as: "verification_result"
+
+        # ---- Check verification result ----
+        - task:
+            name: "check_verification"
+            instruction: |
+              The verification result is:
+              {{verification_result}}
+
+              If the verification passed (VERIFIED=true), respond with ONLY:
+              FIX_VERIFIED=true
+
+              If it failed (VERIFIED=false), analyze what went wrong and respond with ONLY:
+              FIX_VERIFIED=false
+              FAILURE_REASON: <why the fix didn't work>
+              NEXT_APPROACH: <what to try differently next attempt>
+            save_as: "verification_check"
+
+        # ---- Update loop variables based on result ----
+        - task:
+            name: "update_fix_status"
+            instruction: |
+              Based on the verification check:
+              {{verification_check}}
+
+              If it contains "FIX_VERIFIED=true", respond with ONLY the text: true
+              If it contains "FIX_VERIFIED=false", respond with ONLY the text: false
+            save_as: "fix_verified"
+
+        # Exit loop early if fix is verified
+        - if:
+            condition: "fix_verified == true"
+            then:
+              - set_variable:
+                  name: "fix_attempt"
+                  value: "{{max_fix_attempts}}"
+            else:
+              # Accumulate retry notes (do NOT overwrite root_cause_analysis)
+              - task:
+                  name: "accumulate_retry_notes"
+                  instruction: |
+                    The fix attempt {{fix_attempt}} failed.
+
+                    Previous retry notes:
+                    {{retry_notes}}
+
+                    What was tried this time:
+                    {{fix_description}}
+
+                    Why it failed:
+                    {{verification_check}}
+
+                    ## Objective
+                    Produce a CONCISE summary of all failed attempts so far, to guide
+                    the next attempt. This will be passed as "retry_notes" to the next
+                    implement_fix step.
+
+                    <IMPORTANT>
+                    Do NOT re-state the original root cause analysis — that is passed
+                    separately and remains unchanged. Focus ONLY on:
+                    1. What was tried in each failed attempt
+                    2. Why each attempt failed
+                    3. What to try differently next time
+                    </IMPORTANT>
+
+                    Respond with a concise summary (no more than 10 lines).
+                  save_as: "retry_notes"
+
+              # Selectively revert ONLY the files modified in this attempt
+              - task:
+                  name: "revert_changes"
+                  instruction: |
+                    The fix attempt failed and we need to revert changes before retrying.
+
+                    The files that were modified in this attempt:
+                    {{fix_description}}
+
+                    ## What to do
+                    1. Extract the list of MODIFIED FILES from the fix description above.
+                    2. Revert ONLY those specific files:
+                       `cd /testbed && git checkout -- path/to/file1.py path/to/file2.py`
+                    3. Confirm the revert worked:
+                       `cd /testbed && git diff --name-only`
+                       (should show no changes, or only changes from previous successful fixes)
+
+                    <CRITICAL>
+                    Do NOT run `git checkout -- .` (which reverts everything).
+                    Revert ONLY the specific files listed in MODIFIED FILES above.
+                    </CRITICAL>
+
+                    Respond with a confirmation that the revert was successful.
+
+              - increment: "fix_attempt"
+
+  # ================================================================
+  # PHASE 6: Create and Submit the Patch
+  # ================================================================
+
+  - if:
+      condition: "fix_verified == true"
+      then:
+        - task:
+            name: "create_patch"
+            instruction: |
+              ## Context
+              Fix description:
+              {{fix_description}}
+
+              ## Objective
+              Create a clean git patch containing ONLY the source file changes.
+
+              ## What to do
+              Step 1: Identify exactly which source files you modified:
+              `cd /testbed && git diff --name-only`
+
+              Step 2: Create the patch with ONLY those source files:
+              `cd /testbed && git diff -- path/to/file1.py path/to/file2.py > patch.txt`
+
+              Step 3: Review the patch to confirm:
+              - It only contains your intended changes
+              - Headers show `--- a/` and `+++ b/` paths
+              - No test files, config files, reproduction scripts, or helper files are included
+              - No binary files are included
+
+              ## Excluded files
+              The patch must NOT include:
+              - Test files or reproduction scripts (e.g., reproduce_issue.py)
+              - Configuration files (pyproject.toml, setup.cfg, etc.)
+              - Helper scripts or tools you created
+              - Binary or compiled files
+
+              `cat /testbed/patch.txt`
+
+              Respond with: PATCH_READY=true or PATCH_READY=false
+            save_as: "patch_status"
+
+        - task:
+            name: "submit_patch"
+            instruction: |
+              The patch has been created and reviewed.
+
+              Submit it now using this EXACT command:
+              ```bash
+              cd /testbed && echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt
+              ```
+
+              This is the final action. You CANNOT continue working after this.
+            save_as: "submission_result"
+
+      else:
+        - task:
+            name: "submit_best_effort"
+            instruction: |
+              All {{max_fix_attempts}} fix attempts have been exhausted without full verification.
+
+              Check if the latest changes at least partially address the issue:
+              1. `cd /testbed && git diff --name-only` — confirm there are changes
+              2. `cd /testbed && python reproduce_issue.py` — check current state
+
+              If there are meaningful changes that improve the situation, create and submit a patch:
+              1. `cd /testbed && git diff -- <modified_source_files> > patch.txt`
+              2. Review: `cd /testbed && cat patch.txt`
+              3. Submit: `cd /testbed && echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt`
+
+              If there are no meaningful changes, submit an empty patch:
+              `cd /testbed && echo "" > patch.txt && echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt`
+            save_as: "submission_result"

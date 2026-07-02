@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* UI terminal readability tweaks */
+.ui-terminal pre {
+  /* match App.tsx UI_TERMINAL_BG/FG */
+  background: #0b0f17;
+  color: #e5e7eb;
+}
+
+.ui-terminal iframe {
+  background: #0b0f17;
+}
+
+/* Make the terminal resizer visible on dark bg */
+.ui-terminal-resizer.resizer::before {
+  background: #334155; /* slate-700 */
+}
+.ui-terminal-resizer.resizer:hover::before,
+.ui-terminal-resizer.resizer:active::before {
+  background: #60a5fa; /* blue-400 */
+}
+
+/* Some ANSI converters render dim as low opacity; make it more readable. */
+.ui-terminal span[style*="opacity:0.5"] {
+  opacity: 0.75 !important;
+}
+
+.ui-terminal span[style*="opacity:0.4"] {
+  opacity: 0.7 !important;
+}
+
+/* Drop target highlight on the specific branch zone */
+.drop-target-highlight {
+  border-color: #3b82f6 !important;
+  border-style: solid !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  box-shadow: inset 0 0 12px rgba(59, 130, 246, 0.15) !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* React Flow custom styles */
+.react-flow__node {
+  font-size: 12px;
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+}
+
+/* Custom node styles */
+.custom-node {
+  padding: 10px 15px;
+  border-radius: 8px;
+  min-width: 150px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.custom-node:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.custom-node.selected {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.node-header {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
+.node-title {
+  font-weight: 500;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.node-subtitle {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Sidebar drag item styles */
+.drag-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: grab;
+  font-size: 13px;
+  font-weight: 500;
+  border: 2px solid transparent;
+  transition: all 0.15s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.drag-item:hover {
+  transform: translateX(4px);
+}
+
+.drag-item:active {
+  cursor: grabbing;
+}
+
+/* Panel styles */
+.panel {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Editor styles */
+.monaco-editor {
+  border-radius: 0 0 8px 8px;
+}
+
+/* Resizer styles */
+.resizer {
+  position: relative;
+  flex-shrink: 0;
+  background: transparent;
+  z-index: 10;
+}
+
+.resizer-horizontal {
+  width: 6px;
+  cursor: col-resize;
+}
+
+.resizer-vertical {
+  height: 6px;
+  cursor: row-resize;
+}
+
+.resizer::before {
+  content: '';
+  position: absolute;
+  background: #e5e7eb;
+  transition: background 0.15s ease;
+}
+
+.resizer-horizontal::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+}
+
+.resizer-vertical::before {
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+}
+
+.resizer:hover::before,
+.resizer:active::before {
+  background: #3b82f6;
+}
+
+.resizer-handle {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.resizer-horizontal .resizer-handle {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 24px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #9ca3af 0px,
+    #9ca3af 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  border-radius: 2px;
+}
+
+.resizer-vertical .resizer-handle {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 4px;
+  width: 24px;
+  background: repeating-linear-gradient(
+    to right,
+    #9ca3af 0px,
+    #9ca3af 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  border-radius: 2px;
+}
+
+.resizer:hover .resizer-handle {
+  opacity: 1;
+}
+
