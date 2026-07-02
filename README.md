@@ -25,8 +25,6 @@ Then create your LLM credentials file from the shipped template (real `*.env` fi
 
 ```bash
 cp configs/LLM-config.env.example configs/LLM-config.env
-# edit configs/LLM-config.env — the examples below use AWS Bedrock
-# access to zai.glm-5 in us-west-2
 ```
 
 ### 2. Run a verification-passing workflow and compare it with a verification-failing one
@@ -35,7 +33,7 @@ cp configs/LLM-config.env.example configs/LLM-config.env
 
 `experiments/SWE_bench_verified/` ships paired SWE-Bench workflows: `passed_workflow_{1,2,3}.yaml` **pass** FormalAgentLib's Layer-2 semantic verification, while `failed_workflow_{1,2,3}.yaml` **fail** it. Running a passing and a failing workflow with the *same* model on the *same* instances and comparing how many issues each resolves reproduces the paper's core finding: verification-passing workflows outperform failing ones.
 
-The example below uses **glm-5 on AWS Bedrock**. Beyond Step 1 you also need a running **Docker** daemon (each instance is solved inside its SWE-Bench container) and **AWS Bedrock** access to `zai.glm-5` in `us-west-2`.
+The example below uses **GLM-5 on AWS Bedrock**. Beyond Step 1, you also need a running **Docker** daemon (each instance is solved within its SWE-Bench container) and access to AWS Bedrock for `zai.glm-5` in `us-west-2`.
 
 ```bash
 # the LLM/Bedrock config created in Step 1
@@ -62,7 +60,7 @@ python -m swebench.harness.run_evaluation --dataset_name "$DATA" \
 
 #### 2.2 ELAIP-Bench 100-problem subset
 
-**ELAIP-Bench** works the same way with `experiments/elaipbench/`: `passed_workflow_{1,2,3}.yaml` **pass** Layer-2 verification while `failed_workflow_{1,2,3}.yaml` **fail** it. Evaluation is integrated into `run.py`, so there is no separate scoring step.
+**ELAIP-Bench** works the same way with `experiments/elaipbench/`: `passed_workflow_{1,2,3}.yaml` **pass** Layer-2 verification while `failed_workflow_{1,2,3}.yaml` **fails** it. Evaluation is integrated into `run.py`, so there is no separate scoring step.
 
 ```bash
 source ./configs/LLM-config.env         # same glm-5 Bedrock config
@@ -81,15 +79,13 @@ python experiments/elaipbench/run.py \
 
 #### 3.1 LeanEvolve with environment feedback
 
-On SWE tasks the environment provides feedback (test results), which allows us to perform both LLM-based and Lean-based workflow evolution. `experiments/SWE_bench_LeanEvolve/` merges the two arms into one **correction cascade**: for every instance on which a workflow previously **failed**, it first re-rolls the workflow with **LeanEvolve** (Lean-formal-guided: annotate → evolve → rerun) and evaluates; each instance still failing is then re-rolled with the **LLMEvolve** baseline and evaluated. A problem counts as an *additional pass* if either arm resolves it. Both arms reuse their resumable staging trees, so the wrapper picks up prior work and re-runs only what is missing.
+On SWE tasks, the environment provides feedback (test results), which allows us to perform both LLM-based and Lean-based workflow evolution. `experiments/SWE_bench_LeanEvolve/` merges the two arms into one **correction cascade**: for every instance on which a workflow previously **failed**, it first re-rolls the workflow with **LeanEvolve** (Lean-formal-guided: annotate → evolve → rerun) and evaluates; each instance still failing is then re-rolled with the **LLMEvolve** baseline and evaluated. A problem counts as an *additional pass* if either arm resolves it. Both arms reuse their resumable staging trees, so the wrapper picks up prior work and re-runs only what is missing.
 
 Prerequisites match Section 2.1 (a running **Docker** daemon and **AWS Bedrock** access to `zai.glm-5`), plus the AgentSPEX MCP sandbox for the evolve stages.
 
 ```bash
 source ./configs/LLM-config.env
 
-# Correct the failures of a prior baseline run (here passed_workflow_1, glm-5 = 32/50 resolved).
-# --source-outputs-root / --source-eval-root point at that run's trajectories + eval.
 python -u experiments/SWE_bench_LeanEvolve/run.py \
   --plan-name passed_workflow_1 \
   --source-outputs-root tmp/runs/passed_workflow_1 \
