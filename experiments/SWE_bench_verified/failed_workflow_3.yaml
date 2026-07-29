@@ -1,5 +1,5 @@
 # seed_004.yaml — SWE-agent plan sample, seed=4
-name: "swe_agent_triage_and_fix_seed_004"
+name: "SWE_bench_failed_workflow_3"
 goal: "Reproduce the issue described by the PR and produce a git patch that fixes it."
 
 system_prompt: |

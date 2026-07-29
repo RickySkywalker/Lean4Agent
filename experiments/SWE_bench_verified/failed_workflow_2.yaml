@@ -1,4 +1,4 @@
-name: "swe_agent_structured_seed_001"
+name: "SWE_bench_failed_workflow_2"
 goal: "Reproduce the issue described by the PR and produce a git patch that fixes it."
 
 system_prompt: |

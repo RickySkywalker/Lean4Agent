@@ -1,5 +1,5 @@
 {
-  "name": "passed_workflow_2_v2",
+  "name": "passed_workflow_2",
   "goal": "Given a GitHub issue, reproduce the bug and fix it by producing a minimal source-code patch",
   "parameters": [
     {

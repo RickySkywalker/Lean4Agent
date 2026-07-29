@@ -1,5 +1,4 @@
-# claude_write_plan_1.yaml
-name: "swe_agent"
+name: "SWE_bench_failed_workflow_1"
 goal: "Given a GitHub issue, reproduce the bug and fix it by modifying source code, then submit a patch"
 
 system_prompt: |

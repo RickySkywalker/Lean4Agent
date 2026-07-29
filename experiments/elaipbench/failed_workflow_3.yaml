@@ -1,4 +1,4 @@
-name: "elaipbench_agent_bad_plan_4"
+name: "elaipbench_failed_workflow_3"
 goal: "Answer an academic paper question based on the provided passage"
 system_prompt: |
   You are an expert academic researcher skilled at reading and understanding scientific papers. You answer questions about academic papers by carefully analyzing the provided passage. Be precise and select only the answer(s) that are supported by the passage.

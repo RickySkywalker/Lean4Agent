@@ -1,5 +1,4 @@
-# claude_write_plan_2.yaml
-name: "swe_agent"
+name: "SWE_bench_passed_workflow_1"
 goal: "Given a GitHub issue, reproduce it and fix it by producing a minimal git patch"
 
 system_prompt: |

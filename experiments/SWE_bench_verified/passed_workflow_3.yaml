@@ -1,5 +1,4 @@
-# decomposed_SWE_bench.yaml
-name: "swe_agent_decomposed"
+name: "SWE_bench_passed_workflow_3"
 goal: "Given a GitHub issue, reproduce the bug, locate the root cause, implement a fix, verify it, and submit a patch."
 
 system_prompt: |

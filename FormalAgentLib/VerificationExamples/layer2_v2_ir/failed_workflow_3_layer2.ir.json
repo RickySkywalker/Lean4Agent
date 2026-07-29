@@ -1,5 +1,5 @@
 {
-  "name": "seed_004",
+  "name": "failed_workflow_3",
   "goal": "Reproduce the issue described by the PR and produce a git patch that fixes it.",
   "parameters": [
     {
